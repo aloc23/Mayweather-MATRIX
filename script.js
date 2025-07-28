@@ -90,13 +90,17 @@ function handleFile(event) {
 }
 
 function showSheetConfigPanel(data) {
-  // Preview first 12 rows and 12 columns
-  let previewRows = Math.min(12, data.length);
-  let previewCols = 0;
-  for (let r = 0; r < previewRows; r++) {
-    previewCols = Math.max(previewCols, data[r].length);
+  // Determine widest row
+  let maxRows = data.length;
+  let maxCols = 0;
+  for (let r = 0; r < maxRows; r++) {
+    maxCols = Math.max(maxCols, data[r].length);
   }
-  let html = '<table id="sheetPreviewTable"><thead><tr>';
+  // Show up to 50 rows and columns, but allow scrolling for more
+  let previewRows = Math.min(50, maxRows);
+  let previewCols = Math.min(50, maxCols);
+
+  let html = '<div style="overflow:auto; max-height:400px;"><table id="sheetPreviewTable"><thead><tr>';
   for (let c = 0; c < previewCols; c++) {
     html += `<th>Col ${c}</th>`;
   }
@@ -108,36 +112,35 @@ function showSheetConfigPanel(data) {
     }
     html += '</tr>';
   }
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   sheetPreview.innerHTML = html;
 
-  // Populate selectors
+  // Populate selectors with ALL available row/col indices
   weekLabelRowSelector.innerHTML = '';
   repaymentRowSelector.innerHTML = '';
   startRowSelector.innerHTML = '';
   endRowSelector.innerHTML = '';
   labelColSelector.innerHTML = '';
   firstWeekColSelector.innerHTML = '';
-
-  for (let r = 0; r < previewRows; r++) {
+  for (let r = 0; r < maxRows; r++) {
     let label = `Row ${r}`;
     weekLabelRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
     repaymentRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
     startRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
     endRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
   }
-  for (let c = 0; c < previewCols; c++) {
+  for (let c = 0; c < maxCols; c++) {
     let label = `Col ${c}`;
     labelColSelector.innerHTML += `<option value="${c}">${label}</option>`;
     firstWeekColSelector.innerHTML += `<option value="${c}">${label}</option>`;
   }
-  // Defaults
-  weekLabelRowSelector.value = 3;
-  repaymentRowSelector.value = 4;
-  startRowSelector.value = 4;
-  endRowSelector.value = Math.min(data.length-1, 269);
-  labelColSelector.value = 1;
-  firstWeekColSelector.value = 5;
+  // Optionally set defaults as before...
+  weekLabelRowSelector.value = Math.min(3, maxRows-1);
+  repaymentRowSelector.value = Math.min(4, maxRows-1);
+  startRowSelector.value = Math.min(4, maxRows-1);
+  endRowSelector.value = Math.min(maxRows-1, 269);
+  labelColSelector.value = Math.min(1, maxCols-1);
+  firstWeekColSelector.value = Math.min(5, maxCols-1);
 
   sheetConfigPanel.style.display = '';
   applySheetConfigBtn.onclick = () => {
@@ -159,7 +162,6 @@ function showSheetConfigPanel(data) {
   };
 }
 
-// All functions below: update to use repaymentRowIdx instead of findRepaymentRowIndex
 function findRowIndex(label) {
   label = label.trim().toLowerCase();
   let idx = rawData.findIndex(row =>
