@@ -1,172 +1,211 @@
-body {
-  font-family: 'Segoe UI', 'Arial', sans-serif;
-  background: #f4f8fb;
-  margin: 0;
-  padding: 0;
-}
+/* Mayweather-MATRIX Investment Tool Styles */
 
+/* General container and headings */
 .container {
-  max-width: 1100px;
-  margin: 32px auto;
-  background: #fff;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 18px 8px 30px 8px;
+  background: #f5fcff;
   border-radius: 12px;
-  box-shadow: 0 4px 32px rgba(20,50,120,0.10);
-  padding: 36px 36px 28px 36px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
 }
 
 h1 {
-  margin-top: 0;
   color: #0077cc;
-  font-size: 2.2rem;
-  font-weight: 600;
-  letter-spacing: -1px;
-}
-
-input[type="file"] {
-  margin-bottom: 20px;
-}
-
-.repayment-controls {
+  font-size: 2.1em;
   margin-bottom: 18px;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  letter-spacing: 1px;
+  font-weight: 700;
 }
 
-.repayment-container {
+h3 {
+  color: #005fa3;
+  margin-top: 0;
   margin-bottom: 12px;
 }
 
+/* Repayment controls */
+.repayment-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+/* Loan balance input controls */
+.loan-balance-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.loan-balance-controls input[type="number"] {
+  padding: 6px 12px;
+  width: 190px;
+  font-size: 1em;
+  border-radius: 5px;
+  border: 1px solid #b6daff;
+  background: #f7fbff;
+  box-sizing: border-box;
+}
+
+/* Week filter controls styling */
+#weekFilterControls {
+  margin-bottom: 1em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1em;
+}
+
+#weekFilterControls label {
+  font-weight: 500;
+  margin-right: 3px;
+}
+
+#weekFilterControls select {
+  min-width: 120px;
+  margin-right: 8px;
+  padding: 2px 6px;
+}
+
+/* Repayment input row styling */
 .repayment-row {
+  margin: 4px 0;
   display: flex;
   gap: 8px;
-  margin-bottom: 4px;
   align-items: center;
 }
 
 .repayment-row select,
-.repayment-row input {
-  font-size: 15px;
-  padding: 6px 8px;
-  border-radius: 5px;
-  border: 1px solid #bbb;
-  background: #f8fafd;
-}
-
 .repayment-row input[type="number"] {
-  width: 120px;
+  padding: 2px 6px;
+  min-width: 120px;
 }
 
-.summary {
-  margin-top: 18px;
-  display: flex;
-  gap: 36px;
-  font-size: 1.07em;
-  flex-wrap: wrap;
+/* Repayment highlight */
+.repayment-highlight {
+  background: #ffe0b3 !important;
 }
 
-.summary div {
-  background: #f6fafd;
-  border-radius: 5px;
-  padding: 6px 18px;
-  box-shadow: 0 1px 5px rgba(180,200,220,0.04);
-  margin-bottom: 6px;
-}
-
-.chart-controls {
-  margin: 24px 0 10px 0;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.chart-controls select,
-.chart-controls input[type="checkbox"] {
-  font-size: 15px;
-  margin-left: 4px;
-}
-
-.chart-controls button,
-.toggle-btn {
-  padding: 5px 14px;
-  font-size: 15px;
-  border-radius: 5px;
-  background: #f7fbff;
-  border: 1px solid #b6daff;
-  color: #0077cc;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.chart-controls button:hover,
-.toggle-btn:hover {
-  background: #e8f4ff;
-  color: #005fa3;
-}
-
+/* Chart section */
 .chart-wrapper {
-  width: 100%;
-  max-width: 950px;
-  height: 350px;
-  max-height: 420px;
-  margin: 0 auto 30px auto;
-  background: #f8fafd;
-  border-radius: 10px;
-  box-shadow: 0 1px 8px rgba(20,50,120,0.05);
-  padding: 10px 8px 16px 8px;
+  background: #f8fcff;
+  border: 1px solid #dbeaff;
+  border-radius: 5px;
+  padding: 8px 0 8px 0;
+  margin-bottom: 10px;
 }
 
 #chartCanvas {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 950px;
-  max-height: 410px;
-  display: block;
-}
-
-#spreadsheetTable {
-  margin-top: 22px;
-  max-width: 97vw;
-  max-height: 320px;
-  overflow-x: auto;
-  overflow-y: auto;
-  background: white;
-  padding: 14px 9px 10px 9px;
-  border: 1px solid #dbeaff;
-  border-radius: 8px;
-}
-
-table {
-  font-size: 14px;
-}
-
-.editable-cell input {
   width: 100%;
-  border: none;
-  background: #f5faff;
-  font-size: 14px;
-  padding: 3px 5px;
-  box-sizing: border-box;
-  border-radius: 3px;
+  min-height: 320px;
+  max-width: 900px;
 }
 
-.editable-cell input:focus {
-  outline: 2px solid #0077cc;
-  background: #e6f3ff;
+/* Chart controls */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-.repayment-highlight {
-  background: #fff7e0 !important;
+/* Summary section */
+.summary {
+  margin: 18px 0 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2em;
+  font-size: 1.15em;
+  font-weight: 500;
+  background: #f8faff;
+  border-radius: 6px;
+  padding: 10px 20px;
+  border: 1px solid #e7eefe;
+  align-items: flex-start;
 }
 
-.balance-row {
-  background: #e4ffe4 !important;
-  font-weight: bold;
+.summary .negatives-collapse summary {
+  color: #2075d3;
+  cursor: pointer;
+  font-size: .98em;
+  margin-left: 4px;
+  display: inline-block;
+}
+
+.summary .negatives-collapse {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 1em;
+  vertical-align: middle;
+}
+
+.summary .negatives-collapse ul {
+  margin: 5px 0 0 8px;
+  padding-left: 16px;
+  font-size: .98em;
+}
+
+/* Spreadsheet summary table */
+.spreadsheet-summary-table th,
+.spreadsheet-summary-table td {
   text-align: center;
-  color: #126118;
+  padding: 4px 8px;
+  border: 1px solid #dbeaff;
 }
 
-.collapsible-section { margin-bottom: 24px; }
+.spreadsheet-summary-table th {
+  background: #f0f7ff;
+  font-weight: 500;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.spreadsheet-summary-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.spreadsheet-summary-table .balance-row {
+  background: #e4ffe4;
+  font-weight: bold;
+}
+
+.spreadsheet-summary-table .week-label-row td {
+  background: #f7fbff;
+  font-weight: 500;
+}
+
+.spreadsheet-summary-table .sticky-week-label {
+  background: #eaf5ff;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.spreadsheet-summary-scroll {
+  overflow-x: auto;
+  max-width: 98vw;
+}
+
+@media (max-width: 900px) {
+  .spreadsheet-summary-scroll {
+    font-size: 12px;
+  }
+}
+
+/* Collapsible section styles */
+.collapsible-section {
+  margin-bottom: 24px;
+}
+
+/* Toggle button styles */
 .toggle-btn {
   background: #f2f7ff;
   border: 1px solid #b6daff;
@@ -179,45 +218,105 @@ table {
   margin-top: 8px;
   transition: background .18s, color .18s;
 }
-.toggle-btn:hover { background: #e1efff; color: #005fa3; }
-.spreadsheet-summary-table th,
-.spreadsheet-summary-table td {
-  text-align: center;
-  padding: 4px 8px;
-  border: 1px solid #dbeaff;
+
+.toggle-btn:hover {
+  background: #e1efff;
+  color: #005fa3;
 }
-.spreadsheet-summary-table th {
-  background: #f0f7ff;
+
+/* Sheet mapping/config panel */
+#sheetConfigPanel {
+  background: #f9f9f9;
+  border: 1px solid #cce4ff;
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 12px 0 18px 0;
+  max-width: 700px;
+}
+
+#sheetConfigPanel label {
   font-weight: 500;
-  position: sticky;
-  left: 0;
-  z-index: 2;
-}
-.spreadsheet-summary-table { border-collapse: collapse; width: 100%; }
-.spreadsheet-summary-table .balance-row { background: #e4ffe4; font-weight: bold;}
-.spreadsheet-summary-table .week-label-row td { background: #f7fbff; font-weight: 500;}
-.spreadsheet-summary-table .sticky-week-label { background: #eaf5ff; position: sticky; left: 0; z-index: 1;}
-.spreadsheet-summary-scroll { overflow-x: auto; max-width: 98vw; }
-@media (max-width: 900px) { .spreadsheet-summary-scroll { font-size: 12px; } }
-
-/* Responsive tweaks */
-@media (max-width: 600px) {
-  .container { padding: 8px; }
-  .chart-wrapper { padding: 2px; }
-  .summary { gap: 12px; flex-direction: column; }
-  .chart-controls { gap: 6px; }
+  margin-right: 6px;
 }
 
-/* Repayment inputs visually grouped */
-.repayment-container {
-  background: #f8fafd;
-  border-radius: 8px;
-  padding: 10px 8px 8px 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 1px 4px rgba(20,50,120,0.05);
+.sheet-config-row {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.repayment-highlight {
-  background: #ffe4b3;
-  border-bottom: 2px solid #ff9900;
+#sheetPreviewTable {
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  max-width: 95vw;
+  overflow-x: auto;
+  font-size: 13px;
+}
+
+#sheetPreviewTable td, #sheetPreviewTable th {
+  border: 1px solid #e0eaff;
+  padding: 2px 6px;
+  text-align: center;
+  background: #f5faff;
+}
+
+/* Utility styles */
+button, select, input[type="number"] {
+  font-family: inherit;
+}
+
+button {
+  background: #eaf5ff;
+  border: 1px solid #b6daff;
+  border-radius: 4px;
+  padding: 6px 18px;
+  color: #005fa3;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background .15s, color .15s;
+}
+
+button:hover {
+  background: #d2eaff;
+  color: #0077cc;
+}
+
+/* Hide scrollbars for summary scroll on webkit browsers */
+.spreadsheet-summary-scroll::-webkit-scrollbar {
+  height: 7px;
+  background: #f0f7ff;
+}
+
+.spreadsheet-summary-scroll::-webkit-scrollbar-thumb {
+  background: #b6daff;
+  border-radius: 5px;
+}
+
+/* Misc */
+input[type="file"] {
+  font-size: 1em;
+  padding: 4px;
+  margin-right: 10px;
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 8px 2px 18px 2px;
+  }
+  h1 {
+    font-size: 1.3em;
+  }
+  .summary {
+    padding: 10px 2vw;
+    gap: 1em;
+    font-size: 1em;
+  }
+  .chart-wrapper {
+    padding: 4px 0 4px 0;
+  }
+  #chartCanvas {
+    min-height: 120px;
+    font-size: 12px;
+  }
 }
