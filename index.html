@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Mayweather-MATRIX Investment Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
   <link rel="stylesheet" href="style.css">
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f6f9fc; margin: 0; }
@@ -28,9 +29,6 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .repayment-controls, .loan-balance-controls, .chart-controls { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     .summary { margin: 18px 0 10px 0; display: flex; flex-wrap: wrap; gap: 2em; font-size: 1.15em; font-weight: 500; background: #f8faff; border-radius: 6px; padding: 10px 20px; border: 1px solid #e7eefe; align-items: flex-start; }
-    .summary .negatives-collapse summary { color: #2075d3; cursor: pointer; font-size: .98em; margin-left: 4px; display: inline-block; }
-    .summary .negatives-collapse { display: inline-block; margin-left: 8px; font-size: 1em; vertical-align: middle; }
-    .summary .negatives-collapse ul { margin: 5px 0 0 8px; padding-left: 16px; font-size: .98em; }
     #pnlMonthlyBreakdown, #pnlCashFlow, #paybackTable { border-collapse: collapse; width: 100%; margin-top: 16px; margin-bottom: 16px; }
     #pnlMonthlyBreakdown th, #pnlMonthlyBreakdown td, #pnlCashFlow th, #pnlCashFlow td, #paybackTable th, #paybackTable td { border: 1px solid #e0eaff; padding: 6px 10px; text-align: right; }
     #pnlMonthlyBreakdown th, #pnlCashFlow th, #paybackTable th { background: #eaf5ff; font-weight: 500; }
@@ -38,7 +36,8 @@
     .repayment-info-btn { background: #f3b200; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: .95em; }
     .repayment-info { margin-top: 6px; padding: 8px; background: #fffbe2; border: 1px solid #e6e3c2; border-radius: 6px; font-size: .98em; text-align: left; display: none; }
     .chart-wrapper { background: #f8fcff; border: 1px solid #dbeaff; border-radius: 5px; padding: 8px 0 8px 0; }
-    #chartCanvas, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart { width: 100%; min-height: 320px; max-width: 900px; }
+    #chartCanvas, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart, #mainChart { width: 100%; min-height: 320px; max-width: 900px; }
+    #mainChartSummary { margin-top: 18px; font-size: 1.07em; }
     @media (max-width: 700px) { .container { padding: 8px 2vw 18px 2vw; } nav.tabs { flex-direction: column; } nav.tabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; } .subtabs { flex-direction: column; gap: 4px; } .subtabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; } }
   </style>
 </head>
@@ -78,38 +77,15 @@
       </div>
       <div id="subtab-mapping" class="subtab-panel">
         <h3>Spreadsheet Mapping</h3>
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-        <div id="sheetConfigPanel" style="display:none;">
-          <h4>Configure Spreadsheet Mapping</h4>
-          <div id="sheetPreview"></div>
-          <div class="sheet-config-row">
-            <label for="weekLabelRowSelector">Week Label Row:</label>
-            <select id="weekLabelRowSelector"></select>
-          </div>
-          <div class="sheet-config-row">
-            <label for="repaymentRowSelector">Repayment Row:</label>
-            <select id="repaymentRowSelector"></select>
-          </div>
-          <div class="sheet-config-row">
-            <label for="startRowSelector">Data Start Row:</label>
-            <select id="startRowSelector"></select>
-            <label for="endRowSelector">Data End Row:</label>
-            <select id="endRowSelector"></select>
-          </div>
-          <div class="sheet-config-row">
-            <label for="labelColSelector">Label Column:</label>
-            <select id="labelColSelector"></select>
-            <label for="firstWeekColSelector">First Week Column:</label>
-            <select id="firstWeekColSelector"></select>
-          </div>
-          <button id="applySheetConfig">Apply Mapping</button>
-        </div>
+        <input type="file" id="spreadsheetUpload" accept=".xlsx,.xls,.csv">
+        <div id="mappingPanel" style="margin-top:20px;"></div>
       </div>
       <div id="subtab-charts" class="subtab-panel">
         <h3>Cashflow Charts & Reports</h3>
         <div class="chart-wrapper">
-          <canvas id="chartCanvas"></canvas>
+          <canvas id="mainChart"></canvas>
         </div>
+        <div id="mainChartSummary"></div>
       </div>
       <div id="subtab-settings" class="subtab-panel">
         <h3>Tool Settings</h3>
