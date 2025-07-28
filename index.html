@@ -7,81 +7,147 @@
   <!-- Chart.js, xlsx, html2canvas, jsPDF libraries here -->
   <link rel="stylesheet" href="style.css">
   <style>
-    .collapsible-section { margin-bottom: 24px; }
-    .toggle-btn {
-      background: #f2f7ff;
-      border: 1px solid #b6daff;
-      color: #0077cc;
-      border-radius: 5px;
-      padding: 6px 15px;
-      font-size: 15px;
-      cursor: pointer;
-      margin-bottom: 10px;
-      margin-top: 8px;
-      transition: background .18s, color .18s;
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f6f9fc;
+      margin: 0;
     }
-    .toggle-btn:hover { background: #e1efff; color: #005fa3; }
-    .spreadsheet-summary-table th,
-    .spreadsheet-summary-table td {
-      text-align: center;
-      padding: 4px 8px;
-      border: 1px solid #dbeaff;
+    h1 {
+      margin: 0;
+      font-size: 2em;
+      font-weight: 700;
     }
-    .spreadsheet-summary-table th {
-      background: #f0f7ff;
+    .container {
+      max-width: 1050px;
+      margin: 0 auto;
+      padding: 24px 2vw 40px 2vw;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    nav.tabs {
+      display: flex;
+      gap: 0.7em;
+      margin-bottom: 18px;
+      border-bottom: 1px solid #e0eaff;
+      background: #f7fbff;
+      padding: 0 0 0 18px;
+    }
+    nav.tabs button {
+      background: #f7fbff;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #2075d3;
+      font-size: 1.03em;
       font-weight: 500;
-      position: sticky;
-      left: 0;
-      z-index: 2;
+      padding: 9px 22px 7px 22px;
+      cursor: pointer;
+      transition: background .16s, color .16s, border-bottom .16s;
+      outline: none;
     }
-    .spreadsheet-summary-table { border-collapse: collapse; width: 100%; }
-    .spreadsheet-summary-table .balance-row { background: #e4ffe4; font-weight: bold;}
-    .spreadsheet-summary-table .week-label-row td { background: #f7fbff; font-weight: 500;}
-    .spreadsheet-summary-table .sticky-week-label { background: #eaf5ff; position: sticky; left: 0; z-index: 1;}
-    .spreadsheet-summary-scroll { overflow-x: auto; max-width: 98vw; }
-    @media (max-width: 900px) { .spreadsheet-summary-scroll { font-size: 12px; } }
-
-    /* Week filter controls styling */
-    #weekFilterControls {
-      margin-bottom: 1em;
+    nav.tabs button.active,
+    nav.tabs button:focus {
+      border-bottom: 2px solid #2075d3;
+      background: #eaf5ff;
+      color: #005fa3;
+    }
+    .tab-content {
+      display: none;
+      margin-top: 0;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    /* Sub-tabs (Analysis & Mapping) */
+    .subtabs {
+      display: flex;
+      gap: 2em;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0eaff;
+      background: #f7fbff;
+      padding-left: 16px;
+    }
+    .subtabs button {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #2075d3;
+      font-size: 1.06em;
+      font-weight: 500;
+      padding: 10px 28px 8px 28px;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-bottom .15s;
+      outline: none;
+      border-radius: 7px 7px 0 0;
+    }
+    .subtabs button.active,
+    .subtabs button:focus {
+      border-bottom: 2.5px solid #2075d3;
+      background: #eaf5ff;
+      color: #005fa3;
+    }
+    .subtab-panel {
+      display: none;
+      margin-bottom: 40px;
+      padding: 24px 18px 14px 18px;
+      background: #f8faff;
+      border-radius: 12px;
+      border: 1.5px solid #e0eaff;
+      box-shadow: 0 1px 4px rgba(0,119,204,0.08);
+    }
+    .subtab-panel.active {
+      display: block;
+    }
+    /* Collapsible tables for other tabs */
+    .collapsible-table-section {
+      margin: 22px 0;
+      border-radius: 10px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+      background: #fafdff;
+      border: 1px solid #e0eaff;
+      overflow: hidden;
+    }
+    .collapsible-header {
+      background: #eaf5ff;
+      font-weight: 600;
+      font-size: 1.09em;
+      padding: 12px 18px;
+      cursor: pointer;
+      border: none;
+      border-bottom: 1px solid #dbeaff;
+      width: 100%;
+      text-align: left;
+      outline: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .collapsible-header .caret {
+      font-size: 1.1em;
+      transition: transform .18s;
+    }
+    .collapsible-header.collapsed .caret {
+      transform: rotate(-90deg);
+    }
+    .collapsible-content {
+      padding: 0 18px 18px 18px;
+      display: none;
+      animation: fadeIn .25s;
+    }
+    .collapsible-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    /* Other styles as previous */
+    .repayment-controls, .loan-balance-controls, .chart-controls {
+      margin-bottom: 20px;
       display: flex;
       flex-wrap: wrap;
+      gap: 10px;
       align-items: center;
-      gap: 1em;
-    }
-    #weekFilterControls label {
-      font-weight: 500;
-      margin-right: 3px;
-    }
-    #weekFilterControls select {
-      min-width: 120px;
-      margin-right: 8px;
-      padding: 2px 6px;
-    }
-    .repayment-row {
-      margin: 4px 0;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .repayment-row select,
-    .repayment-row input[type="number"] {
-      padding: 2px 6px;
-      min-width: 120px;
-    }
-    .repayment-highlight {
-      background: #ffe0b3 !important;
-    }
-    .chart-wrapper {
-      background: #f8fcff;
-      border: 1px solid #dbeaff;
-      border-radius: 5px;
-      padding: 8px 0 8px 0;
-    }
-    #chartCanvas {
-      width: 100%;
-      min-height: 320px;
-      max-width: 900px;
     }
     .summary {
       margin: 18px 0 10px 0;
@@ -114,142 +180,248 @@
       padding-left: 16px;
       font-size: .98em;
     }
-    .loan-balance-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      margin-bottom: 10px;
-      align-items: center;
-    }
-    .loan-balance-controls input[type="number"] {
-      padding: 6px 12px;
-      width: 190px;
-      font-size: 1em;
-    }
-    #sheetConfigPanel {
-      background: #f9f9f9;
-      border: 1px solid #cce4ff;
-      border-radius: 6px;
-      padding: 14px 18px;
-      margin: 12px 0 18px 0;
-      max-width: 700px;
-    }
-    #sheetConfigPanel label {
-      font-weight: 500;
-      margin-right: 6px;
-    }
-    #sheetPreviewTable {
+    /* P&L Table styles */
+    #pnlMonthlyBreakdown, #pnlCashFlow, #paybackTable {
       border-collapse: collapse;
-      margin-bottom: 8px;
-      max-width: 95vw;
-      overflow-x: auto;
-      font-size: 13px;
+      width: 100%;
+      margin-top: 16px;
+      margin-bottom: 16px;
     }
-    #sheetPreviewTable td, #sheetPreviewTable th {
+    #pnlMonthlyBreakdown th, #pnlMonthlyBreakdown td,
+    #pnlCashFlow th, #pnlCashFlow td,
+    #paybackTable th, #paybackTable td {
       border: 1px solid #e0eaff;
-      padding: 2px 6px;
-      text-align: center;
-      background: #f5faff;
+      padding: 6px 10px;
+      text-align: right;
     }
-    .sheet-config-row {
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    #pnlMonthlyBreakdown th, #pnlCashFlow th, #paybackTable th {
+      background: #eaf5ff;
+      font-weight: 500;
+    }
+    .repayment-table-row {
+      background: #f7fbe9;
+      transition: background 0.14s;
+    }
+    .repayment-info-btn {
+      background: #f3b200;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: .95em;
+    }
+    .repayment-info {
+      margin-top: 6px;
+      padding: 8px;
+      background: #fffbe2;
+      border: 1px solid #e6e3c2;
+      border-radius: 6px;
+      font-size: .98em;
+      text-align: left;
+      display: none;
+    }
+    .chart-wrapper {
+      background: #f8fcff;
+      border: 1px solid #dbeaff;
+      border-radius: 5px;
+      padding: 8px 0 8px 0;
+    }
+    #chartCanvas, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart {
+      width: 100%;
+      min-height: 320px;
+      max-width: 900px;
+    }
+    @media (max-width: 700px) {
+      .container { padding: 8px 2vw 18px 2vw; }
+      nav.tabs { flex-direction: column; }
+      nav.tabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; }
+      .subtabs { flex-direction: column; gap: 4px; }
+      .subtabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; }
+      #sheetConfigPanel { padding: 8px 2vw; }
+      #chartCanvas { min-height: 180px; }
+      .summary { font-size: 1em; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Mayweather-MATRIX Investment Tool</h1>
-    <div class="repayment-controls">
-      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-      <button id="addRepayment" title="Add a new repayment input">+ Add Repayment</button>
-      <button id="clearRepayments">Clear Repayments</button>
-      <button id="savePlan">💾 Save Plan</button>
-      <button id="loadPlan">📂 Load Plan</button>
-      <button id="exportExcel">Export to Excel</button>
-      <button id="exportPDF">Export to PDF</button>
-    </div>
 
-    <!-- Dynamic spreadsheet config panel -->
-    <div id="sheetConfigPanel" style="display:none;">
-      <h3>Configure Spreadsheet Mapping</h3>
-      <div id="sheetPreview"></div>
-      <div class="sheet-config-row">
-        <label for="weekLabelRowSelector">Week Label Row:</label>
-        <select id="weekLabelRowSelector"></select>
-      </div>
-      <div class="sheet-config-row">
-        <label for="repaymentRowSelector">Repayment Row:</label>
-        <select id="repaymentRowSelector"></select>
-      </div>
-      <div class="sheet-config-row">
-        <label for="startRowSelector">Data Start Row:</label>
-        <select id="startRowSelector"></select>
-        <label for="endRowSelector">Data End Row:</label>
-        <select id="endRowSelector"></select>
-      </div>
-      <div class="sheet-config-row">
-        <label for="labelColSelector">Label Column:</label>
-        <select id="labelColSelector"></select>
-        <label for="firstWeekColSelector">First Week Column:</label>
-        <select id="firstWeekColSelector"></select>
-      </div>
-      <button id="applySheetConfig">Apply Mapping</button>
-    </div>
+    <!-- Tab Navigation -->
+    <nav class="tabs" role="tablist">
+      <button data-tab="main" class="active">Analysis & Mapping</button>
+      <button data-tab="pnl">Profit & Loss</button>
+      <button data-tab="roi">ROI</button>
+      <button data-tab="summary">Summary</button>
+    </nav>
 
-    <div class="loan-balance-controls">
-      <input type="number" id="startingBalanceInput" placeholder="Starting Bank Balance (matches your sheet)">
-      <input type="number" id="loanOutstandingInput" placeholder="Loan Amount Outstanding">
-    </div>
-    <div id="weekFilterControls" style="display:none;">
-      <label for="startWeekSelect">From week:</label>
-      <select id="startWeekSelect"></select>
-      <label for="endWeekSelect">To week:</label>
-      <select id="endWeekSelect"></select>
-    </div>
-    <div class="repayment-container">
-      <div id="repaymentInputs"></div>
-    </div>
-    <div class="summary">
-      <div id="totalRepaid">Total Repaid: €0</div>
-      <div id="finalBankBalance">Final Bank Balance: €0</div>
-      <div id="remaining">Remaining: €0</div>
-      <div id="lowestWeek">
-        Lowest Week: --
-        <details class="negatives-collapse" id="negativeWeeksList" style="display:none;">
-          <summary>Weeks with negative balance</summary>
-          <ul id="negWeeksUl"></ul>
-        </details>
+    <!-- Tab Contents -->
+    <section id="main" class="tab-content active">
+      <h2>Analysis & Mapping</h2>
+      <div class="subtabs" role="tablist">
+        <button data-subtab="repayment" class="active">Repayment Sensitivity Analysis</button>
+        <button data-subtab="mapping">Spreadsheet Mapping</button>
+        <button data-subtab="charts">Cashflow Charts & Reports</button>
+        <button data-subtab="settings">Tool Settings</button>
       </div>
-    </div>
-    <div class="chart-controls">
-      <label>Chart Type:
-        <select id="chartType">
+      <div id="subtab-repayment" class="subtab-panel active">
+        <h3>Repayment Sensitivity Analysis</h3>
+        <p>Analyze how different repayment schedules impact investment outcomes.</p>
+        <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;">
+          <label>
+            <input type="radio" name="repaymentType" value="week" checked>
+            Specific Week
+          </label>
+          <select id="weekSelect"></select>
+          <label>
+            <input type="radio" name="repaymentType" value="frequency">
+            Frequency
+          </label>
+          <select id="repaymentFrequency" disabled>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="one-off">One-off</option>
+          </select>
+          <input type="number" id="repaymentAmount" placeholder="Repayment €" style="width:120px;">
+          <button type="submit">Add Repayment</button>
+        </form>
+        <div id="repaymentRows" style="margin-top:18px;"></div>
+        <div id="repaymentSensitivityResults" style="margin-top:24px;"></div>
+      </div>
+      <div id="subtab-mapping" class="subtab-panel">
+        <h3>Spreadsheet Mapping</h3>
+        <div id="sheetConfigPanel" style="display:none;">
+          <h3>Configure Spreadsheet Mapping</h3>
+          <div id="sheetPreview"></div>
+          <div class="sheet-config-row">
+            <label for="weekLabelRowSelector">Week Label Row:</label>
+            <select id="weekLabelRowSelector"></select>
+          </div>
+          <div class="sheet-config-row">
+            <label for="repaymentRowSelector">Repayment Row:</label>
+            <select id="repaymentRowSelector"></select>
+          </div>
+          <div class="sheet-config-row">
+            <label for="startRowSelector">Data Start Row:</label>
+            <select id="startRowSelector"></select>
+            <label for="endRowSelector">Data End Row:</label>
+            <select id="endRowSelector"></select>
+          </div>
+          <div class="sheet-config-row">
+            <label for="labelColSelector">Label Column:</label>
+            <select id="labelColSelector"></select>
+            <label for="firstWeekColSelector">First Week Column:</label>
+            <select id="firstWeekColSelector"></select>
+          </div>
+          <button id="applySheetConfig">Apply Mapping</button>
+        </div>
+      </div>
+      <div id="subtab-charts" class="subtab-panel">
+        <h3>Cashflow Charts & Reports</h3>
+        <div class="chart-wrapper">
+          <canvas id="chartCanvas"></canvas>
+        </div>
+      </div>
+      <div id="subtab-settings" class="subtab-panel">
+        <h3>Tool Settings</h3>
+        <label>Currency: <select id="settingsCurrency">
+          <option value="EUR">EUR (€)</option>
+          <option value="USD">USD ($)</option>
+          <option value="GBP">GBP (£)</option>
+        </select></label>
+        <label>Default Chart Type: <select id="settingsChartType">
           <option value="line">Line</option>
           <option value="bar">Bar</option>
           <option value="pie">Pie</option>
-        </select>
-      </label>
-      <label>
-        <input type="checkbox" id="toggleRepayments" checked>
-        Show Repayments Overlay
-      </label>
-      <button id="resetZoom">Reset Zoom</button>
-      <button id="exportPNG">Export Chart as PNG</button>
-    </div>
-    <div class="chart-wrapper">
-      <canvas id="chartCanvas"></canvas>
-    </div>
-    <!-- Collapsible Spreadsheet Section -->
-    <div class="collapsible-section">
-      <button class="toggle-btn" onclick="toggleTableSummary()" id="toggleTableBtn">Show Full Spreadsheet Table</button>
-      <div id="spreadsheetSummarySection"></div>
-      <div id="spreadsheetTableSection" style="display:none;">
-        <div id="spreadsheetTable"></div>
+        </select></label>
       </div>
-    </div>
+    </section>
+
+    <section id="pnl" class="tab-content">
+      <h2>Profit &amp; Loss Statement</h2>
+      <div id="pnlSummary"></div>
+      <div class="collapsible-table-section">
+        <button class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="caret">&#9660;</span> Monthly Breakdown
+        </button>
+        <div class="collapsible-content active">
+          <table id="pnlMonthlyBreakdown">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Income</th>
+                <th>Expenditure</th>
+                <th>Net Profit</th>
+                <th>Repayment</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="collapsible-table-section">
+        <button class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="caret">&#9660;</span> Cash Flow Table
+        </button>
+        <div class="collapsible-content active">
+          <table id="pnlCashFlow">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Opening</th>
+                <th>Inflow</th>
+                <th>Outflow</th>
+                <th>Closing</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="roi" class="tab-content">
+      <h2>ROI &amp; Payback</h2>
+      <div id="roiSummary"></div>
+      <div class="collapsible-table-section">
+        <button class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="caret">&#9660;</span> ROI Charts
+        </button>
+        <div class="collapsible-content active">
+          <canvas id="roiLineChart" height="140"></canvas>
+          <canvas id="roiBarChart" height="120"></canvas>
+          <canvas id="roiPieChart" height="120"></canvas>
+          <canvas id="tornadoChart" height="120"></canvas>
+        </div>
+      </div>
+      <div class="collapsible-table-section">
+        <button class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="caret">&#9660;</span> Payback Table
+        </button>
+        <div class="collapsible-content active">
+          <table id="paybackTable">
+            <thead><tr><th>Year</th><th>Cumulative Profit</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="summary" class="tab-content">
+      <h2>Summary Report</h2>
+      <div id="summaryKeyFinancials"></div>
+      <div class="collapsible-table-section">
+        <button class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="caret">&#9660;</span> Summary Chart
+        </button>
+        <div class="collapsible-content active">
+          <canvas id="summaryChart" height="150"></canvas>
+        </div>
+      </div>
+      <button id="exportPDFBtn">Export PDF</button>
+      <button id="exportExcelBtn">Export Excel</button>
+    </section>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -258,19 +430,5 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
-  <script>
-    let showingFullTable = false;
-    function toggleTableSummary() {
-      showingFullTable = !showingFullTable;
-      document.getElementById('spreadsheetTableSection').style.display = showingFullTable ? '' : 'none';
-      document.getElementById('spreadsheetSummarySection').style.display = showingFullTable ? 'none' : '';
-      document.getElementById('toggleTableBtn').textContent = showingFullTable ? "Hide Full Spreadsheet Table" : "Show Full Spreadsheet Table";
-    }
-    document.addEventListener('DOMContentLoaded', () => {
-      showingFullTable = false;
-      document.getElementById('spreadsheetTableSection').style.display = 'none';
-      document.getElementById('spreadsheetSummarySection').style.display = '';
-    });
-  </script>
 </body>
 </html>
