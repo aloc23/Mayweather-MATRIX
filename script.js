@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('roiSummary').innerHTML = '';
       document.getElementById('summaryKeyFinancials').innerHTML = '';
       ['roiLineChart','roiBarChart','roiPieChart','tornadoChart','summaryChart','chartCanvas'].forEach(id=>{
-        const canvas=document.getElementById(id);if(canvas)canvas?.getContext('2d').clearRect(0,0,900,320);
+        const canvas=document.getElementById(id);if(canvas)canvas?.getContext && canvas?.getContext('2d').clearRect(0,0,900,320);
       });
       document.getElementById('pnlMonthlyBreakdown').querySelector('tbody').innerHTML = '';
       document.getElementById('pnlCashFlow').querySelector('tbody').innerHTML = '';
@@ -402,6 +402,20 @@ document.addEventListener('DOMContentLoaded', function() {
     safeDestroy(window.tornadoChart);
     safeDestroy(window.summaryChart);
     safeDestroy(window.chartCanvasChart);
+
+    // Only create chartCanvasChart if the element exists
+    const chartCanvasElem = document.getElementById('chartCanvas');
+    if (chartCanvasElem) {
+      window.chartCanvasChart = new Chart(chartCanvasElem.getContext('2d'),{
+        type:'line',
+        data:{
+          labels:weekLabels.slice(0,incomeArr.length),
+          datasets:[{label:"Income",data:incomeArr,borderColor:"#4caf50",fill:false},
+            {label:"Expenditure",data:expenditureArr,borderColor:"#f44336",fill:false},
+            {label:"Repayments",data:repaymentArr,borderColor:"#f3b200",fill:false}]
+        },options:{responsive:true,maintainAspectRatio:false}
+      });
+    }
     window.roiLineChart = new Chart(document.getElementById('roiLineChart').getContext('2d'),{
       type:'line',
       data:{
@@ -432,15 +446,6 @@ document.addEventListener('DOMContentLoaded', function() {
       data:{
         labels:['Income','Expenditure','Profit'],
         datasets:[{label:'Annual (€)',data:[incomeMonths.reduce((a,b)=>a+b,0),expenditureMonths.reduce((a,b)=>a+b,0),netProfitMonths.reduce((a,b)=>a+b,0)],backgroundColor:['#4caf50','#f44336','#2196f3']}]
-      },options:{responsive:true,maintainAspectRatio:false}
-    });
-    window.chartCanvasChart = new Chart(document.getElementById('chartCanvas').getContext('2d'),{
-      type:'line',
-      data:{
-        labels:weekLabels.slice(0,incomeArr.length),
-        datasets:[{label:"Income",data:incomeArr,borderColor:"#4caf50",fill:false},
-          {label:"Expenditure",data:expenditureArr,borderColor:"#f44336",fill:false},
-          {label:"Repayments",data:repaymentArr,borderColor:"#f3b200",fill:false}]
       },options:{responsive:true,maintainAspectRatio:false}
     });
     updateChartAndSummary();
