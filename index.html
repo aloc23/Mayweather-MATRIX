@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <title>Mayweather-MATRIX Investment Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
-  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js, XLSX, html2canvas, jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f6f9fc; margin: 0; }
     h1 { margin: 0; font-size: 2em; font-weight: 700; }
@@ -27,16 +30,14 @@
     .collapsible-content { padding: 0 18px 18px 18px; display: none; animation: fadeIn .25s; }
     .collapsible-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .repayment-controls, .loan-balance-controls, .chart-controls { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .summary { margin: 18px 0 10px 0; display: flex; flex-wrap: wrap; gap: 2em; font-size: 1.15em; font-weight: 500; background: #f8faff; border-radius: 6px; padding: 10px 20px; border: 1px solid #e7eefe; align-items: flex-start; }
-    #pnlMonthlyBreakdown, #pnlCashFlow, #paybackTable { border-collapse: collapse; width: 100%; margin-top: 16px; margin-bottom: 16px; }
-    #pnlMonthlyBreakdown th, #pnlMonthlyBreakdown td, #pnlCashFlow th, #pnlCashFlow td, #paybackTable th, #paybackTable td { border: 1px solid #e0eaff; padding: 6px 10px; text-align: right; }
-    #pnlMonthlyBreakdown th, #pnlCashFlow th, #paybackTable th { background: #eaf5ff; font-weight: 500; }
-    .repayment-table-row { background: #f7fbe9; transition: background 0.14s; }
+    .repayment-row { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid #e0eaff; border-radius: 6px; padding: 8px 12px; box-shadow: 0 1px 3px rgba(0,119,204,0.06); }
+    .repayment-row select, .repayment-row input[type="number"] { padding: 2px 8px; min-width: 120px; border-radius: 4px; border: 1px solid #cce4ff; background: #f7fbff; }
+    .repayment-row button { font-size: 0.98em; padding: 4px 14px; margin-left: 6px; background: #2075d3; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    .repayment-row button:hover { background: #005fa3; }
     .repayment-info-btn { background: #f3b200; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: .95em; }
     .repayment-info { margin-top: 6px; padding: 8px; background: #fffbe2; border: 1px solid #e6e3c2; border-radius: 6px; font-size: .98em; text-align: left; display: none; }
     .chart-wrapper { background: #f8fcff; border: 1px solid #dbeaff; border-radius: 5px; padding: 8px 0 8px 0; }
-    #chartCanvas, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart, #mainChart { width: 100%; min-height: 320px; max-width: 900px; }
+    #mainChart, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart, #chartCanvas { width: 100%; min-height: 320px; max-width: 900px; }
     #mainChartSummary { margin-top: 18px; font-size: 1.07em; }
     @media (max-width: 700px) { .container { padding: 8px 2vw 18px 2vw; } nav.tabs { flex-direction: column; } nav.tabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; } .subtabs { flex-direction: column; gap: 4px; } .subtabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; } }
   </style>
@@ -184,12 +185,6 @@
       <button id="exportExcelBtn">Export Excel</button>
     </section>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.2/dist/chartjs-plugin-annotation.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
