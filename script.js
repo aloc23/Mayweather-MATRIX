@@ -1,5 +1,4 @@
-// Cashflow Forecast Tool -- Repayment Row Edit/Remove + Fix Old Repayment + Highlight Repayment Weeks
-
+// Mayweather-MATRIX Investment Tool
 let rawData = [];
 let chart;
 let weekOptions = [];
@@ -11,12 +10,13 @@ let weekFilterRange = [0, 0];
 let startingBalance = 0;
 let loanOutstanding = 0;
 
-// Sheet structure (adjust if your sheet is different)
-const LABEL_COL = 1; // Column B (index 1) for label lookups
-const weeksHeaderRowIdx = 3; // Header row (index 3, i.e. Excel row 4)
-const startRow = 4;  // CH5 in Excel (row 5, 0-based index 4)
-const endRow = 269;  // CH270 in Excel (row 270, 0-based index 269)
-const firstWeekCol = 5; // Column F (index 5)
+// Dynamic mapping config
+let LABEL_COL = 1;
+let weeksHeaderRowIdx = 3;
+let startRow = 4;
+let endRow = 269;
+let firstWeekCol = 5;
+let repaymentRowIdx = null;
 
 const fileInput = document.getElementById('fileInput');
 const addRepaymentBtn = document.getElementById('addRepayment');
@@ -35,6 +35,17 @@ const startWeekSelect = document.getElementById('startWeekSelect');
 const endWeekSelect = document.getElementById('endWeekSelect');
 const startingBalanceInput = document.getElementById('startingBalanceInput');
 const loanOutstandingInput = document.getElementById('loanOutstandingInput');
+
+// Spreadsheet mapping UI elements
+const sheetConfigPanel = document.getElementById('sheetConfigPanel');
+const sheetPreview = document.getElementById('sheetPreview');
+const weekLabelRowSelector = document.getElementById('weekLabelRowSelector');
+const repaymentRowSelector = document.getElementById('repaymentRowSelector');
+const startRowSelector = document.getElementById('startRowSelector');
+const endRowSelector = document.getElementById('endRowSelector');
+const labelColSelector = document.getElementById('labelColSelector');
+const firstWeekColSelector = document.getElementById('firstWeekColSelector');
+const applySheetConfigBtn = document.getElementById('applySheetConfig');
 
 startingBalanceInput.addEventListener('input', () => {
   startingBalance = parseFloat(startingBalanceInput.value) || 0;
@@ -65,6 +76,90 @@ resetZoomBtn.addEventListener('click', function() {
   if (chart && chart.resetZoom) chart.resetZoom();
 });
 
+function handleFile(event) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    rawData = json;
+    showSheetConfigPanel(json);
+  };
+  reader.readAsArrayBuffer(event.target.files[0]);
+}
+
+function showSheetConfigPanel(data) {
+  // Preview first 12 rows and 12 columns
+  let previewRows = Math.min(12, data.length);
+  let previewCols = 0;
+  for (let r = 0; r < previewRows; r++) {
+    previewCols = Math.max(previewCols, data[r].length);
+  }
+  let html = '<table id="sheetPreviewTable"><thead><tr>';
+  for (let c = 0; c < previewCols; c++) {
+    html += `<th>Col ${c}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  for (let r = 0; r < previewRows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < previewCols; c++) {
+      html += `<td>${data[r]?.[c] || ''}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  sheetPreview.innerHTML = html;
+
+  // Populate selectors
+  weekLabelRowSelector.innerHTML = '';
+  repaymentRowSelector.innerHTML = '';
+  startRowSelector.innerHTML = '';
+  endRowSelector.innerHTML = '';
+  labelColSelector.innerHTML = '';
+  firstWeekColSelector.innerHTML = '';
+
+  for (let r = 0; r < previewRows; r++) {
+    let label = `Row ${r}`;
+    weekLabelRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
+    repaymentRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
+    startRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
+    endRowSelector.innerHTML += `<option value="${r}">${label}</option>`;
+  }
+  for (let c = 0; c < previewCols; c++) {
+    let label = `Col ${c}`;
+    labelColSelector.innerHTML += `<option value="${c}">${label}</option>`;
+    firstWeekColSelector.innerHTML += `<option value="${c}">${label}</option>`;
+  }
+  // Defaults
+  weekLabelRowSelector.value = 3;
+  repaymentRowSelector.value = 4;
+  startRowSelector.value = 4;
+  endRowSelector.value = Math.min(data.length-1, 269);
+  labelColSelector.value = 1;
+  firstWeekColSelector.value = 5;
+
+  sheetConfigPanel.style.display = '';
+  applySheetConfigBtn.onclick = () => {
+    weeksHeaderRowIdx = parseInt(weekLabelRowSelector.value, 10);
+    repaymentRowIdx = parseInt(repaymentRowSelector.value, 10);
+    startRow = parseInt(startRowSelector.value, 10);
+    endRow = parseInt(endRowSelector.value, 10);
+    LABEL_COL = parseInt(labelColSelector.value, 10);
+    firstWeekCol = parseInt(firstWeekColSelector.value, 10);
+
+    extractWeekOptions(rawData);
+    setupWeekFilterControls();
+    renderChart();
+    renderTable();
+    renderSpreadsheetSummary([], []);
+    clearRepayments();
+    recalculateAndRender();
+    sheetConfigPanel.style.display = 'none';
+  };
+}
+
+// All functions below: update to use repaymentRowIdx instead of findRepaymentRowIndex
 function findRowIndex(label) {
   label = label.trim().toLowerCase();
   let idx = rawData.findIndex(row =>
@@ -77,9 +172,9 @@ function findRowIndex(label) {
   return idx;
 }
 
+// Use selected repaymentRowIdx
 function findRepaymentRowIndex() {
-  // Adjust as needed for your actual label!
-  return findRowIndex("Mayweather Investment Repayment (Investment 1 and 2)");
+  return repaymentRowIdx;
 }
 
 function extractWeekOptions(data) {
@@ -114,7 +209,7 @@ function computeWeeklyIncomes(filtered = false) {
 
 function getRepaymentsArr(filtered = false) {
   const repayRow = findRepaymentRowIndex();
-  if (repayRow === -1) return weekOptions.map(() => 0);
+  if (repayRow === null || repayRow === undefined) return weekOptions.map(() => 0);
   let arr = weekOptions.map(w => {
     const val = parseFloat(rawData[repayRow][w.index] || 0);
     return Math.abs(val) || 0;
@@ -126,7 +221,7 @@ function getRepaymentsArr(filtered = false) {
 }
 function setRepaymentForWeek(weekIdx, amount) {
   const repayRow = findRepaymentRowIndex();
-  if (repayRow !== -1) {
+  if (repayRow !== null && repayRow !== undefined) {
     rawData[repayRow][weekIdx] = amount > 0 ? -Math.abs(amount) : amount;
   }
 }
@@ -144,12 +239,10 @@ function getRepaymentData(filtered = false) {
   return { repaymentsArr, totalRepayment };
 }
 
-// Rolling Cash Balance: honors starting balance and prior rolling for filtered view
 function computeRollingCashArr(filtered = false) {
   let sIdx = filtered ? weekFilterRange[0] : 0;
   let eIdx = filtered ? weekFilterRange[1] : weekOptions.length - 1;
 
-  // Weekly sums for all weeks, from row 5 down
   let allWeeklySums = weekOptions.map(w => {
     let sum = 0;
     for (let r = startRow; r <= endRow; r++) {
@@ -159,7 +252,6 @@ function computeRollingCashArr(filtered = false) {
     return sum;
   });
 
-  // 1. Find starting balance: prefer user entry, else rolling row prev week
   let rollingRowIdx = findRowIndex("Rolling cash balance");
   let prevBalance = Number.isFinite(startingBalance) && startingBalance !== 0 ? startingBalance : 0;
   if (rollingRowIdx !== -1 && sIdx > 0 && (!startingBalance || startingBalance === 0)) {
@@ -199,16 +291,12 @@ function recalculateAndRender(filtered = false) {
   }
   lowestWeekCache = lowestWeek;
 
-  // Final Bank Balance = last rolling balance value
   const finalBankBalance = rollingBalance[rollingBalance.length-1] || 0;
   document.getElementById('finalBankBalance').textContent = `Final Bank Balance: €${finalBankBalance.toLocaleString()}`;
   document.getElementById('totalRepaid').textContent = `Total Repaid: €${totalRepayment.toLocaleString()}`;
-
-  // Remaining = loanOutstanding - totalRepayment
   const remaining = (loanOutstanding || 0) - totalRepayment;
   document.getElementById('remaining').textContent = `Remaining: €${remaining.toLocaleString()}`;
 
-  // Lowest week and negative weeks list
   let lowestLabel = `Lowest Week: ${lowestWeek.label}`;
   if (lowestWeek.value !== Infinity && lowestWeek.label) {
     lowestLabel += ` (€${Math.round(lowestWeek.value)})`;
@@ -221,25 +309,6 @@ function recalculateAndRender(filtered = false) {
   renderChart(rollingBalance, repaymentsArr, weeklyIncome, filtered);
   renderSpreadsheetSummary(weeklyIncome, rollingBalance, filtered);
   renderTable(repaymentsArr, rollingBalance, weeklyIncome, filtered);
-}
-
-function handleFile(event) {
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    rawData = json;
-    extractWeekOptions(json);
-    setupWeekFilterControls();
-    renderChart();
-    renderTable();
-    renderSpreadsheetSummary([], []);
-    clearRepayments();
-    recalculateAndRender();
-  };
-  reader.readAsArrayBuffer(event.target.files[0]);
 }
 
 function setupWeekFilterControls() {
@@ -286,12 +355,10 @@ function updateRepaymentRowsForFilter() {
   });
 }
 
-// --- Repayment Row With Edit/Remove Buttons and Fixes ---
 function addRepaymentRow(weekIndex = null, amount = null) {
   const row = document.createElement('div');
   row.className = 'repayment-row';
 
-  // Week select
   const weekSelect = document.createElement('select');
   weekOptions.forEach((week, idx) => {
     if (idx < weekFilterRange[0] || idx > weekFilterRange[1]) return;
@@ -302,26 +369,22 @@ function addRepaymentRow(weekIndex = null, amount = null) {
   });
   if (weekIndex !== null) weekSelect.value = weekIndex;
 
-  // Amount input
   const amountInput = document.createElement('input');
   amountInput.type = 'number';
   amountInput.placeholder = 'Repayment €';
   if (amount !== null) amountInput.value = amount;
 
-  // Edit button
   const editBtn = document.createElement('button');
   editBtn.textContent = 'Edit';
   editBtn.type = 'button';
   editBtn.style.marginLeft = "6px";
   let isEditing = false;
 
-  // Remove button
   const removeBtn = document.createElement('button');
   removeBtn.textContent = 'Remove';
   removeBtn.type = 'button';
   removeBtn.style.marginLeft = "6px";
 
-  // Track previous week index for cleanup
   let repayRow = findRepaymentRowIndex();
   let previousWeekIndex = weekSelect.value;
 
@@ -330,8 +393,7 @@ function addRepaymentRow(weekIndex = null, amount = null) {
     amountInput.disabled = true;
     editBtn.textContent = 'Edit';
     isEditing = false;
-    // Clear old repayment if week changed
-    if (repayRow !== -1 && previousWeekIndex !== weekSelect.value) {
+    if (repayRow !== null && previousWeekIndex !== weekSelect.value) {
       rawData[repayRow][previousWeekIndex] = '';
       previousWeekIndex = weekSelect.value;
     }
@@ -347,9 +409,8 @@ function addRepaymentRow(weekIndex = null, amount = null) {
   };
 
   removeBtn.onclick = () => {
-    // Clear repayment in rawData
     repayRow = findRepaymentRowIndex();
-    if (repayRow !== -1) {
+    if (repayRow !== null) {
       rawData[repayRow][weekSelect.value] = '';
     }
     row.remove();
@@ -365,7 +426,6 @@ function addRepaymentRow(weekIndex = null, amount = null) {
     recalculateAndRender(true);
   });
 
-  // Default to "not editing" after creation
   weekSelect.disabled = true;
   amountInput.disabled = true;
 
@@ -377,12 +437,10 @@ function addRepaymentRow(weekIndex = null, amount = null) {
   repaymentInputs.appendChild(row);
 }
 
-// --- End Repayment Row Edit/Remove ---
-
 function clearRepayments() {
   repaymentInputs.innerHTML = '';
   const repayRow = findRepaymentRowIndex();
-  if (repayRow !== -1) {
+  if (repayRow !== null) {
     weekOptions.forEach(w => {
       rawData[repayRow][w.index] = '';
     });
@@ -400,7 +458,6 @@ function renderChart(cashflowData = null, repaymentData = null, incomeData = nul
   let eIdx = filtered ? weekFilterRange[1] : weekLabels.length - 1;
   let labels = weekLabels.slice(sIdx, eIdx+1);
 
-  // Defensive: If labels or data are empty, don't render chart
   if (!labels.length || !cashflowData || cashflowData.length === 0) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     return;
@@ -499,7 +556,6 @@ function renderChart(cashflowData = null, repaymentData = null, incomeData = nul
   });
 }
 
-// --- Highlight Repayment Weeks in Summary ---
 function renderSpreadsheetSummary(incomeArr, balanceArr, filtered = false) {
   const section = document.getElementById('spreadsheetSummarySection');
   section.innerHTML = "";
@@ -514,7 +570,6 @@ function renderSpreadsheetSummary(incomeArr, balanceArr, filtered = false) {
 
   const repayRowIdx = findRepaymentRowIndex();
 
-  // Week label row (with repayment highlight)
   const trWeeks = document.createElement('tr');
   trWeeks.className = 'week-label-row';
   trWeeks.appendChild(document.createElement('th'));
@@ -524,14 +579,13 @@ function renderSpreadsheetSummary(incomeArr, balanceArr, filtered = false) {
     th.className = 'sticky-week-label';
     const weekOptIdx = sIdx + idx;
     const weekCol = weekOptions[weekOptIdx].index;
-    if (repayRowIdx !== -1 && rawData[repayRowIdx][weekCol] && parseFloat(rawData[repayRowIdx][weekCol]) !== 0) {
+    if (repayRowIdx !== null && rawData[repayRowIdx][weekCol] && parseFloat(rawData[repayRowIdx][weekCol]) !== 0) {
       th.classList.add('repayment-highlight');
     }
     trWeeks.appendChild(th);
   });
   table.appendChild(trWeeks);
 
-  // Income row
   const trIncome = document.createElement('tr');
   trIncome.className = 'balance-row';
   const incomeLabel = document.createElement('td');
@@ -544,7 +598,6 @@ function renderSpreadsheetSummary(incomeArr, balanceArr, filtered = false) {
   });
   table.appendChild(trIncome);
 
-  // Balance row
   const trBal = document.createElement('tr');
   trBal.className = 'balance-row';
   const balLabel = document.createElement('td');
@@ -561,8 +614,6 @@ function renderSpreadsheetSummary(incomeArr, balanceArr, filtered = false) {
   section.appendChild(div);
 }
 
-// --- End Highlight Repayment Weeks ---
-
 function renderTable(repaymentData = null, balanceArr = null, incomeArr = null, filtered = false) {
   const oldTable = document.getElementById('spreadsheetTable');
   if (oldTable) oldTable.innerHTML = "";
@@ -575,7 +626,6 @@ function renderTable(repaymentData = null, balanceArr = null, incomeArr = null, 
   let sIdx = filtered ? weekFilterRange[0] : 0;
   let eIdx = filtered ? weekFilterRange[1] : weekLabels.length-1;
 
-  // Render up to "Rolling cash balance" row
   const rollingRowIdx = findRowIndex("Rolling cash balance");
   const tableEndIdx = rollingRowIdx > 0 ? rollingRowIdx : Math.min(rawData.length, 40);
   for (let rowIndex = 0; rowIndex <= tableEndIdx; rowIndex++) {
@@ -594,7 +644,6 @@ function renderTable(repaymentData = null, balanceArr = null, incomeArr = null, 
     table.appendChild(tr);
   }
 
-  // Add a row for weekly income
   if (incomeArr) {
     const trIncome = document.createElement('tr');
     trIncome.className = 'balance-row';
@@ -606,7 +655,6 @@ function renderTable(repaymentData = null, balanceArr = null, incomeArr = null, 
     table.appendChild(trIncome);
   }
 
-  // Add a row for rolling balance
   if (balanceArr) {
     const trBal = document.createElement('tr');
     trBal.className = 'balance-row';
@@ -625,7 +673,7 @@ function exportToExcel() {
   const ws = XLSX.utils.aoa_to_sheet(rawData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-  XLSX.writeFile(wb, "repayment_data.xlsx");
+  XLSX.writeFile(wb, "mayweather_matrix_data.xlsx");
 }
 function exportToPDF() {
   const container = document.querySelector('.container');
@@ -638,14 +686,14 @@ function exportToPDF() {
     const imgWidth = canvas.width * ratio;
     const imgHeight = canvas.height * ratio;
     pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-    pdf.save("repayment_summary.pdf");
+    pdf.save("mayweather_matrix_summary.pdf");
   });
 }
 function exportChartPNG() {
   const canvas = document.getElementById('chartCanvas');
   const link = document.createElement('a');
   link.href = canvas.toDataURL('image/png');
-  link.download = 'cashflow_chart.png';
+  link.download = 'mayweather_matrix_chart.png';
   link.click();
 }
 function savePlan() {
@@ -656,11 +704,11 @@ function savePlan() {
       amount: row.querySelector('input[type="number"]').value
     });
   });
-  localStorage.setItem('repaymentPlan', JSON.stringify(repayments));
+  localStorage.setItem('matrixRepaymentPlan', JSON.stringify(repayments));
   alert('Repayment plan saved!');
 }
 function loadPlan() {
-  const repayments = JSON.parse(localStorage.getItem('repaymentPlan') || '[]');
+  const repayments = JSON.parse(localStorage.getItem('matrixRepaymentPlan') || '[]');
   repaymentInputs.innerHTML = '';
   repayments.forEach(rep => {
     addRepaymentRow(rep.weekIndex, rep.amount);
