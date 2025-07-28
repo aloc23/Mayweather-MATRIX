@@ -1,141 +1,146 @@
-// --- Tab & Sub-tab Navigation ---
-document.querySelectorAll('.tabs button').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(sec => sec.classList.remove('active'));
-    document.getElementById(this.dataset.tab).classList.add('active');
+document.addEventListener('DOMContentLoaded', function() {
+  // Tab navigation
+  document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(this.dataset.tab).classList.add('active');
+    });
   });
-});
-document.querySelectorAll('.subtabs button').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-    document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
-    document.getElementById('subtab-' + this.dataset.subtab).classList.add('active');
-  });
-});
-window.toggleCollapse = function(btn) {
-  const caret = btn.querySelector('.caret');
-  const content = btn.nextElementSibling;
-  content.classList.toggle('active');
-  caret.style.transform = content.classList.contains('active') ? 'none' : 'rotate(-90deg)';
-  content.style.display = content.classList.contains('active') ? 'block' : 'none';
-};
 
-// --- Repayment Sensitivity Analysis Logic ---
-const weekLabels = Array.from({length: 52}, (_, i) => `Week ${i+1}`);
-const weekSelect = document.getElementById('weekSelect');
-const repaymentFrequency = document.getElementById('repaymentFrequency');
-function populateWeekDropdown() {
-  weekSelect.innerHTML = '';
-  weekLabels.forEach(label => {
-    const opt = document.createElement('option');
-    opt.value = label;
-    opt.textContent = label;
-    weekSelect.appendChild(opt);
+  // Subtab navigation
+  document.querySelectorAll('.subtabs button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
+      document.getElementById('subtab-' + this.dataset.subtab).classList.add('active');
+    });
   });
-}
-populateWeekDropdown();
-document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
-  radio.addEventListener('change', function() {
-    if (this.value === "week") {
-      weekSelect.disabled = false;
-      repaymentFrequency.disabled = true;
-    } else {
-      weekSelect.disabled = true;
-      repaymentFrequency.disabled = false;
-    }
-  });
-});
-let repaymentRows = [];
-document.getElementById('addRepaymentForm').onsubmit = function(e) {
-  e.preventDefault();
-  const type = document.querySelector('input[name="repaymentType"]:checked').value;
-  let week = null, frequency = null;
-  if (type === "week") {
-    week = weekSelect.value;
-  } else {
-    frequency = repaymentFrequency.value;
-  }
-  const amount = document.getElementById('repaymentAmount').value;
-  if (!amount) return;
-  repaymentRows.push({ type, week, frequency, amount: parseFloat(amount), editing: false });
-  renderRepaymentRows();
-  this.reset();
-  document.getElementById('weekSelect').selectedIndex = 0;
-  document.getElementById('repaymentFrequency').selectedIndex = 0;
-  document.querySelector('input[name="repaymentType"][value="week"]').checked = true;
-  weekSelect.disabled = false;
-  repaymentFrequency.disabled = true;
-  updateAllTabs();
-};
-function renderRepaymentRows() {
-  const container = document.getElementById('repaymentRows');
-  container.innerHTML = "";
-  repaymentRows.forEach((row, i) => {
-    const div = document.createElement('div');
-    div.className = 'repayment-row';
-    const weekSelect = document.createElement('select');
+
+  // Collapsible logic
+  window.toggleCollapse = function(btn) {
+    const caret = btn.querySelector('.caret');
+    const content = btn.nextElementSibling;
+    content.classList.toggle('active');
+    caret.style.transform = content.classList.contains('active') ? 'none' : 'rotate(-90deg)';
+    content.style.display = content.classList.contains('active') ? 'block' : 'none';
+  };
+
+  // --- Repayment Sensitivity Analysis Logic ---
+  const weekLabels = Array.from({length: 52}, (_, i) => `Week ${i+1}`);
+  const weekSelect = document.getElementById('weekSelect');
+  const repaymentFrequency = document.getElementById('repaymentFrequency');
+  function populateWeekDropdown() {
+    weekSelect.innerHTML = '';
     weekLabels.forEach(label => {
       const opt = document.createElement('option');
       opt.value = label;
       opt.textContent = label;
       weekSelect.appendChild(opt);
     });
-    weekSelect.value = row.week || "";
-    weekSelect.disabled = !row.editing || row.type !== "week";
-    const freqSelect = document.createElement('select');
-    ["monthly", "quarterly", "one-off"].forEach(f => {
-      const opt = document.createElement('option');
-      opt.value = f;
-      opt.textContent = f.charAt(0).toUpperCase() + f.slice(1);
-      freqSelect.appendChild(opt);
-    });
-    freqSelect.value = row.frequency || "monthly";
-    freqSelect.disabled = !row.editing || row.type !== "frequency";
-    const amountInput = document.createElement('input');
-    amountInput.type = 'number';
-    amountInput.value = row.amount;
-    amountInput.placeholder = 'Repayment €';
-    amountInput.disabled = !row.editing;
-    const editBtn = document.createElement('button');
-    editBtn.textContent = row.editing ? 'Save' : 'Edit';
-    editBtn.onclick = function() {
-      if (row.editing) {
-        if (row.type === "week") {
-          row.week = weekSelect.value;
-        } else {
-          row.frequency = freqSelect.value;
-        }
-        row.amount = parseFloat(amountInput.value);
+  }
+  populateWeekDropdown();
+  document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === "week") {
+        weekSelect.disabled = false;
+        repaymentFrequency.disabled = true;
+      } else {
+        weekSelect.disabled = true;
+        repaymentFrequency.disabled = false;
       }
-      row.editing = !row.editing;
-      renderRepaymentRows();
-      updateAllTabs();
-    };
-    const removeBtn = document.createElement('button');
-    removeBtn.textContent = 'Remove';
-    removeBtn.onclick = function() {
-      repaymentRows.splice(i, 1);
-      renderRepaymentRows();
-      updateAllTabs();
-    };
-    const typeText = document.createElement('span');
-    typeText.style.marginRight = "8px";
-    typeText.textContent = row.type === "week" ? "Week" : "Frequency";
-    if (row.type === "week") {
-      div.appendChild(typeText); div.appendChild(weekSelect);
-    } else {
-      div.appendChild(typeText); div.appendChild(freqSelect);
-    }
-    div.appendChild(amountInput);
-    div.appendChild(editBtn);
-    div.appendChild(removeBtn);
-    container.appendChild(div);
+    });
   });
-}
-renderRepaymentRows();
+
+  // Minimal repayment rows logic (no dependency on missing controls)
+  let repaymentRows = [];
+  document.getElementById('addRepaymentForm').onsubmit = function(e) {
+    e.preventDefault();
+    const type = document.querySelector('input[name="repaymentType"]:checked').value;
+    let week = null, frequency = null;
+    if (type === "week") {
+      week = weekSelect.value;
+    } else {
+      frequency = repaymentFrequency.value;
+    }
+    const amount = document.getElementById('repaymentAmount').value;
+    if (!amount) return;
+    repaymentRows.push({ type, week, frequency, amount: parseFloat(amount), editing: false });
+    renderRepaymentRows();
+    this.reset();
+    document.getElementById('weekSelect').selectedIndex = 0;
+    document.getElementById('repaymentFrequency').selectedIndex = 0;
+    document.querySelector('input[name="repaymentType"][value="week"]').checked = true;
+    weekSelect.disabled = false;
+    repaymentFrequency.disabled = true;
+  };
+  function renderRepaymentRows() {
+    const container = document.getElementById('repaymentRows');
+    container.innerHTML = "";
+    repaymentRows.forEach((row, i) => {
+      const div = document.createElement('div');
+      div.className = 'repayment-row';
+      const weekSelect = document.createElement('select');
+      weekLabels.forEach(label => {
+        const opt = document.createElement('option');
+        opt.value = label;
+        opt.textContent = label;
+        weekSelect.appendChild(opt);
+      });
+      weekSelect.value = row.week || "";
+      weekSelect.disabled = !row.editing || row.type !== "week";
+      const freqSelect = document.createElement('select');
+      ["monthly", "quarterly", "one-off"].forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f.charAt(0).toUpperCase() + f.slice(1);
+        freqSelect.appendChild(opt);
+      });
+      freqSelect.value = row.frequency || "monthly";
+      freqSelect.disabled = !row.editing || row.type !== "frequency";
+      const amountInput = document.createElement('input');
+      amountInput.type = 'number';
+      amountInput.value = row.amount;
+      amountInput.placeholder = 'Repayment €';
+      amountInput.disabled = !row.editing;
+      const editBtn = document.createElement('button');
+      editBtn.textContent = row.editing ? 'Save' : 'Edit';
+      editBtn.onclick = function() {
+        if (row.editing) {
+          if (row.type === "week") {
+            row.week = weekSelect.value;
+          } else {
+            row.frequency = freqSelect.value;
+          }
+          row.amount = parseFloat(amountInput.value);
+        }
+        row.editing = !row.editing;
+        renderRepaymentRows();
+      };
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Remove';
+      removeBtn.onclick = function() {
+        repaymentRows.splice(i, 1);
+        renderRepaymentRows();
+      };
+      const typeText = document.createElement('span');
+      typeText.style.marginRight = "8px";
+      typeText.textContent = row.type === "week" ? "Week" : "Frequency";
+      if (row.type === "week") {
+        div.appendChild(typeText); div.appendChild(weekSelect);
+      } else {
+        div.appendChild(typeText); div.appendChild(freqSelect);
+      }
+      div.appendChild(amountInput);
+      div.appendChild(editBtn);
+      div.appendChild(removeBtn);
+      container.appendChild(div);
+    });
+  }
+  renderRepaymentRows();
+});
 
 // --- Spreadsheet Mapping Logic ---
 let rawData = [];
