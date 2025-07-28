@@ -1,3 +1,12 @@
+// Collapsible logic must be global so it's available as onclick
+function toggleCollapse(btn) {
+  const caret = btn.querySelector('.caret');
+  const content = btn.nextElementSibling;
+  content.classList.toggle('active');
+  caret.style.transform = content.classList.contains('active') ? 'none' : 'rotate(-90deg)';
+  content.style.display = content.classList.contains('active') ? 'block' : 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // --- TABS ---
   document.querySelectorAll('.tabs button').forEach(btn => {
@@ -19,15 +28,6 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById(subtabId).classList.add('active');
     });
   });
-
-  // --- COLLAPSIBLE TABLE LOGIC ---
-  window.toggleCollapse = function(btn) {
-    const caret = btn.querySelector('.caret');
-    const content = btn.nextElementSibling;
-    content.classList.toggle('active');
-    caret.style.transform = content.classList.contains('active') ? 'none' : 'rotate(-90deg)';
-    content.style.display = content.classList.contains('active') ? 'block' : 'none';
-  };
 
   // --- MAPPING STATE ---
   let rawData = [];
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const incomeArr = getIncomeArr();
     const repaymentArr = getRepaymentArr();
     const netProfitArr = getNetProfitArr(incomeArr, repaymentArr);
-    const expenditureArr = Array(weekLabels.length).fill(0); // No expenditure mapping yet
+    const expenditureArr = Array(weekLabels.length).fill(0);
 
     const months = Array.from({length:12}, (_,i)=>`Month ${i+1}`);
     const incomeMonths = getMonthAgg(incomeArr,12);
