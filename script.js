@@ -1,19 +1,22 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // --- TAB & SUBTAB NAVIGATION ---
+  // --- TABS ---
   document.querySelectorAll('.tabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(sec => sec.classList.remove('active'));
-      document.getElementById(this.dataset.tab).classList.add('active');
+      var tabId = this.getAttribute('data-tab');
+      document.getElementById(tabId).classList.add('active');
     });
   });
+  // --- SUBTABS ---
   document.querySelectorAll('.subtabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
-      document.getElementById('subtab-' + this.dataset.subtab).classList.add('active');
+      var subtabId = 'subtab-' + this.getAttribute('data-subtab');
+      document.getElementById(subtabId).classList.add('active');
     });
   });
 
@@ -166,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
       container.appendChild(div);
     });
   }
+  populateWeekDropdown();
   renderRepaymentRows();
 
   // --- MAPPING PANEL & FILE UPLOAD ---
@@ -296,10 +300,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- ALL TAB RENDERING ---
   function updateAllTabs() {
-    // Repayment tab always shows current rows
     renderRepaymentRows();
 
-    // P&L and ROI tabs need spreadsheet data and mapping
     if (!rawData.length || !weekLabels.length) {
       document.getElementById('pnlSummary').innerHTML = '';
       document.getElementById('roiSummary').innerHTML = '';
@@ -318,7 +320,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const netProfitArr = getNetProfitArr(incomeArr, repaymentArr);
     const expenditureArr = Array(weekLabels.length).fill(0); // No expenditure mapping yet
 
-    // P&L Tab
     const months = Array.from({length:12}, (_,i)=>`Month ${i+1}`);
     const incomeMonths = getMonthAgg(incomeArr,12);
     const expenditureMonths = getMonthAgg(expenditureArr,12);
@@ -371,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
       `<b>Total Income:</b> €${incomeMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
        <b>Total Expenditure:</b> €${expenditureMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
        <b>Net Profit:</b> €${netProfitMonths.reduce((a,b)=>a+b,0).toLocaleString()}`;
-    // ROI Tab
+
     let annualProfit = netProfitMonths.reduce((a,b)=>a+b,0), investment = 120000;
     let paybackYears = annualProfit>0 ? Math.ceil(investment/annualProfit): '∞';
     document.getElementById('roiSummary').innerHTML = `
