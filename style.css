@@ -9,7 +9,6 @@
   border-radius: 12px;
   box-shadow: 0 4px 18px rgba(0,0,0,0.07);
 }
-
 h1 {
   color: #0077cc;
   font-size: 2.1em;
@@ -17,13 +16,11 @@ h1 {
   letter-spacing: 1px;
   font-weight: 700;
 }
-
 h3 {
   color: #005fa3;
   margin-top: 0;
   margin-bottom: 12px;
 }
-
 /* Repayment controls */
 .repayment-controls {
   display: flex;
@@ -32,7 +29,6 @@ h3 {
   margin-bottom: 15px;
   align-items: center;
 }
-
 /* Loan balance input controls */
 .loan-balance-controls {
   display: flex;
@@ -41,7 +37,6 @@ h3 {
   margin-bottom: 10px;
   align-items: center;
 }
-
 .loan-balance-controls input[type="number"] {
   padding: 6px 12px;
   width: 190px;
@@ -51,7 +46,6 @@ h3 {
   background: #f7fbff;
   box-sizing: border-box;
 }
-
 /* Week filter controls styling */
 #weekFilterControls {
   margin-bottom: 1em;
@@ -60,18 +54,15 @@ h3 {
   align-items: center;
   gap: 1em;
 }
-
 #weekFilterControls label {
   font-weight: 500;
   margin-right: 3px;
 }
-
 #weekFilterControls select {
   min-width: 120px;
   margin-right: 8px;
   padding: 2px 6px;
 }
-
 /* Repayment input row styling */
 .repayment-row {
   margin: 4px 0;
@@ -79,18 +70,15 @@ h3 {
   gap: 8px;
   align-items: center;
 }
-
 .repayment-row select,
 .repayment-row input[type="number"] {
   padding: 2px 6px;
   min-width: 120px;
 }
-
 /* Repayment highlight */
 .repayment-highlight {
   background: #ffe0b3 !important;
 }
-
 /* Chart section */
 .chart-wrapper {
   background: #f8fcff;
@@ -99,13 +87,11 @@ h3 {
   padding: 8px 0 8px 0;
   margin-bottom: 10px;
 }
-
 #chartCanvas {
   width: 100%;
   min-height: 320px;
   max-width: 900px;
 }
-
 /* Chart controls */
 .chart-controls {
   display: flex;
@@ -114,7 +100,6 @@ h3 {
   align-items: center;
   margin-bottom: 8px;
 }
-
 /* Summary section */
 .summary {
   margin: 18px 0 10px 0;
@@ -129,7 +114,6 @@ h3 {
   border: 1px solid #e7eefe;
   align-items: flex-start;
 }
-
 .summary .negatives-collapse summary {
   color: #2075d3;
   cursor: pointer;
@@ -137,20 +121,17 @@ h3 {
   margin-left: 4px;
   display: inline-block;
 }
-
 .summary .negatives-collapse {
   display: inline-block;
   margin-left: 8px;
   font-size: 1em;
   vertical-align: middle;
 }
-
 .summary .negatives-collapse ul {
   margin: 5px 0 0 8px;
   padding-left: 16px;
   font-size: .98em;
 }
-
 /* Spreadsheet summary table */
 .spreadsheet-summary-table th,
 .spreadsheet-summary-table td {
@@ -158,7 +139,6 @@ h3 {
   padding: 4px 8px;
   border: 1px solid #dbeaff;
 }
-
 .spreadsheet-summary-table th {
   background: #f0f7ff;
   font-weight: 500;
@@ -166,45 +146,37 @@ h3 {
   left: 0;
   z-index: 2;
 }
-
 .spreadsheet-summary-table {
   border-collapse: collapse;
   width: 100%;
 }
-
 .spreadsheet-summary-table .balance-row {
   background: #e4ffe4;
   font-weight: bold;
 }
-
 .spreadsheet-summary-table .week-label-row td {
   background: #f7fbff;
   font-weight: 500;
 }
-
 .spreadsheet-summary-table .sticky-week-label {
   background: #eaf5ff;
   position: sticky;
   left: 0;
   z-index: 1;
 }
-
 .spreadsheet-summary-scroll {
   overflow-x: auto;
   max-width: 98vw;
 }
-
 @media (max-width: 900px) {
   .spreadsheet-summary-scroll {
     font-size: 12px;
   }
 }
-
 /* Collapsible section styles */
 .collapsible-section {
   margin-bottom: 24px;
 }
-
 /* Toggle button styles */
 .toggle-btn {
   background: #f2f7ff;
@@ -218,12 +190,10 @@ h3 {
   margin-top: 8px;
   transition: background .18s, color .18s;
 }
-
 .toggle-btn:hover {
   background: #e1efff;
   color: #005fa3;
 }
-
 /* Sheet mapping/config panel */
 #sheetConfigPanel {
   background: #f9f9f9;
@@ -233,19 +203,16 @@ h3 {
   margin: 12px 0 18px 0;
   max-width: 700px;
 }
-
 #sheetConfigPanel label {
   font-weight: 500;
   margin-right: 6px;
 }
-
 .sheet-config-row {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
 #sheetPreviewTable {
   border-collapse: collapse;
   margin-bottom: 8px;
@@ -253,19 +220,16 @@ h3 {
   overflow-x: auto;
   font-size: 13px;
 }
-
 #sheetPreviewTable td, #sheetPreviewTable th {
   border: 1px solid #e0eaff;
   padding: 2px 6px;
   text-align: center;
   background: #f5faff;
 }
-
 /* Utility styles */
 button, select, input[type="number"] {
   font-family: inherit;
 }
-
 button {
   background: #eaf5ff;
   border: 1px solid #b6daff;
@@ -276,30 +240,25 @@ button {
   font-size: 1em;
   transition: background .15s, color .15s;
 }
-
 button:hover {
   background: #d2eaff;
   color: #0077cc;
 }
-
 /* Hide scrollbars for summary scroll on webkit browsers */
 .spreadsheet-summary-scroll::-webkit-scrollbar {
   height: 7px;
   background: #f0f7ff;
 }
-
 .spreadsheet-summary-scroll::-webkit-scrollbar-thumb {
   background: #b6daff;
   border-radius: 5px;
 }
-
 /* Misc */
 input[type="file"] {
   font-size: 1em;
   padding: 4px;
   margin-right: 10px;
 }
-
 @media (max-width: 700px) {
   .container {
     padding: 8px 2px 18px 2px;
