@@ -28,19 +28,29 @@ document.addEventListener('DOMContentLoaded', function() {
     content.style.display = content.classList.contains('active') ? 'block' : 'none';
   };
 
+  // --- Spreadsheet mapping state ---
+  let rawData = [];
+  let mappingConfigured = false;
+  let weekOptions = [];
+  let weekLabels = [];
+  let weeksHeaderRowIdx = 3, repaymentRowIdx = 4, startRow = 4, endRow = 269, LABEL_COL = 1, firstWeekCol = 5;
+
   // --- Repayment Sensitivity ---
-  const weekLabels = Array.from({length: 52}, (_, i) => `Week ${i+1}`);
   const weekSelect = document.getElementById('weekSelect');
   const repaymentFrequency = document.getElementById('repaymentFrequency');
-  function populateWeekDropdown() {
+  let repaymentRows = [];
+
+  function populateWeekDropdown(labels) {
     weekSelect.innerHTML = '';
-    weekLabels.forEach(label => {
+    if (!labels || labels.length === 0) labels = Array.from({length: 52}, (_, i) => `Week ${i+1}`);
+    labels.forEach(label => {
       const opt = document.createElement('option');
       opt.value = label;
       opt.textContent = label;
       weekSelect.appendChild(opt);
     });
   }
+  // Initial: static weeks
   populateWeekDropdown();
 
   document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
@@ -55,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  let repaymentRows = [];
   document.getElementById('addRepaymentForm').onsubmit = function(e) {
     e.preventDefault();
     const type = document.querySelector('input[name="repaymentType"]:checked').value;
@@ -83,15 +92,15 @@ document.addEventListener('DOMContentLoaded', function() {
     repaymentRows.forEach((row, i) => {
       const div = document.createElement('div');
       div.className = 'repayment-row';
-      const weekSelect = document.createElement('select');
-      weekLabels.forEach(label => {
+      const weekSelectElem = document.createElement('select');
+      (weekLabels.length ? weekLabels : Array.from({length:52}, (_,i)=>`Week ${i+1}`)).forEach(label => {
         const opt = document.createElement('option');
         opt.value = label;
         opt.textContent = label;
-        weekSelect.appendChild(opt);
+        weekSelectElem.appendChild(opt);
       });
-      weekSelect.value = row.week || "";
-      weekSelect.disabled = !row.editing || row.type !== "week";
+      weekSelectElem.value = row.week || "";
+      weekSelectElem.disabled = !row.editing || row.type !== "week";
       const freqSelect = document.createElement('select');
       ["monthly", "quarterly", "one-off"].forEach(f => {
         const opt = document.createElement('option');
@@ -111,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
       editBtn.onclick = function() {
         if (row.editing) {
           if (row.type === "week") {
-            row.week = weekSelect.value;
+            row.week = weekSelectElem.value;
           } else {
             row.frequency = freqSelect.value;
           }
@@ -132,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
       typeText.style.marginRight = "8px";
       typeText.textContent = row.type === "week" ? "Week" : "Frequency";
       if (row.type === "week") {
-        div.appendChild(typeText); div.appendChild(weekSelect);
+        div.appendChild(typeText); div.appendChild(weekSelectElem);
       } else {
         div.appendChild(typeText); div.appendChild(freqSelect);
       }
@@ -145,9 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
   renderRepaymentRows();
 
   // --- Spreadsheet Mapping ---
-  let rawData = [];
-  let mappingConfigured = false;
-  let weeksHeaderRowIdx = 3, repaymentRowIdx = 4, startRow = 4, endRow = 269, LABEL_COL = 1, firstWeekCol = 5;
   document.getElementById('fileInput').addEventListener('change', function(event) {
     const reader = new FileReader();
     reader.onload = function (e) {
@@ -158,10 +164,12 @@ document.addEventListener('DOMContentLoaded', function() {
       rawData = json;
       showSheetConfigPanel(json);
       mappingConfigured = true;
+      handleMappingChange(); // update week dropdowns after mapping
       updateAllTabs();
     };
     reader.readAsArrayBuffer(event.target.files[0]);
   });
+
   function showSheetConfigPanel(data) {
     let maxRows = data.length, maxCols = 0;
     for (let r = 0; r < maxRows; r++) maxCols = Math.max(maxCols, data[r].length);
@@ -215,16 +223,16 @@ document.addEventListener('DOMContentLoaded', function() {
       firstWeekCol = parseInt(firstWeekColSelector.value, 10);
       mappingConfigured = true;
       document.getElementById('sheetConfigPanel').style.display = 'none';
+      handleMappingChange();
       updateAllTabs();
     };
   }
 
-  // --- Calculation/Rendering ---
-  function getWeekData() {
-    if (!rawData.length || !mappingConfigured) return [];
+  function handleMappingChange() {
+    // Extract week labels from mapping and update dropdown
     const weeksRow = rawData[weeksHeaderRowIdx] || [];
-    let weekOptions = [];
-    let weekLabels = [];
+    weekOptions = [];
+    weekLabels = [];
     for (let i = firstWeekCol; i < weeksRow.length; i++) {
       const label = typeof weeksRow[i] === 'string' ? weeksRow[i].trim() : '';
       if (label && /^Week\s*\d+/i.test(label)) {
@@ -232,11 +240,13 @@ document.addEventListener('DOMContentLoaded', function() {
         weekLabels.push(label);
       }
     }
-    return weekOptions;
+    populateWeekDropdown(weekLabels);
+    renderRepaymentRows(); // update repayment rows dropdowns
   }
+
+  // --- Calculations ---
   function getIncomeArr() {
     if (!rawData.length || !mappingConfigured) return [];
-    let weekOptions = getWeekData();
     let arr = [];
     for (let w = 0; w < weekOptions.length; w++) {
       let sum = 0;
@@ -249,27 +259,18 @@ document.addEventListener('DOMContentLoaded', function() {
     return arr;
   }
   function getExpenditureArr() {
-    // Replace with your mapping for expenditure rows
     if (!rawData.length || !mappingConfigured) return [];
-    let weekOptions = getWeekData();
     let arr = Array(weekOptions.length).fill(0);
-    // Example: If you know which rows are expenditure, sum those
-    // for (let r of [/* your expenditure row indices */]) {
-    //   for (let w = 0; w < weekOptions.length; w++) {
-    //     const val = parseFloat(rawData[r]?.[weekOptions[w].index] || 0);
-    //     if (!isNaN(val)) arr[w] += val;
-    //   }
-    // }
+    // TODO: map expenditure rows from config
     return arr;
   }
   function getRepaymentArr() {
-    let weekOptions = getWeekData();
     let arr = Array(weekOptions.length).fill(0);
     repaymentRows.forEach(r => {
       if (r.type === "week") {
-        let weekNum = parseInt((r.week||"").replace(/[^\d]/g,"")) || 1;
-        let weekIdx = weekNum-1;
-        if (weekIdx >= 0 && weekIdx < arr.length) arr[weekIdx] += r.amount;
+        let weekNum = weekLabels.indexOf(r.week);
+        if (weekNum === -1) weekNum = 0;
+        arr[weekNum] += r.amount;
       } else {
         if (r.frequency === "monthly") {
           let perMonth = Math.ceil(arr.length/12);
@@ -302,7 +303,25 @@ document.addEventListener('DOMContentLoaded', function() {
     return out;
   }
 
+  // --- Rendering for All Tabs ---
   function updateAllTabs() {
+    // If no mapping, show empty panels
+    if (!rawData.length || !mappingConfigured || weekLabels.length === 0) {
+      // Repayment, mapping, chart, etc: show empty or static
+      document.getElementById('chartCanvas').getContext('2d').clearRect(0,0,900,320);
+      document.getElementById('pnlSummary').innerHTML = '';
+      document.getElementById('roiSummary').innerHTML = '';
+      document.getElementById('summaryKeyFinancials').innerHTML = '';
+      ['roiLineChart','roiBarChart','roiPieChart','tornadoChart','summaryChart'].forEach(id=>{
+        const canvas=document.getElementById(id);if(canvas)canvas.getContext('2d').clearRect(0,0,900,320);
+      });
+      // Tables
+      document.getElementById('pnlMonthlyBreakdown').querySelector('tbody').innerHTML = '';
+      document.getElementById('pnlCashFlow').querySelector('tbody').innerHTML = '';
+      document.getElementById('paybackTable').querySelector('tbody').innerHTML = '';
+      return;
+    }
+    // Calculations
     const incomeArr = getIncomeArr();
     const expenditureArr = getExpenditureArr();
     const repaymentArr = getRepaymentArr();
@@ -380,8 +399,16 @@ document.addEventListener('DOMContentLoaded', function() {
       <b>Total Expenditure:</b> €${expenditureMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
       <b>Net Profit:</b> €${netProfitMonths.reduce((a,b)=>a+b,0).toLocaleString()}
     `;
-    // Charts
-    if(window.roiLineChart) window.roiLineChart.destroy();
+    // Charts (destroy if instanceof Chart)
+    function safeDestroy(chartObj) {
+      if (chartObj && typeof chartObj.destroy === 'function') chartObj.destroy();
+    }
+    safeDestroy(window.roiLineChart);
+    safeDestroy(window.roiBarChart);
+    safeDestroy(window.roiPieChart);
+    safeDestroy(window.tornadoChart);
+    safeDestroy(window.summaryChart);
+    safeDestroy(window.chartCanvasChart);
     window.roiLineChart = new Chart(document.getElementById('roiLineChart').getContext('2d'),{
       type:'line',
       data:{
@@ -392,25 +419,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }]
       },options:{responsive:true,maintainAspectRatio:false}
     });
-    if(window.roiBarChart) window.roiBarChart.destroy();
     window.roiBarChart=new Chart(document.getElementById('roiBarChart').getContext('2d'),{
       type:'bar',
       data:{labels:['Investment','Annual Profit'],datasets:[{label:'Amount (€)',data:[investment,annualProfit],backgroundColor:['#f39c12','#4caf50']}]},
       options:{responsive:true,maintainAspectRatio:false}
     });
-    if(window.roiPieChart) window.roiPieChart.destroy();
     window.roiPieChart=new Chart(document.getElementById('roiPieChart').getContext('2d'),{
       type:'pie',
       data:{labels:['Investment','Profit'],datasets:[{data:[investment,annualProfit],backgroundColor:['#f39c12','#4caf50']}]},
       options:{responsive:true,maintainAspectRatio:false}
     });
-    if(window.tornadoChart) window.tornadoChart.destroy();
     window.tornadoChart = new Chart(document.getElementById('tornadoChart').getContext('2d'),{
       type:'bar',
       data:{labels:['Utilization','Fee','Staff Cost'],datasets:[{label:'Impact (€)',data:[6500,4200,3900],backgroundColor:'#f3b200'}]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false}
     });
-    if(window.summaryChart) window.summaryChart.destroy();
     window.summaryChart=new Chart(document.getElementById('summaryChart').getContext('2d'),{
       type:'bar',
       data:{
@@ -418,8 +441,6 @@ document.addEventListener('DOMContentLoaded', function() {
         datasets:[{label:'Annual (€)',data:[incomeMonths.reduce((a,b)=>a+b,0),expenditureMonths.reduce((a,b)=>a+b,0),netProfitMonths.reduce((a,b)=>a+b,0)],backgroundColor:['#4caf50','#f44336','#2196f3']}]
       },options:{responsive:true,maintainAspectRatio:false}
     });
-    // Cashflow Chart (Analysis)
-    if(window.chartCanvasChart) window.chartCanvasChart.destroy();
     window.chartCanvasChart = new Chart(document.getElementById('chartCanvas').getContext('2d'),{
       type:'line',
       data:{
