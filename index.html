@@ -4,259 +4,53 @@
   <meta charset="UTF-8">
   <title>Mayweather-MATRIX Investment Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Chart.js, xlsx, html2canvas, jsPDF libraries here -->
   <link rel="stylesheet" href="style.css">
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f6f9fc;
-      margin: 0;
-    }
-    h1 {
-      margin: 0;
-      font-size: 2em;
-      font-weight: 700;
-    }
-    .container {
-      max-width: 1050px;
-      margin: 0 auto;
-      padding: 24px 2vw 40px 2vw;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    nav.tabs {
-      display: flex;
-      gap: 0.7em;
-      margin-bottom: 18px;
-      border-bottom: 1px solid #e0eaff;
-      background: #f7fbff;
-      padding: 0 0 0 18px;
-    }
-    nav.tabs button {
-      background: #f7fbff;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: #2075d3;
-      font-size: 1.03em;
-      font-weight: 500;
-      padding: 9px 22px 7px 22px;
-      cursor: pointer;
-      transition: background .16s, color .16s, border-bottom .16s;
-      outline: none;
-    }
-    nav.tabs button.active,
-    nav.tabs button:focus {
-      border-bottom: 2px solid #2075d3;
-      background: #eaf5ff;
-      color: #005fa3;
-    }
-    .tab-content {
-      display: none;
-      margin-top: 0;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    /* Sub-tabs (Analysis & Mapping) */
-    .subtabs {
-      display: flex;
-      gap: 2em;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e0eaff;
-      background: #f7fbff;
-      padding-left: 16px;
-    }
-    .subtabs button {
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: #2075d3;
-      font-size: 1.06em;
-      font-weight: 500;
-      padding: 10px 28px 8px 28px;
-      cursor: pointer;
-      transition: background .15s, color .15s, border-bottom .15s;
-      outline: none;
-      border-radius: 7px 7px 0 0;
-    }
-    .subtabs button.active,
-    .subtabs button:focus {
-      border-bottom: 2.5px solid #2075d3;
-      background: #eaf5ff;
-      color: #005fa3;
-    }
-    .subtab-panel {
-      display: none;
-      margin-bottom: 40px;
-      padding: 24px 18px 14px 18px;
-      background: #f8faff;
-      border-radius: 12px;
-      border: 1.5px solid #e0eaff;
-      box-shadow: 0 1px 4px rgba(0,119,204,0.08);
-    }
-    .subtab-panel.active {
-      display: block;
-    }
-    /* Collapsible tables for other tabs */
-    .collapsible-table-section {
-      margin: 22px 0;
-      border-radius: 10px;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.08);
-      background: #fafdff;
-      border: 1px solid #e0eaff;
-      overflow: hidden;
-    }
-    .collapsible-header {
-      background: #eaf5ff;
-      font-weight: 600;
-      font-size: 1.09em;
-      padding: 12px 18px;
-      cursor: pointer;
-      border: none;
-      border-bottom: 1px solid #dbeaff;
-      width: 100%;
-      text-align: left;
-      outline: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .collapsible-header .caret {
-      font-size: 1.1em;
-      transition: transform .18s;
-    }
-    .collapsible-header.collapsed .caret {
-      transform: rotate(-90deg);
-    }
-    .collapsible-content {
-      padding: 0 18px 18px 18px;
-      display: none;
-      animation: fadeIn .25s;
-    }
-    .collapsible-content.active {
-      display: block;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    /* Other styles as previous */
-    .repayment-controls, .loan-balance-controls, .chart-controls {
-      margin-bottom: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-    .summary {
-      margin: 18px 0 10px 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2em;
-      font-size: 1.15em;
-      font-weight: 500;
-      background: #f8faff;
-      border-radius: 6px;
-      padding: 10px 20px;
-      border: 1px solid #e7eefe;
-      align-items: flex-start;
-    }
-    .summary .negatives-collapse summary {
-      color: #2075d3;
-      cursor: pointer;
-      font-size: .98em;
-      margin-left: 4px;
-      display: inline-block;
-    }
-    .summary .negatives-collapse {
-      display: inline-block;
-      margin-left: 8px;
-      font-size: 1em;
-      vertical-align: middle;
-    }
-    .summary .negatives-collapse ul {
-      margin: 5px 0 0 8px;
-      padding-left: 16px;
-      font-size: .98em;
-    }
-    /* P&L Table styles */
-    #pnlMonthlyBreakdown, #pnlCashFlow, #paybackTable {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 16px;
-      margin-bottom: 16px;
-    }
-    #pnlMonthlyBreakdown th, #pnlMonthlyBreakdown td,
-    #pnlCashFlow th, #pnlCashFlow td,
-    #paybackTable th, #paybackTable td {
-      border: 1px solid #e0eaff;
-      padding: 6px 10px;
-      text-align: right;
-    }
-    #pnlMonthlyBreakdown th, #pnlCashFlow th, #paybackTable th {
-      background: #eaf5ff;
-      font-weight: 500;
-    }
-    .repayment-table-row {
-      background: #f7fbe9;
-      transition: background 0.14s;
-    }
-    .repayment-info-btn {
-      background: #f3b200;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: .95em;
-    }
-    .repayment-info {
-      margin-top: 6px;
-      padding: 8px;
-      background: #fffbe2;
-      border: 1px solid #e6e3c2;
-      border-radius: 6px;
-      font-size: .98em;
-      text-align: left;
-      display: none;
-    }
-    .chart-wrapper {
-      background: #f8fcff;
-      border: 1px solid #dbeaff;
-      border-radius: 5px;
-      padding: 8px 0 8px 0;
-    }
-    #chartCanvas, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart {
-      width: 100%;
-      min-height: 320px;
-      max-width: 900px;
-    }
-    @media (max-width: 700px) {
-      .container { padding: 8px 2vw 18px 2vw; }
-      nav.tabs { flex-direction: column; }
-      nav.tabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; }
-      .subtabs { flex-direction: column; gap: 4px; }
-      .subtabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; }
-      #sheetConfigPanel { padding: 8px 2vw; }
-      #chartCanvas { min-height: 180px; }
-      .summary { font-size: 1em; }
-    }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f6f9fc; margin: 0; }
+    h1 { margin: 0; font-size: 2em; font-weight: 700; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 2vw 40px 2vw; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    nav.tabs { display: flex; gap: 0.7em; margin-bottom: 18px; border-bottom: 1px solid #e0eaff; background: #f7fbff; padding: 0 0 0 18px; }
+    nav.tabs button { background: #f7fbff; border: none; border-bottom: 2px solid transparent; color: #2075d3; font-size: 1.03em; font-weight: 500; padding: 9px 22px 7px 22px; cursor: pointer; transition: background .16s, color .16s, border-bottom .16s; outline: none; }
+    nav.tabs button.active, nav.tabs button:focus { border-bottom: 2px solid #2075d3; background: #eaf5ff; color: #005fa3; }
+    .tab-content { display: none; margin-top: 0; }
+    .tab-content.active { display: block; }
+    .subtabs { display: flex; gap: 2em; margin-bottom: 20px; border-bottom: 2px solid #e0eaff; background: #f7fbff; padding-left: 16px; }
+    .subtabs button { background: none; border: none; border-bottom: 2px solid transparent; color: #2075d3; font-size: 1.06em; font-weight: 500; padding: 10px 28px 8px 28px; cursor: pointer; transition: background .15s, color .15s, border-bottom .15s; outline: none; border-radius: 7px 7px 0 0; }
+    .subtabs button.active, .subtabs button:focus { border-bottom: 2.5px solid #2075d3; background: #eaf5ff; color: #005fa3; }
+    .subtab-panel { display: none; margin-bottom: 40px; padding: 24px 18px 14px 18px; background: #f8faff; border-radius: 12px; border: 1.5px solid #e0eaff; box-shadow: 0 1px 4px rgba(0,119,204,0.08); }
+    .subtab-panel.active { display: block; }
+    .collapsible-table-section { margin: 22px 0; border-radius: 10px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); background: #fafdff; border: 1px solid #e0eaff; overflow: hidden; }
+    .collapsible-header { background: #eaf5ff; font-weight: 600; font-size: 1.09em; padding: 12px 18px; cursor: pointer; border: none; border-bottom: 1px solid #dbeaff; width: 100%; text-align: left; outline: none; display: flex; align-items: center; gap: 8px; }
+    .collapsible-header .caret { font-size: 1.1em; transition: transform .18s; }
+    .collapsible-header.collapsed .caret { transform: rotate(-90deg); }
+    .collapsible-content { padding: 0 18px 18px 18px; display: none; animation: fadeIn .25s; }
+    .collapsible-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .repayment-controls, .loan-balance-controls, .chart-controls { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .summary { margin: 18px 0 10px 0; display: flex; flex-wrap: wrap; gap: 2em; font-size: 1.15em; font-weight: 500; background: #f8faff; border-radius: 6px; padding: 10px 20px; border: 1px solid #e7eefe; align-items: flex-start; }
+    .summary .negatives-collapse summary { color: #2075d3; cursor: pointer; font-size: .98em; margin-left: 4px; display: inline-block; }
+    .summary .negatives-collapse { display: inline-block; margin-left: 8px; font-size: 1em; vertical-align: middle; }
+    .summary .negatives-collapse ul { margin: 5px 0 0 8px; padding-left: 16px; font-size: .98em; }
+    #pnlMonthlyBreakdown, #pnlCashFlow, #paybackTable { border-collapse: collapse; width: 100%; margin-top: 16px; margin-bottom: 16px; }
+    #pnlMonthlyBreakdown th, #pnlMonthlyBreakdown td, #pnlCashFlow th, #pnlCashFlow td, #paybackTable th, #paybackTable td { border: 1px solid #e0eaff; padding: 6px 10px; text-align: right; }
+    #pnlMonthlyBreakdown th, #pnlCashFlow th, #paybackTable th { background: #eaf5ff; font-weight: 500; }
+    .repayment-table-row { background: #f7fbe9; transition: background 0.14s; }
+    .repayment-info-btn { background: #f3b200; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: .95em; }
+    .repayment-info { margin-top: 6px; padding: 8px; background: #fffbe2; border: 1px solid #e6e3c2; border-radius: 6px; font-size: .98em; text-align: left; display: none; }
+    .chart-wrapper { background: #f8fcff; border: 1px solid #dbeaff; border-radius: 5px; padding: 8px 0 8px 0; }
+    #chartCanvas, #roiLineChart, #roiBarChart, #roiPieChart, #tornadoChart, #summaryChart { width: 100%; min-height: 320px; max-width: 900px; }
+    @media (max-width: 700px) { .container { padding: 8px 2vw 18px 2vw; } nav.tabs { flex-direction: column; } nav.tabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; } .subtabs { flex-direction: column; gap: 4px; } .subtabs button { padding: 8px 2vw 6px 2vw; font-size: 1em; } }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Mayweather-MATRIX Investment Tool</h1>
-
-    <!-- Tab Navigation -->
     <nav class="tabs" role="tablist">
       <button data-tab="main" class="active">Analysis & Mapping</button>
       <button data-tab="pnl">Profit & Loss</button>
       <button data-tab="roi">ROI</button>
       <button data-tab="summary">Summary</button>
     </nav>
-
-    <!-- Tab Contents -->
     <section id="main" class="tab-content active">
       <h2>Analysis & Mapping</h2>
       <div class="subtabs" role="tablist">
@@ -267,17 +61,10 @@
       </div>
       <div id="subtab-repayment" class="subtab-panel active">
         <h3>Repayment Sensitivity Analysis</h3>
-        <p>Analyze how different repayment schedules impact investment outcomes.</p>
         <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;">
-          <label>
-            <input type="radio" name="repaymentType" value="week" checked>
-            Specific Week
-          </label>
+          <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
           <select id="weekSelect"></select>
-          <label>
-            <input type="radio" name="repaymentType" value="frequency">
-            Frequency
-          </label>
+          <label><input type="radio" name="repaymentType" value="frequency"> Frequency</label>
           <select id="repaymentFrequency" disabled>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -291,8 +78,9 @@
       </div>
       <div id="subtab-mapping" class="subtab-panel">
         <h3>Spreadsheet Mapping</h3>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
         <div id="sheetConfigPanel" style="display:none;">
-          <h3>Configure Spreadsheet Mapping</h3>
+          <h4>Configure Spreadsheet Mapping</h4>
           <div id="sheetPreview"></div>
           <div class="sheet-config-row">
             <label for="weekLabelRowSelector">Week Label Row:</label>
@@ -337,7 +125,6 @@
         </select></label>
       </div>
     </section>
-
     <section id="pnl" class="tab-content">
       <h2>Profit &amp; Loss Statement</h2>
       <div id="pnlSummary"></div>
@@ -380,7 +167,6 @@
         </div>
       </div>
     </section>
-
     <section id="roi" class="tab-content">
       <h2>ROI &amp; Payback</h2>
       <div id="roiSummary"></div>
@@ -407,7 +193,6 @@
         </div>
       </div>
     </section>
-
     <section id="summary" class="tab-content">
       <h2>Summary Report</h2>
       <div id="summaryKeyFinancials"></div>
