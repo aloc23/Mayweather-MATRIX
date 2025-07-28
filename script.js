@@ -1,4 +1,3 @@
-// Collapsible logic must be global so it's available as onclick
 function toggleCollapse(btn) {
   const caret = btn.querySelector('.caret');
   const content = btn.nextElementSibling;
@@ -18,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById(tabId).classList.add('active');
     });
   });
+
   // --- SUBTABS ---
   document.querySelectorAll('.subtabs button').forEach(btn => {
     btn.addEventListener('click', function() {
