@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cashflow Forecast Tool</title>
+  <title>Mayweather-MATRIX Investment Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Chart.js, xlsx, html2canvas, jsPDF libraries here -->
   <link rel="stylesheet" href="style.css">
@@ -126,11 +126,42 @@
       width: 190px;
       font-size: 1em;
     }
+    #sheetConfigPanel {
+      background: #f9f9f9;
+      border: 1px solid #cce4ff;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 12px 0 18px 0;
+      max-width: 700px;
+    }
+    #sheetConfigPanel label {
+      font-weight: 500;
+      margin-right: 6px;
+    }
+    #sheetPreviewTable {
+      border-collapse: collapse;
+      margin-bottom: 8px;
+      max-width: 95vw;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    #sheetPreviewTable td, #sheetPreviewTable th {
+      border: 1px solid #e0eaff;
+      padding: 2px 6px;
+      text-align: center;
+      background: #f5faff;
+    }
+    .sheet-config-row {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Cashflow Forecast Tool</h1>
+    <h1>Mayweather-MATRIX Investment Tool</h1>
     <div class="repayment-controls">
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
       <button id="addRepayment" title="Add a new repayment input">+ Add Repayment</button>
@@ -140,6 +171,34 @@
       <button id="exportExcel">Export to Excel</button>
       <button id="exportPDF">Export to PDF</button>
     </div>
+
+    <!-- Dynamic spreadsheet config panel -->
+    <div id="sheetConfigPanel" style="display:none;">
+      <h3>Configure Spreadsheet Mapping</h3>
+      <div id="sheetPreview"></div>
+      <div class="sheet-config-row">
+        <label for="weekLabelRowSelector">Week Label Row:</label>
+        <select id="weekLabelRowSelector"></select>
+      </div>
+      <div class="sheet-config-row">
+        <label for="repaymentRowSelector">Repayment Row:</label>
+        <select id="repaymentRowSelector"></select>
+      </div>
+      <div class="sheet-config-row">
+        <label for="startRowSelector">Data Start Row:</label>
+        <select id="startRowSelector"></select>
+        <label for="endRowSelector">Data End Row:</label>
+        <select id="endRowSelector"></select>
+      </div>
+      <div class="sheet-config-row">
+        <label for="labelColSelector">Label Column:</label>
+        <select id="labelColSelector"></select>
+        <label for="firstWeekColSelector">First Week Column:</label>
+        <select id="firstWeekColSelector"></select>
+      </div>
+      <button id="applySheetConfig">Apply Mapping</button>
+    </div>
+
     <div class="loan-balance-controls">
       <input type="number" id="startingBalanceInput" placeholder="Starting Bank Balance (matches your sheet)">
       <input type="number" id="loanOutstandingInput" placeholder="Loan Amount Outstanding">
@@ -186,9 +245,7 @@
     <!-- Collapsible Spreadsheet Section -->
     <div class="collapsible-section">
       <button class="toggle-btn" onclick="toggleTableSummary()" id="toggleTableBtn">Show Full Spreadsheet Table</button>
-      <div id="spreadsheetSummarySection">
-        <!-- Rendered by JS: week labels, income, rolling balance -->
-      </div>
+      <div id="spreadsheetSummarySection"></div>
       <div id="spreadsheetTableSection" style="display:none;">
         <div id="spreadsheetTable"></div>
       </div>
@@ -202,7 +259,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="script.js"></script>
   <script>
-    // Collapsible Table Section Logic
     let showingFullTable = false;
     function toggleTableSummary() {
       showingFullTable = !showingFullTable;
@@ -210,7 +266,6 @@
       document.getElementById('spreadsheetSummarySection').style.display = showingFullTable ? 'none' : '';
       document.getElementById('toggleTableBtn').textContent = showingFullTable ? "Hide Full Spreadsheet Table" : "Show Full Spreadsheet Table";
     }
-    // Auto-show summary on load (default)
     document.addEventListener('DOMContentLoaded', () => {
       showingFullTable = false;
       document.getElementById('spreadsheetTableSection').style.display = 'none';
