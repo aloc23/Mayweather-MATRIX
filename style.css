@@ -168,3 +168,38 @@ button[type="submit"], #exportPDFBtn, #exportExcelBtn {
 button[type="submit"]:hover, #exportPDFBtn:hover, #exportExcelBtn:hover {
   background: #388e3c;
 }
+.week-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 90px;
+  overflow-y: auto;
+  border: 1px solid #bce0fa;
+  background: #f7fbff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+.week-checkbox-group label {
+  margin-right: 16px;
+  font-size: 0.98em;
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+.compact-preview-table {
+  margin: 14px 0 14px 0;
+  border-collapse: separate;
+  border-spacing: 0 2px;
+}
+.compact-preview-table th {
+  background: #e9f5ff;
+  font-weight: bold;
+  font-size: 1.05em;
+  border-bottom: 2px solid #bce0fa;
+  padding: 5px 10px;
+}
+.compact-preview-table td {
+  background: #f9fbfd;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 1.05em;
+  padding: 4px 10px;
+}
