@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let repaymentRows = [];
   let openingBalance = 0;
   let loanOutstanding = 0;
+  let negativeWeeks = []; // [{ week, balance }]
 
   // --- Spreadsheet Upload ---
   var spreadsheetUpload = document.getElementById('spreadsheetUpload');
@@ -126,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
       };
     }, 0);
 
-    // Week filter improved UI
+    // Week filter: Improved UI
     if (weekLabels.length) {
       const weekFilterDiv = document.createElement('div');
       weekFilterDiv.innerHTML = '<b>Filter week columns to include:</b>';
@@ -198,21 +199,16 @@ document.addEventListener('DOMContentLoaded', function() {
       const lbl = document.createElement('td');
       lbl.textContent = "Bank Balance (rolling)";
       tr2.appendChild(lbl);
-      let cashflowArr = getCashflowArr();
-      let rolling = [];
-      let ob = openingBalance;
+      let rolling = getRollingBankBalanceArr();
       getFilteredWeekIndices().forEach((fi, i) => {
-        let val = cashflowArr[fi];
-        let bal = (i === 0 ? ob : rolling[i-1]) + val;
-        rolling[i] = bal;
+        let bal = rolling[i];
         let td = document.createElement('td');
         td.textContent = isNaN(bal) ? '' : `€${Math.round(bal)}`;
+        if (bal < 0) td.style.background = "#ffeaea";
         tr2.appendChild(td);
       });
       compactTable.appendChild(tr2);
       previewWrap.appendChild(compactTable);
-
-      // Expand/Collapse full preview (optional, not shown for brevity)
       panel.appendChild(previewWrap);
     }
   }
@@ -291,8 +287,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
   }
 
-  // --- Cashflow extraction ---
-  function getCashflowArr() {
+  // --- Cashflow extraction: POSITIVE = INCOME, NEGATIVE = EXPENDITURE
+  function getIncomeArr() {
     if (!mappedData || !mappingConfigured) return [];
     let arr = [];
     for (let w = 0; w < weekLabels.length; w++) {
@@ -303,13 +299,29 @@ document.addEventListener('DOMContentLoaded', function() {
         let val = mappedData[r][absCol];
         if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
         let num = parseFloat(val);
-        if (!isNaN(num)) sum += num;
+        if (!isNaN(num) && num > 0) sum += num; // Only positives
       }
       arr[w] = sum;
     }
     return arr;
   }
-
+  function getExpenditureArr() {
+    if (!mappedData || !mappingConfigured) return [];
+    let arr = [];
+    for (let w = 0; w < weekLabels.length; w++) {
+      if (!weekCheckboxStates[w]) continue;
+      let absCol = config.weekColStart + w;
+      let sum = 0;
+      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+        let val = mappedData[r][absCol];
+        if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+        let num = parseFloat(val);
+        if (!isNaN(num) && num < 0) sum += Math.abs(num);
+      }
+      arr[w] = sum;
+    }
+    return arr;
+  }
   function getRepaymentArr() {
     if (!mappingConfigured || !weekLabels.length) return [];
     let arr = Array(weekLabels.length).fill(0);
@@ -336,25 +348,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     return getFilteredWeekIndices().map(idx => arr[idx]);
   }
-  function getExpenditureArr() {
-    if (!mappedData || !mappingConfigured) return [];
-    let arr = [];
-    for (let w = 0; w < weekLabels.length; w++) {
-      if (!weekCheckboxStates[w]) continue;
-      let absCol = config.weekColStart + w;
-      let sum = 0;
-      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
-        let val = mappedData[r][absCol];
-        if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
-        let num = parseFloat(val);
-        if (!isNaN(num) && num < 0) sum += Math.abs(num);
-      }
-      arr[w] = sum;
-    }
-    return arr;
-  }
   function getNetProfitArr(incomeArr, expenditureArr, repaymentArr) {
-    return incomeArr.map((inc, i) => inc - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
+    return incomeArr.map((inc, i) => (inc || 0) - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
+  }
+  function getRollingBankBalanceArr() {
+    let incomeArr = getIncomeArr();
+    let expenditureArr = getExpenditureArr();
+    let repaymentArr = getRepaymentArr();
+    let rolling = [];
+    let ob = openingBalance;
+    getFilteredWeekIndices().forEach((fi, i) => {
+      let income = incomeArr[fi] || 0;
+      let out = expenditureArr[fi] || 0;
+      let repay = repaymentArr[i] || 0;
+      let prev = (i === 0 ? ob : rolling[i-1]);
+      rolling[i] = prev + income - out - repay;
+    });
+    return rolling;
   }
   function getMonthAgg(arr, months=12) {
     let filtered = arr.filter((_,i)=>getFilteredWeekIndices().includes(i));
@@ -366,18 +376,6 @@ document.addEventListener('DOMContentLoaded', function() {
       out.push(sum);
     }
     return out;
-  }
-  function getRollingBankBalanceArr() {
-    let cashflowArr = getCashflowArr();
-    let rolling = [];
-    let filteredIdxs = getFilteredWeekIndices();
-    let ob = openingBalance;
-    filteredIdxs.forEach((fi, i) => {
-      let val = cashflowArr[fi];
-      let bal = (i == 0 ? ob : rolling[i-1]) + val;
-      rolling[i] = bal;
-    });
-    return rolling;
   }
 
   // --- Repayment Sensitivity ---
@@ -518,22 +516,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const tbody = document.getElementById('pnlWeeklyBreakdown').querySelector('tbody');
     tbody.innerHTML = "";
     if (!mappingConfigured || !weekLabels.length) return;
-    let rolling = [];
-    let cashflowArr = getCashflowArr();
-    let incomeArr = getCashflowArr();
+    let incomeArr = getIncomeArr();
     let expenditureArr = getExpenditureArr();
     let repaymentArr = getRepaymentArr();
     let netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-    let ob = openingBalance;
+    let rolling = getRollingBankBalanceArr();
+    negativeWeeks = [];
     getFilteredWeekIndices().forEach((fi, idx) => {
       let week = weekLabels[fi];
       let income = incomeArr[fi] || 0;
       let out = expenditureArr[fi] || 0;
       let repay = repaymentArr[idx] || 0;
-      let net = income - out - repay;
-      let bal = (idx === 0 ? ob : rolling[idx-1]) + (cashflowArr[fi]||0);
-      rolling[idx] = bal;
+      let net = netProfitArr[fi] || 0;
+      let bal = rolling[idx];
       let tr = document.createElement('tr');
+      if (bal < 0) {
+        tr.style.background = "#ffeaea";
+        negativeWeeks.push({ week, balance: bal });
+      }
       tr.innerHTML = `
         <td>${week}</td>
         <td>€${income.toLocaleString()}</td>
@@ -544,6 +544,39 @@ document.addEventListener('DOMContentLoaded', function() {
       `;
       tbody.appendChild(tr);
     });
+    renderNegativeWeeksDropdown();
+  }
+
+  // --- Negative Weeks Dropdown ---
+  function renderNegativeWeeksDropdown() {
+    let container = document.getElementById('negativeWeeksDropdown');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = "negativeWeeksDropdown";
+      container.style = "margin:12px 0 0 0; font-size:1.06em";
+      document.getElementById('mainChartSummary').parentNode.insertBefore(container, document.getElementById('mainChartSummary').nextSibling);
+    }
+    if (negativeWeeks.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+    let html = `<label style="font-weight:bold;">Weeks with Negative Bank Balance:</label> `;
+    html += `<select id="negativeWeeksSelect"><option value="">Select week</option>`;
+    negativeWeeks.forEach((w, i) => {
+      html += `<option value="${i}">${w.week} (Bank: €${w.balance.toLocaleString()})</option>`;
+    });
+    html += `</select>`;
+    container.innerHTML = html;
+    document.getElementById('negativeWeeksSelect').onchange = function() {
+      let idx = this.value;
+      if (idx !== "") {
+        let table = document.getElementById('pnlWeeklyBreakdown');
+        let rows = table.querySelectorAll('tbody tr');
+        rows[idx].scrollIntoView({ behavior: "smooth", block: "center" });
+        rows[idx].style.outline = "2px solid #c00";
+        setTimeout(()=>{ rows[idx].style.outline = ""; }, 2000);
+      }
+    };
   }
 
   // --- ALL TAB RENDERING ---
@@ -553,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
     renderWeeklyBreakdown();
 
     // P&L and cashflow
-    const incomeArr = getCashflowArr();
+    const incomeArr = getIncomeArr();
     const expenditureArr = getExpenditureArr();
     const repaymentArr = getRepaymentArr();
     const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
@@ -631,17 +664,6 @@ document.addEventListener('DOMContentLoaded', function() {
       <b>Net Profit:</b> €${netProfitMonths.reduce((a,b)=>a+b,0).toLocaleString()}
     `;
 
-    // --- CHARTS ---
-    function safeDestroy(chartObj) {
-      if (chartObj && typeof chartObj.destroy === 'function') chartObj.destroy();
-    }
-    safeDestroy(window.roiLineChart);
-    safeDestroy(window.roiBarChart);
-    safeDestroy(window.roiPieChart);
-    safeDestroy(window.tornadoChart);
-    safeDestroy(window.summaryChart);
-    safeDestroy(window.chartCanvasChart);
-
     updateChartAndSummary();
   }
 
@@ -651,10 +673,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctx = ctxElem ? ctxElem.getContext('2d') : null;
     if (mainChart && typeof mainChart.destroy === "function") mainChart.destroy();
 
-    const incomeArr = getCashflowArr();
-    const expenditureArr = getExpenditureArr();
-    const repaymentArr = getRepaymentArr();
-    const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+    let incomeArr = getIncomeArr();
+    let expenditureArr = getExpenditureArr();
+    let repaymentArr = getRepaymentArr();
+    let netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+    let rolling = getRollingBankBalanceArr();
 
     if (!incomeArr.length || !expenditureArr.length) {
       document.getElementById('mainChart').style.display = "none";
@@ -674,7 +697,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { label: 'Income', data: getFilteredWeekIndices().map(idx => incomeArr[idx]), borderColor: '#4caf50', fill: false },
             { label: 'Expenditure', data: getFilteredWeekIndices().map(idx => expenditureArr[idx]), borderColor: '#f44336', fill: false },
             { label: 'Repayments', data: getFilteredWeekIndices().map(idx => repaymentArr[idx]), borderColor: '#f3b200', fill: false },
-            { label: 'Net Profit', data: getFilteredWeekIndices().map(idx => netProfitArr[idx]), borderColor: '#2196f3', fill: false }
+            { label: 'Net Profit', data: getFilteredWeekIndices().map(idx => netProfitArr[idx]), borderColor: '#2196f3', fill: false },
+            { label: 'Bank Balance', data: rolling, borderColor: '#000', fill: false, pointRadius: 2, borderDash: [3,3] }
           ]
         },
         options: {
@@ -685,18 +709,22 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    let totalIncome = getFilteredWeekIndices().reduce((a,idx)=>a+(incomeArr[idx]||0),0);
-    let totalExpenditure = getFilteredWeekIndices().reduce((a,idx)=>a+(expenditureArr[idx]||0),0);
-    let totalRepayments = getFilteredWeekIndices().reduce((a,idx)=>a+(repaymentArr[idx]||0),0);
-    let totalNet = getFilteredWeekIndices().reduce((a,idx)=>a+(netProfitArr[idx]||0),0);
+    // Totals
+    let sumIncome = getFilteredWeekIndices().reduce((a,idx)=>a+(incomeArr[idx]||0),0);
+    let sumExpenditure = getFilteredWeekIndices().reduce((a,idx)=>a+(expenditureArr[idx]||0),0);
+    let sumRepayments = getFilteredWeekIndices().reduce((a,idx)=>a+(repaymentArr[idx]||0),0);
+    let sumNet = getFilteredWeekIndices().reduce((a,idx)=>a+(netProfitArr[idx]||0),0);
+    let finalBank = rolling[rolling.length-1] || 0;
     var mainChartSummary = document.getElementById('mainChartSummary');
     if (mainChartSummary) {
       mainChartSummary.innerHTML =
-        `<b>Total Income:</b> €${totalIncome.toLocaleString()}<br>
-         <b>Total Expenditure:</b> €${totalExpenditure.toLocaleString()}<br>
-         <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
-         <b>Total Net Profit:</b> €${totalNet.toLocaleString()}`;
+        `<b>Total Income:</b> €${sumIncome.toLocaleString()}<br>
+         <b>Total Expenditure:</b> €${sumExpenditure.toLocaleString()}<br>
+         <b>Total Repayments:</b> €${sumRepayments.toLocaleString()}<br>
+         <b>Final Bank Balance:</b> €${finalBank.toLocaleString()}<br>
+         <b>Total Net Profit:</b> €${sumNet.toLocaleString()}`;
     }
+    renderNegativeWeeksDropdown();
   }
 
   var exportPDFBtn = document.getElementById('exportPDFBtn');
