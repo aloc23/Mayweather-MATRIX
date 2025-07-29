@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', function() {
       var tabId = btn.getAttribute('data-tab');
       var panel = document.getElementById(tabId);
       if (panel) panel.classList.add('active');
+      // If switching to charts tab, update charts (for Chart.js visibility)
+      if (tabId === 'main' || tabId === 'pnl' || tabId === 'roi' || tabId === 'summary') {
+        setTimeout(updateAllTabs, 50);
+      }
     });
   });
   document.querySelectorAll('.subtabs button').forEach(btn => {
@@ -18,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
       var subpanel = document.getElementById(subtabId);
       if (subpanel) subpanel.classList.add('active');
+      setTimeout(updateAllTabs, 50);
     });
   });
 
@@ -50,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let weekCheckboxStates = [];
   let repaymentRows = [];
   let openingBalance = 0;
+  let loanOutstanding = 0;
 
   // --- Spreadsheet Upload ---
   var spreadsheetUpload = document.getElementById('spreadsheetUpload');
@@ -110,6 +116,19 @@ document.addEventListener('DOMContentLoaded', function() {
     drop('Last data row: ', 'row', allRows.length, config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
     panel.appendChild(document.createElement('br'));
 
+    // Outstanding loan input
+    let loanDiv = document.createElement('div');
+    loanDiv.innerHTML = `Outstanding Loan: <input type="number" id="loanOutstandingInput" value="${loanOutstanding}" style="width:120px;">`;
+    panel.appendChild(loanDiv);
+    setTimeout(() => {
+      let loanInput = document.getElementById('loanOutstandingInput');
+      if (loanInput) loanInput.oninput = function() {
+        loanOutstanding = parseFloat(loanInput.value) || 0;
+        updateAllTabs();
+        renderMappingPanel(allRows);
+      };
+    }, 0);
+
     // Opening balance input
     let obDiv = document.createElement('div');
     obDiv.innerHTML = `Opening Balance: <input type="number" id="openingBalanceInput" value="${openingBalance}" style="width:120px;">`;
@@ -148,11 +167,16 @@ document.addEventListener('DOMContentLoaded', function() {
       panel.appendChild(weekFilterDiv);
     }
 
-    // Compact preview table (week label row + rolling bank balance)
+    // --- Compact Preview Table ---
     if (weekLabels.length && mappingConfigured) {
+      const previewWrap = document.createElement('div');
+      previewWrap.style.margin = "12px 0";
+
+      // -- Compact Table --
       const compactTable = document.createElement('table');
       compactTable.className = "mapping-preview-table";
-      // Header row: week labels
+      compactTable.style.marginBottom = "7px";
+      // Header row (week labels)
       const tr1 = document.createElement('tr');
       tr1.appendChild(document.createElement('th'));
       getFilteredWeekIndices().forEach(fi => {
@@ -171,17 +195,36 @@ document.addEventListener('DOMContentLoaded', function() {
       let ob = openingBalance;
       getFilteredWeekIndices().forEach((fi, i) => {
         let val = cashflowArr[fi];
-        let bal = (i == 0 ? ob : rolling[i-1]) + val;
+        let bal = (i === 0 ? ob : rolling[i-1]) + val;
         rolling[i] = bal;
         let td = document.createElement('td');
         td.textContent = isNaN(bal) ? '' : `€${Math.round(bal)}`;
         tr2.appendChild(td);
       });
       compactTable.appendChild(tr2);
-      panel.appendChild(compactTable);
-    }
 
-    // Preview spreadsheet (first 20 rows, highlight mapped region)
+      previewWrap.appendChild(compactTable);
+
+      // -- Expand/Collapse Full Preview --
+      const toggleBtn = document.createElement('button');
+      toggleBtn.textContent = "Show full spreadsheet table";
+      toggleBtn.style.marginBottom = "8px";
+      let showingFull = false;
+      let fullTable = renderFullPreviewTable(allRows);
+      toggleBtn.onclick = () => {
+        showingFull = !showingFull;
+        fullTable.style.display = showingFull ? '' : 'none';
+        toggleBtn.textContent = showingFull ? "Hide full spreadsheet table" : "Show full spreadsheet table";
+      };
+      previewWrap.appendChild(toggleBtn);
+      fullTable.style.display = 'none';
+      previewWrap.appendChild(fullTable);
+
+      panel.appendChild(previewWrap);
+    }
+  }
+
+  function renderFullPreviewTable(allRows) {
     let table = document.createElement('table');
     table.className = 'mapping-preview-table';
     let thead = document.createElement('thead');
@@ -211,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    panel.appendChild(table);
+    return table;
   }
 
   // --- Mapping helpers ---
@@ -469,9 +512,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  function updateLoanSummary() {
+    const totalRepaid = getRepaymentArr().reduce((a,b)=>a+b,0);
+    if (document.getElementById('totalRepaidBox')) {
+      document.getElementById('totalRepaidBox').textContent = "Total Repaid: €" + totalRepaid.toLocaleString();
+    }
+    if (document.getElementById('remainingBox')) {
+      document.getElementById('remainingBox').textContent = "Remaining: €" + (loanOutstanding-totalRepaid).toLocaleString();
+    }
+  }
+
   // --- ALL TAB RENDERING ---
   function updateAllTabs() {
     renderRepaymentRows();
+    updateLoanSummary();
+
     // P&L and cashflow
     const incomeArr = getCashflowArr();
     const expenditureArr = getExpenditureArr();
@@ -550,7 +605,8 @@ document.addEventListener('DOMContentLoaded', function() {
       <b>Total Expenditure:</b> €${expenditureMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
       <b>Net Profit:</b> €${netProfitMonths.reduce((a,b)=>a+b,0).toLocaleString()}
     `;
-    // Charts
+
+    // --- CHARTS ---
     function safeDestroy(chartObj) {
       if (chartObj && typeof chartObj.destroy === 'function') chartObj.destroy();
     }
@@ -562,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
     safeDestroy(window.chartCanvasChart);
 
     const chartCanvasElem = document.getElementById('chartCanvas');
-    if (chartCanvasElem) {
+    if (chartCanvasElem && chartCanvasElem.offsetParent !== null) {
       window.chartCanvasChart = new Chart(chartCanvasElem.getContext('2d'),{
         type:'line',
         data:{
@@ -575,38 +631,53 @@ document.addEventListener('DOMContentLoaded', function() {
         },options:{responsive:true,maintainAspectRatio:false}
       });
     }
-    window.roiLineChart = new Chart(document.getElementById('roiLineChart').getContext('2d'),{
-      type:'line',
-      data:{
-        labels:[...Array(10).keys()].map(i=>`Year ${i+1}`),
-        datasets:[{
-          label:'Cumulative Profit (€)',data:[...Array(10).keys()].map(i=>(i+1)*annualProfit),
-          borderColor:'#27ae60',fill:false,tension:0.2
-        }]
-      },options:{responsive:true,maintainAspectRatio:false}
-    });
-    window.roiBarChart=new Chart(document.getElementById('roiBarChart').getContext('2d'),{
-      type:'bar',
-      data:{labels:['Investment','Annual Profit'],datasets:[{label:'Amount (€)',data:[investment,annualProfit],backgroundColor:['#f39c12','#4caf50']}]},
-      options:{responsive:true,maintainAspectRatio:false}
-    });
-    window.roiPieChart=new Chart(document.getElementById('roiPieChart').getContext('2d'),{
-      type:'pie',
-      data:{labels:['Investment','Profit'],datasets:[{data:[investment,annualProfit],backgroundColor:['#f39c12','#4caf50']}]},
-      options:{responsive:true,maintainAspectRatio:false}
-    });
-    window.tornadoChart = new Chart(document.getElementById('tornadoChart').getContext('2d'),{
-      type:'bar',
-      data:{labels:['Utilization','Fee','Staff Cost'],datasets:[{label:'Impact (€)',data:[6500,4200,3900],backgroundColor:'#f3b200'}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false}
-    });
-    window.summaryChart=new Chart(document.getElementById('summaryChart').getContext('2d'),{
-      type:'bar',
-      data:{
-        labels:['Income','Expenditure','Profit'],
-        datasets:[{label:'Annual (€)',data:[incomeMonths.reduce((a,b)=>a+b,0),expenditureMonths.reduce((a,b)=>a+b,0),netProfitMonths.reduce((a,b)=>a+b,0)],backgroundColor:['#4caf50','#f44336','#2196f3']}]
-      },options:{responsive:true,maintainAspectRatio:false}
-    });
+    const roiLineElem = document.getElementById('roiLineChart');
+    if (roiLineElem && roiLineElem.offsetParent !== null) {
+      window.roiLineChart = new Chart(roiLineElem.getContext('2d'),{
+        type:'line',
+        data:{
+          labels:[...Array(10).keys()].map(i=>`Year ${i+1}`),
+          datasets:[{
+            label:'Cumulative Profit (€)',data:[...Array(10).keys()].map(i=>(i+1)*annualProfit),
+            borderColor:'#27ae60',fill:false,tension:0.2
+          }]
+        },options:{responsive:true,maintainAspectRatio:false}
+      });
+    }
+    const roiBarElem = document.getElementById('roiBarChart');
+    if (roiBarElem && roiBarElem.offsetParent !== null) {
+      window.roiBarChart=new Chart(roiBarElem.getContext('2d'),{
+        type:'bar',
+        data:{labels:['Investment','Annual Profit'],datasets:[{label:'Amount (€)',data:[investment,annualProfit],backgroundColor:['#f39c12','#4caf50']}]},
+        options:{responsive:true,maintainAspectRatio:false}
+      });
+    }
+    const roiPieElem = document.getElementById('roiPieChart');
+    if (roiPieElem && roiPieElem.offsetParent !== null) {
+      window.roiPieChart=new Chart(roiPieElem.getContext('2d'),{
+        type:'pie',
+        data:{labels:['Investment','Profit'],datasets:[{data:[investment,annualProfit],backgroundColor:['#f39c12','#4caf50']}]},
+        options:{responsive:true,maintainAspectRatio:false}
+      });
+    }
+    const tornadoElem = document.getElementById('tornadoChart');
+    if (tornadoElem && tornadoElem.offsetParent !== null) {
+      window.tornadoChart = new Chart(tornadoElem.getContext('2d'),{
+        type:'bar',
+        data:{labels:['Utilization','Fee','Staff Cost'],datasets:[{label:'Impact (€)',data:[6500,4200,3900],backgroundColor:'#f3b200'}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false}
+      });
+    }
+    const summaryElem = document.getElementById('summaryChart');
+    if (summaryElem && summaryElem.offsetParent !== null) {
+      window.summaryChart=new Chart(summaryElem.getContext('2d'),{
+        type:'bar',
+        data:{
+          labels:['Income','Expenditure','Profit'],
+          datasets:[{label:'Annual (€)',data:[incomeMonths.reduce((a,b)=>a+b,0),expenditureMonths.reduce((a,b)=>a+b,0),netProfitMonths.reduce((a,b)=>a+b,0)],backgroundColor:['#4caf50','#f44336','#2196f3']}]
+        },options:{responsive:true,maintainAspectRatio:false}
+      });
+    }
     updateChartAndSummary();
   }
 
@@ -621,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const repaymentArr = getRepaymentArr();
     const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
 
-    if (ctx) {
+    if (ctx && ctxElem.offsetParent !== null) {
       mainChart = new Chart(ctx, {
         type: 'line',
         data: {
