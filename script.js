@@ -1,5 +1,27 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // --- Tabs & Subtabs ---
+
+  // -------------------- State --------------------
+  let rawData = [];
+  let mappedData = [];
+  let mappingConfigured = false;
+  let config = {
+    weekLabelRow: 0,
+    weekColStart: 0,
+    weekColEnd: 0,
+    firstDataRow: 1,
+    lastDataRow: 1
+  };
+  let weekLabels = [];
+  let weekCheckboxStates = [];
+  let repaymentRows = [];
+  let openingBalance = 0;
+  let loanOutstanding = 0;
+  let negativeWeeks = [];
+  let roiInvestment = 120000;
+  let roiInterest = 0.0;
+
+  // -------------------- Tabs & UI Interactions --------------------
+
   document.querySelectorAll('.tabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
@@ -22,7 +44,6 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(updateAllTabs, 50);
     });
   });
-
   document.querySelectorAll('.collapsible-header').forEach(btn => {
     btn.addEventListener('click', function() {
       var content = btn.nextElementSibling;
@@ -37,25 +58,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // --- State ---
-  let rawData = [];
-  let mappedData = [];
-  let mappingConfigured = false;
-  let config = {
-    weekLabelRow: 0,
-    weekColStart: 0,
-    weekColEnd: 0,
-    firstDataRow: 1,
-    lastDataRow: 1
-  };
-  let weekLabels = [];
-  let weekCheckboxStates = [];
-  let repaymentRows = [];
-  let openingBalance = 0;
-  let loanOutstanding = 0;
-  let negativeWeeks = []; // [{ week, balance }]
+  // -------------------- Spreadsheet Upload & Mapping --------------------
 
-  // --- Spreadsheet Upload ---
   var spreadsheetUpload = document.getElementById('spreadsheetUpload');
   if (spreadsheetUpload) {
     spreadsheetUpload.addEventListener('change', function(event) {
@@ -78,13 +82,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // --- Mapping Panel UI
   function renderMappingPanel(allRows) {
     const panel = document.getElementById('mappingPanel');
     panel.innerHTML = '';
 
     // Mapping controls
-    const drop = (label, id, max, sel, onChange, items) => {
+    function drop(label, id, max, sel, onChange, items) {
       let lab = document.createElement('label');
       lab.textContent = label;
       let selElem = document.createElement('select');
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
       selElem.onchange = function() { onChange(parseInt(this.value,10)); };
       lab.appendChild(selElem);
       panel.appendChild(lab);
-    };
+    }
 
     drop('Which row contains week labels? ', 'row', Math.min(allRows.length, 30), config.weekLabelRow, v => { config.weekLabelRow = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); });
     panel.appendChild(document.createElement('br'));
@@ -127,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
       };
     }, 0);
 
-    // Week filter: Improved UI
+    // Week filter improved UI
     if (weekLabels.length) {
       const weekFilterDiv = document.createElement('div');
       weekFilterDiv.innerHTML = '<b>Filter week columns to include:</b>';
@@ -182,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     panel.appendChild(saveBtn);
 
-    // Compact preview: Improved style
+    // Compact preview: Improved style and scrolling
     if (weekLabels.length && mappingConfigured) {
       const previewWrap = document.createElement('div');
       const compactTable = document.createElement('table');
@@ -208,45 +211,12 @@ document.addEventListener('DOMContentLoaded', function() {
         tr2.appendChild(td);
       });
       compactTable.appendChild(tr2);
+      previewWrap.style.overflowX = "auto";
       previewWrap.appendChild(compactTable);
       panel.appendChild(previewWrap);
     }
   }
 
-  function renderFullPreviewTable(allRows) {
-    let table = document.createElement('table');
-    table.className = 'mapping-preview-table';
-    let thead = document.createElement('thead');
-    let tr = document.createElement('tr');
-    let colCount = Math.max(...allRows.slice(0,20).map(r=>r.length));
-    for(let c=0;c<colCount;c++) {
-      let th = document.createElement('th');
-      th.textContent = String.fromCharCode(65+c);
-      if (c >= config.weekColStart && c <= config.weekColEnd) th.className = 'highlight-mapping';
-      tr.appendChild(th);
-    }
-    thead.appendChild(tr);
-    table.appendChild(thead);
-    let tbody = document.createElement('tbody');
-    allRows.slice(0,20).forEach((row, rIdx) => {
-      let tr = document.createElement('tr');
-      for(let c=0;c<colCount;c++) {
-        let td = document.createElement('td');
-        td.textContent = row[c] === undefined ? '' : row[c];
-        if (rIdx === config.weekLabelRow && c >= config.weekColStart && c <= config.weekColEnd) {
-          td.className = 'highlight-week-labels';
-        } else if (c >= config.weekColStart && c <= config.weekColEnd) {
-          td.className = 'highlight-mapping';
-        }
-        tr.appendChild(td);
-      }
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    return table;
-  }
-
-  // --- Mapping helpers ---
   function autoDetectMapping(sheet) {
     for (let r = 0; r < Math.min(sheet.length, 10); r++) {
       for (let c = 0; c < Math.min(sheet[r].length, 30); c++) {
@@ -287,7 +257,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
   }
 
-  // --- Cashflow extraction: POSITIVE = INCOME, NEGATIVE = EXPENDITURE
+  // -------------------- Calculation Helpers --------------------
+
   function getIncomeArr() {
     if (!mappedData || !mappingConfigured) return [];
     let arr = [];
@@ -299,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let val = mappedData[r][absCol];
         if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
         let num = parseFloat(val);
-        if (!isNaN(num) && num > 0) sum += num; // Only positives
+        if (!isNaN(num) && num > 0) sum += num;
       }
       arr[w] = sum;
     }
@@ -378,7 +349,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return out;
   }
 
-  // --- Repayment Sensitivity ---
+  // -------------------- Repayments UI --------------------
+
   const weekSelect = document.getElementById('weekSelect');
   const repaymentFrequency = document.getElementById('repaymentFrequency');
   function populateWeekDropdown(labels) {
@@ -511,7 +483,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- Weekly Breakdown Table ---
+  // Loan summary input handling
+  document.getElementById('loanOutstandingInput').oninput = function() {
+    loanOutstanding = parseFloat(this.value) || 0;
+    updateLoanSummary();
+  };
+
+  // -------------------- Weekly Breakdown Table & Negative Weeks Dropdown --------------------
+
   function renderWeeklyBreakdown() {
     const tbody = document.getElementById('pnlWeeklyBreakdown').querySelector('tbody');
     tbody.innerHTML = "";
@@ -531,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let bal = rolling[idx];
       let tr = document.createElement('tr');
       if (bal < 0) {
-        tr.style.background = "#ffeaea";
+        tr.className = "negative-balance-row";
         negativeWeeks.push({ week, balance: bal });
       }
       tr.innerHTML = `
@@ -547,14 +526,16 @@ document.addEventListener('DOMContentLoaded', function() {
     renderNegativeWeeksDropdown();
   }
 
-  // --- Negative Weeks Dropdown ---
   function renderNegativeWeeksDropdown() {
     let container = document.getElementById('negativeWeeksDropdown');
     if (!container) {
       container = document.createElement('div');
       container.id = "negativeWeeksDropdown";
       container.style = "margin:12px 0 0 0; font-size:1.06em";
-      document.getElementById('mainChartSummary').parentNode.insertBefore(container, document.getElementById('mainChartSummary').nextSibling);
+      let mainChartSummary = document.getElementById('mainChartSummary');
+      if (mainChartSummary) {
+        mainChartSummary.parentNode.insertBefore(container, mainChartSummary.nextSibling);
+      }
     }
     if (negativeWeeks.length === 0) {
       container.innerHTML = "";
@@ -579,7 +560,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // --- ALL TAB RENDERING ---
+  // -------------------- P&L, Monthly, Cashflow, and Charts --------------------
+
   function updateAllTabs() {
     renderRepaymentRows();
     updateLoanSummary();
@@ -644,27 +626,9 @@ document.addEventListener('DOMContentLoaded', function() {
        <b>Total Expenditure:</b> €${expenditureMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
        <b>Net Profit:</b> €${netProfitMonths.reduce((a,b)=>a+b,0).toLocaleString()}`;
 
-    let annualProfit = netProfitMonths.reduce((a,b)=>a+b,0), investment = 120000;
-    let paybackYears = annualProfit>0 ? Math.ceil(investment/annualProfit): '∞';
-    document.getElementById('roiSummary').innerHTML = `
-      <b>Total Investment:</b> €${investment.toLocaleString()}<br>
-      <b>Annual Profit:</b> €${annualProfit.toLocaleString()}<br>
-      <b>Estimated Payback:</b> ${paybackYears} years
-    `;
-    var paybackTbody = document.getElementById('paybackTable').querySelector('tbody');
-    paybackTbody.innerHTML = "";
-    let cumulative = 0;
-    for(let y=1;y<=10;y++){
-      cumulative += annualProfit;
-      paybackTbody.insertAdjacentHTML('beforeend', `<tr><td>${y}</td><td>€${cumulative.toLocaleString()}</td></tr>`);
-    }
-    document.getElementById('summaryKeyFinancials').innerHTML = `
-      <b>Total Income:</b> €${incomeMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
-      <b>Total Expenditure:</b> €${expenditureMonths.reduce((a,b)=>a+b,0).toLocaleString()}<br>
-      <b>Net Profit:</b> €${netProfitMonths.reduce((a,b)=>a+b,0).toLocaleString()}
-    `;
-
+    // Charts & summary
     updateChartAndSummary();
+    renderRoiSection();
   }
 
   let mainChart = null;
@@ -724,9 +688,184 @@ document.addEventListener('DOMContentLoaded', function() {
          <b>Final Bank Balance:</b> €${finalBank.toLocaleString()}<br>
          <b>Total Net Profit:</b> €${sumNet.toLocaleString()}`;
     }
-    renderNegativeWeeksDropdown();
   }
 
+  // -------------------- ROI/Payback Section --------------------
+
+  // NPV/IRR helpers
+  function npv(rate, cashflows) {
+    if (!cashflows.length) return 0;
+    return cashflows.reduce((acc, val, i) => acc + val/Math.pow(1+rate, i), 0);
+  }
+  function irr(cashflows, guess=0.1) {
+    let rate = guess, epsilon = 1e-6, maxIter = 100;
+    for (let iter=0; iter<maxIter; iter++) {
+      let npv0 = npv(rate, cashflows);
+      let npv1 = npv(rate+epsilon, cashflows);
+      let deriv = (npv1-npv0)/epsilon;
+      let newRate = rate - npv0/deriv;
+      if (!isFinite(newRate)) break;
+      if (Math.abs(newRate-rate) < 1e-7) return newRate;
+      rate = newRate;
+    }
+    return NaN;
+  }
+
+  const roiInvInput = document.getElementById('roiInvestmentInput');
+  const roiIntInput = document.getElementById('roiInterestInput');
+  const refreshRoiBtn = document.getElementById('refreshRoiBtn');
+  roiInvInput.value = roiInvestment;
+  roiIntInput.value = roiInterest;
+
+  function updateRoiSettings() {
+    roiInvestment = parseFloat(roiInvInput.value) || 0;
+    roiInterest = parseFloat(roiIntInput.value) || 0;
+    renderRoiSection();
+  }
+  roiInvInput.addEventListener('input', updateRoiSettings);
+  roiIntInput.addEventListener('input', updateRoiSettings);
+  refreshRoiBtn.addEventListener('click', updateRoiSettings);
+
+  function renderRoiSection() {
+    let incomeArr = getIncomeArr();
+    let expenditureArr = getExpenditureArr();
+    let repaymentArr = getRepaymentArr();
+    let netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+    let rolling = getRollingBankBalanceArr();
+
+    let years = Math.ceil(netProfitArr.length/52);
+    let annualProfitArr = [];
+    let cumulativeArr = [];
+    let cumulative = 0;
+    let annualRepays = [];
+    let yearBankBalance = [];
+    for (let y=0; y<years; y++) {
+      let profit = 0, repay = 0, yearEndBank = 0;
+      for (let w=0; w<52; w++) {
+        let idx = y*52 + w;
+        if (idx >= netProfitArr.length) break;
+        profit += netProfitArr[idx];
+        repay += repaymentArr[idx] || 0;
+        yearEndBank = rolling[idx];
+      }
+      cumulative += profit;
+      annualProfitArr.push(profit);
+      cumulativeArr.push(cumulative);
+      annualRepays.push(repay);
+      yearBankBalance.push(yearEndBank);
+    }
+
+    let annualProfit = annualProfitArr[0] || 0;
+    let paybackYear = annualProfitArr.findIndex((_,i)=>cumulativeArr[i]>=roiInvestment)+1 || "∞";
+    let cashflows = [-roiInvestment, ...annualProfitArr];
+    if (annualRepays.some(r=>r>0)) { // if repayments, include them as outflows
+      cashflows = [-roiInvestment];
+      for (let y=0; y<annualProfitArr.length; y++) {
+        cashflows.push(annualProfitArr[y] - annualRepays[y]);
+      }
+    }
+    let npvValue = roiInterest ? npv(roiInterest/100, cashflows) : null;
+    let irrValue = irr(cashflows);
+
+    let highlightText = "";
+    if (paybackYear !== "∞" && paybackYear>0) highlightText = `<span style="color:#2b8e2b;font-weight:bold;">Investment fully recouped in year ${paybackYear}</span>`;
+    else highlightText = `<span style="color:#c00;font-weight:bold;">Investment not recouped in time period</span>`;
+
+    let summaryEl = document.getElementById('roiSummary');
+    summaryEl.innerHTML = `
+      <b>Total Investment:</b> €${roiInvestment.toLocaleString()}<br>
+      <b>Annual Profit (Year 1):</b> €${annualProfit.toLocaleString()}<br>
+      <b>Estimated Payback:</b> ${paybackYear} year(s)<br>
+      ${highlightText}<br>
+      ${roiInterest ? `<b>NPV (${roiInterest}%):</b> €${npvValue.toLocaleString(undefined,{maximumFractionDigits:2})}<br>` : ''}
+      <b>IRR:</b> ${isFinite(irrValue) && !isNaN(irrValue) ? (irrValue*100).toFixed(2)+'%' : 'n/a'}
+    `;
+
+    renderRoiCharts(annualProfitArr, annualRepays, cumulativeArr);
+
+    let paybackTbody = document.getElementById('paybackTable').querySelector('tbody');
+    paybackTbody.innerHTML = "";
+    let recouped = false;
+    for(let y=0; y<years; y++){
+      let highlight = !recouped && cumulativeArr[y]>=roiInvestment ? ' payback-highlight' : '';
+      if (cumulativeArr[y]>=roiInvestment) recouped = true;
+      let notes = '';
+      if (recouped && cumulativeArr[y]>=roiInvestment && y+1==paybackYear) notes = "Investment Recouped";
+      paybackTbody.insertAdjacentHTML('beforeend', `
+        <tr class="${highlight}">
+          <td>${y+1}</td>
+          <td>€${cumulativeArr[y]?.toLocaleString()}</td>
+          <td>€${annualRepays[y]?.toLocaleString()}</td>
+          <td>€${yearBankBalance[y]?.toLocaleString()}</td>
+          <td>${notes}</td>
+        </tr>
+      `);
+    }
+
+    // Weeks with repayments table (with negative bank highlight)
+    let paybackWeeksTable = `<table class="payback-weeks-table"><thead>
+      <tr><th>Week</th><th>Repayment</th><th>Bank Balance After</th></tr></thead><tbody>`;
+    for (let i=0; i<repaymentArr.length; i++) {
+      if (repaymentArr[i]>0) {
+        let neg = rolling[i]<0 ? ' neg-balance' : '';
+        paybackWeeksTable += `
+        <tr class="${neg}">
+          <td>${(weekLabels[getFilteredWeekIndices()[i]] || ('Week '+(i+1)))}</td>
+          <td>€${repaymentArr[i].toLocaleString()}</td>
+          <td>${rolling[i]<0 ? '<span style="color:#c00;">€'+rolling[i].toLocaleString()+'</span>' : '€'+rolling[i].toLocaleString()}</td>
+        </tr>`;
+      }
+    }
+    paybackWeeksTable += `</tbody></table>`;
+    document.getElementById('paybackWeeksTableWrap').innerHTML = paybackWeeksTable;
+  }
+
+  function renderRoiCharts(annualProfitArr, annualRepays, cumulativeArr) {
+    if (window.roiLineChart) window.roiLineChart.destroy();
+    if (window.roiBarChart) window.roiBarChart.destroy();
+    if (window.roiPieChart) window.roiPieChart.destroy();
+    // Line chart: cumulative profit & repayments
+    const roiLineCtx = document.getElementById('roiLineChart').getContext('2d');
+    window.roiLineChart = new Chart(roiLineCtx, {
+      type: 'line',
+      data: {
+        labels: annualProfitArr.map((_, i) => 'Year '+(i+1)),
+        datasets: [
+          { label: "Cumulative Profit", data: cumulativeArr, borderColor: "#2196f3", fill: false },
+          { label: "Annual Repayments", data: annualRepays, borderColor: "#f3b200", fill: false },
+        ]
+      },
+      options: {responsive:true,maintainAspectRatio:false, plugins:{legend:{display:true}}}
+    });
+    // Bar chart: annual profit/repayments
+    const roiBarCtx = document.getElementById('roiBarChart').getContext('2d');
+    window.roiBarChart = new Chart(roiBarCtx, {
+      type: 'bar',
+      data: {
+        labels: annualProfitArr.map((_, i) => 'Year '+(i+1)),
+        datasets: [
+          { label: "Annual Profit", data: annualProfitArr, backgroundColor: "#4caf50" },
+          { label: "Repayments", data: annualRepays, backgroundColor: "#f3b200" }
+        ]
+      },
+      options: {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}}}
+    });
+    // Pie chart: total profit vs repayments (sum)
+    const roiPieCtx = document.getElementById('roiPieChart').getContext('2d');
+    window.roiPieChart = new Chart(roiPieCtx, {
+      type: 'pie',
+      data: {
+        labels: ["Total Profit","Total Repayments"],
+        datasets: [{ data: [
+          annualProfitArr.reduce((a,b)=>a+b,0),
+          annualRepays.reduce((a,b)=>a+b,0)
+        ], backgroundColor:["#4caf50","#f3b200"]}]
+      },
+      options: {responsive:true,maintainAspectRatio:false}
+    });
+  }
+
+  // -------------------- Export Buttons --------------------
   var exportPDFBtn = document.getElementById('exportPDFBtn');
   if (exportPDFBtn) {
     exportPDFBtn.onclick = function() {
@@ -752,11 +891,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // Loan summary input handling
-  document.getElementById('loanOutstandingInput').oninput = function() {
-    loanOutstanding = parseFloat(this.value) || 0;
-    updateLoanSummary();
-  };
-
+  // -------------------- Initial Render --------------------
   updateAllTabs();
 });
