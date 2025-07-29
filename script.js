@@ -1,5 +1,3 @@
-// script.js - Merged, robust, fully integrated Mayweather-MATRIX script.js
-
 document.addEventListener('DOMContentLoaded', function() {
   // -------------------- State --------------------
   let rawData = [];
