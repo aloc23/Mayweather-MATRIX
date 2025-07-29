@@ -1,3 +1,5 @@
+// spreadsheet_mapping.js - Complete Mayweather-MATRIX dashboard with all tabs, tables, and charts
+
 document.addEventListener('DOMContentLoaded', function() {
   // -------------------- State --------------------
   let rawData = [];
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let roiBarChart = null;
   let roiLineChart = null;
   let tornadoChartObj = null;
+  let summaryChart = null;
 
   // -------------------- Tabs & UI Interactions --------------------
   function setupTabs() {
@@ -628,6 +631,141 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
   }
 
+  // ---------- P&L Tab Functions ----------
+  function renderPnlTables() {
+    // Weekly Breakdown
+    const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
+    const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
+    const cashFlowTable = document.getElementById('pnlCashFlow');
+    const pnlSummary = document.getElementById('pnlSummary');
+    if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
+    let tbody = weeklyTable.querySelector('tbody');
+    if (tbody) tbody.innerHTML = '';
+    let incomeArr = getIncomeArr();
+    let expenditureArr = getExpenditureArr();
+    let repaymentArr = getRepaymentArr();
+    let rollingArr = getRollingBankBalanceArr();
+    let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+    let weekIdxs = getFilteredWeekIndices();
+    let rows = '';
+    let minBal = null, minBalWeek = null;
+    weekIdxs.forEach((idx, i) => {
+      let row = `<tr${rollingArr[i]<0?' class="negative-balance-row"':''}>` +
+        `<td>${weekLabels[idx]}</td>` +
+        `<td>€${Math.round(incomeArr[idx]||0).toLocaleString()}</td>` +
+        `<td>€${Math.round(expenditureArr[idx]||0).toLocaleString()}</td>` +
+        `<td>€${Math.round(repaymentArr[i]||0).toLocaleString()}</td>` +
+        `<td>€${Math.round(netArr[idx]||0).toLocaleString()}</td>` +
+        `<td>€${Math.round(rollingArr[i]||0).toLocaleString()}</td></tr>`;
+      rows += row;
+      if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
+    });
+    if (tbody) tbody.innerHTML = rows;
+
+    // Monthly Breakdown
+    let months = 12;
+    let incomeMonth = getMonthAgg(incomeArr, months);
+    let expMonth = getMonthAgg(expenditureArr, months);
+    let repayMonth = getMonthAgg(repaymentArr, months);
+    let netMonth = incomeMonth.map((inc, i) => inc - (expMonth[i]||0) - (repayMonth[i]||0));
+    let mtbody = monthlyTable.querySelector('tbody');
+    if (mtbody) {
+      mtbody.innerHTML = '';
+      for (let m=0; m<months; m++) {
+        mtbody.innerHTML += `<tr>
+          <td>Month ${m+1}</td>
+          <td>€${Math.round(incomeMonth[m]||0).toLocaleString()}</td>
+          <td>€${Math.round(expMonth[m]||0).toLocaleString()}</td>
+          <td>€${Math.round(netMonth[m]||0).toLocaleString()}</td>
+          <td>€${Math.round(repayMonth[m]||0).toLocaleString()}</td>
+        </tr>`;
+      }
+    }
+
+    // Cash Flow Table
+    let ctbody = cashFlowTable.querySelector('tbody');
+    if (ctbody) {
+      ctbody.innerHTML = '';
+      let closing = opening = openingBalance;
+      for (let m=0; m<months; m++) {
+        let inflow = incomeMonth[m] || 0;
+        let outflow = (expMonth[m] || 0) + (repayMonth[m] || 0);
+        closing = opening + inflow - outflow;
+        ctbody.innerHTML += `<tr>
+          <td>Month ${m+1}</td>
+          <td>€${Math.round(opening).toLocaleString()}</td>
+          <td>€${Math.round(inflow).toLocaleString()}</td>
+          <td>€${Math.round(outflow).toLocaleString()}</td>
+          <td>€${Math.round(closing).toLocaleString()}</td>
+        </tr>`;
+        opening = closing;
+      }
+    }
+    // P&L Summary
+    if (pnlSummary) {
+      pnlSummary.innerHTML = `
+        <b>Total Income:</b> €${Math.round(incomeArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
+        <b>Total Expenditure:</b> €${Math.round(expenditureArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
+        <b>Total Repayments:</b> €${Math.round(repaymentArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
+        <b>Final Bank Balance:</b> <span style="color:${rollingArr[rollingArr.length-1]<0?'#c00':'#388e3c'}">€${Math.round(rollingArr[rollingArr.length-1]||0).toLocaleString()}</span><br>
+        <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">${minBalWeek?minBalWeek+': ':''}€${Math.round(minBal||0).toLocaleString()}</span>
+      `;
+    }
+  }
+
+  // ---------- Summary Tab Functions ----------
+  function renderSummaryTab() {
+    // Key Financials
+    let incomeArr = getIncomeArr();
+    let expenditureArr = getExpenditureArr();
+    let repaymentArr = getRepaymentArr();
+    let rollingArr = getRollingBankBalanceArr();
+    let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+    let totalIncome = incomeArr.reduce((a,b)=>a+(b||0),0);
+    let totalExpenditure = expenditureArr.reduce((a,b)=>a+(b||0),0);
+    let totalRepayment = repaymentArr.reduce((a,b)=>a+(b||0),0);
+    let finalBal = rollingArr[rollingArr.length-1]||0;
+    let minBal = Math.min(...rollingArr);
+    let summaryElem = document.getElementById('summaryKeyFinancials');
+    if (summaryElem) {
+      summaryElem.innerHTML = `
+        <b>Total Income:</b> €${Math.round(totalIncome).toLocaleString()}<br>
+        <b>Total Expenditure:</b> €${Math.round(totalExpenditure).toLocaleString()}<br>
+        <b>Total Repayments:</b> €${Math.round(totalRepayment).toLocaleString()}<br>
+        <b>Final Bank Balance:</b> <span style="color:${finalBal<0?'#c00':'#388e3c'}">€${Math.round(finalBal).toLocaleString()}</span><br>
+        <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">€${Math.round(minBal).toLocaleString()}</span>
+      `;
+    }
+    // Summary Chart
+    let summaryChartElem = document.getElementById('summaryChart');
+    if (!summaryChartElem) return;
+    if (summaryChart && typeof summaryChart.destroy === "function") summaryChart.destroy();
+    summaryChart = new Chart(summaryChartElem.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ["Income", "Expenditure", "Repayment", "Final Bank", "Lowest Bank"],
+        datasets: [{
+          label: "Totals",
+          data: [
+            Math.round(totalIncome),
+            -Math.round(totalExpenditure),
+            -Math.round(totalRepayment),
+            Math.round(finalBal),
+            Math.round(minBal)
+          ],
+          backgroundColor: [
+            "#4caf50","#f44336","#ffc107","#2196f3","#9c27b0"
+          ]
+        }]
+      },
+      options: {
+        responsive:true,
+        plugins:{legend:{display:false}},
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
   // -------------------- ROI/Payback Section --------------------
   function npv(rate, cashflows) {
     if (!cashflows.length) return 0;
@@ -816,9 +954,10 @@ document.addEventListener('DOMContentLoaded', function() {
     renderRoiSection();
     updateChartAndSummary();
     renderTornadoChart();
+    renderPnlTables();
+    renderSummaryTab();
   }
 
   // Initial render
   updateAllTabs();
-
 });
