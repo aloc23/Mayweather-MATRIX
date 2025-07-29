@@ -41,8 +41,101 @@ document.addEventListener('DOMContentLoaded', function() {
   // --- MAPPING STATE ---
   let rawData = [];
   let mappingConfigured = false;
-  let weekLabels = [];
   let mappedData = null;
+  let weekLabels = [];
+  let mappingSelection = { week: 0, income: 1, expenditure: 2 };
+
+  // --- Spreadsheet Mapping UI ---
+  function renderMappingPanel(headers, data) {
+    var panel = document.getElementById('mappingPanel');
+    panel.innerHTML = '';
+
+    // Create mapping dropdowns
+    var roles = ['Week', 'Income', 'Expenditure'];
+    roles.forEach(role => {
+      var label = document.createElement('label');
+      label.textContent = role + ' Column: ';
+      var select = document.createElement('select');
+      select.id = 'mapping-' + role.toLowerCase();
+      headers.forEach((header, idx) => {
+        var opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = header;
+        select.appendChild(opt);
+      });
+      select.value = mappingSelection[role.toLowerCase()] || 0;
+      select.onchange = function() {
+        mappingSelection[role.toLowerCase()] = parseInt(this.value, 10);
+        updateWeekLabels();
+        updateAllTabs();
+      };
+      label.appendChild(select);
+      panel.appendChild(label);
+      panel.appendChild(document.createElement('br'));
+    });
+
+    // Preview all rows of the spreadsheet
+    var table = document.createElement('table');
+    table.border = "1";
+    table.style.borderCollapse = "collapse";
+    var thead = document.createElement('thead');
+    var tr = document.createElement('tr');
+    headers.forEach(h => { var th = document.createElement('th'); th.textContent = h; tr.appendChild(th); });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    data.forEach(row => {
+      var tr = document.createElement('tr');
+      row.forEach(cell => {
+        var td = document.createElement('td');
+        td.textContent = cell === undefined ? '' : cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    panel.appendChild(table);
+
+    // Save mapping button
+    var saveBtn = document.createElement('button');
+    saveBtn.textContent = "Use This Mapping";
+    saveBtn.onclick = function() {
+      mappingConfigured = true;
+      updateWeekLabels();
+      updateAllTabs();
+    };
+    panel.appendChild(saveBtn);
+  }
+
+  // --- Update week labels from mapping selection
+  function updateWeekLabels() {
+    if (!mappedData) return;
+    let weekCol = mappingSelection.week;
+    weekLabels = mappedData.map(row => row[weekCol]);
+  }
+
+  // --- Spreadsheet upload handler
+  var spreadsheetUpload = document.getElementById('spreadsheetUpload');
+  if (spreadsheetUpload) {
+    spreadsheetUpload.addEventListener('change', function(event) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const dataArr = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(dataArr, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (!json.length) return;
+        mappedData = json.slice(1); // all rows except header
+        rawData = json;
+        let headers = json[0];
+        renderMappingPanel(headers, mappedData);
+        updateWeekLabels();
+        updateAllTabs();
+      };
+      reader.readAsArrayBuffer(event.target.files[0]);
+    });
+  }
 
   // --- REPAYMENT SENSITIVITY STATE ---
   const weekSelect = document.getElementById('weekSelect');
@@ -181,61 +274,19 @@ document.addEventListener('DOMContentLoaded', function() {
   populateWeekDropdown();
   renderRepaymentRows();
 
-  // --- MAPPING PANEL & FILE UPLOAD ---
-  var spreadsheetUpload = document.getElementById('spreadsheetUpload');
-  if (spreadsheetUpload) {
-    spreadsheetUpload.addEventListener('change', function(event) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        mappedData = json;
-        rawData = json;
-        mappingConfigured = true;
-        // Extract week labels
-        let weekRow = json.find(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("week")));
-        if (weekRow) {
-          weekLabels = weekRow.filter(cell => typeof cell === "string" && cell.toLowerCase().includes("week"));
-          if (weekLabels.length === 0) {
-            let firstWeekIdx = weekRow.findIndex(cell => typeof cell === "string" && cell.toLowerCase().includes("week"));
-            weekLabels = weekRow.slice(firstWeekIdx);
-          }
-          if (weekLabels.length === 0) weekLabels = ["Week 1", "Week 2"];
-        }
-        populateWeekDropdown(weekLabels);
-        renderRepaymentRows();
-        document.getElementById('mappingPanel').innerHTML = "<span>Mapping loaded. Weeks found: "+weekLabels.join(", ")+"</span>";
-        updateAllTabs();
-      };
-      reader.readAsArrayBuffer(event.target.files[0]);
-    });
-  }
-
-  // --- CALCULATIONS & CHART ---
+  // --- Analysis Functions using Mapped Columns ---
   function getIncomeArr() {
-    if (!mappedData || weekLabels.length === 0) return [];
-    let incomeArr = [];
-    const weekRowIdx = mappedData.findIndex(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("week")));
-    if (weekRowIdx === -1) return [];
-    const weekCols = [];
-    mappedData[weekRowIdx].forEach((cell, idx) => {
-      if (typeof cell === "string" && cell.toLowerCase().includes("week")) {
-        weekCols.push(idx);
-      }
-    });
-    for (let w = 0; w < weekCols.length; w++) {
-      let sum = 0;
-      for (let r = weekRowIdx + 1; r < mappedData.length; r++) {
-        const val = parseFloat(mappedData[r][weekCols[w]]);
-        if (!isNaN(val)) sum += val;
-      }
-      incomeArr.push(sum);
-    }
-    return incomeArr;
+    if (!mappedData || !mappingConfigured) return [];
+    let incomeCol = mappingSelection.income;
+    return mappedData.map(row => parseFloat(row[incomeCol]) || 0);
+  }
+  function getExpenditureArr() {
+    if (!mappedData || !mappingConfigured) return [];
+    let expenditureCol = mappingSelection.expenditure;
+    return mappedData.map(row => parseFloat(row[expenditureCol]) || 0);
   }
   function getRepaymentArr() {
+    if (!mappingConfigured || !weekLabels.length) return [];
     let arr = Array(weekLabels.length).fill(0);
     repaymentRows.forEach(r => {
       if (r.type === "week") {
@@ -260,8 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     return arr;
   }
-  function getNetProfitArr(incomeArr, repaymentArr) {
-    return incomeArr.map((inc, i) => inc - (repaymentArr[i] || 0));
+  function getNetProfitArr(incomeArr, expenditureArr, repaymentArr) {
+    return incomeArr.map((inc, i) => inc - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
   }
   function getMonthAgg(arr, months=12) {
     let perMonth = Math.ceil(arr.length/months);
@@ -282,8 +333,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mainChart && typeof mainChart.destroy === "function") mainChart.destroy();
 
     const incomeArr = getIncomeArr();
+    const expenditureArr = getExpenditureArr();
     const repaymentArr = getRepaymentArr();
-    const netProfitArr = getNetProfitArr(incomeArr, repaymentArr);
+    const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
 
     if (ctx) {
       mainChart = new Chart(ctx, {
@@ -292,6 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
           labels: weekLabels,
           datasets: [
             { label: 'Income', data: incomeArr, borderColor: '#4caf50', fill: false },
+            { label: 'Expenditure', data: expenditureArr, borderColor: '#f44336', fill: false },
             { label: 'Repayments', data: repaymentArr, borderColor: '#f3b200', fill: false },
             { label: 'Net Profit', data: netProfitArr, borderColor: '#2196f3', fill: false }
           ]
@@ -305,12 +358,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     let totalIncome = incomeArr.reduce((a,b)=>a+b,0);
+    let totalExpenditure = expenditureArr.reduce((a,b)=>a+b,0);
     let totalRepayments = repaymentArr.reduce((a,b)=>a+b,0);
     let totalNet = netProfitArr.reduce((a,b)=>a+b,0);
     var mainChartSummary = document.getElementById('mainChartSummary');
     if (mainChartSummary) {
       mainChartSummary.innerHTML =
         `<b>Total Income:</b> €${totalIncome.toLocaleString()}<br>
+         <b>Total Expenditure:</b> €${totalExpenditure.toLocaleString()}<br>
          <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
          <b>Total Net Profit:</b> €${totalNet.toLocaleString()}`;
     }
@@ -323,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var pnlSummary = document.getElementById('pnlSummary');
     var roiSummary = document.getElementById('roiSummary');
     var summaryKeyFinancials = document.getElementById('summaryKeyFinancials');
-    if (!rawData.length || !weekLabels.length) {
+    if (!rawData.length || !weekLabels.length || !mappingConfigured) {
       if (pnlSummary) pnlSummary.innerHTML = '';
       if (roiSummary) roiSummary.innerHTML = '';
       if (summaryKeyFinancials) summaryKeyFinancials.innerHTML = '';
@@ -341,9 +396,9 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     const incomeArr = getIncomeArr();
+    const expenditureArr = getExpenditureArr();
     const repaymentArr = getRepaymentArr();
-    const netProfitArr = getNetProfitArr(incomeArr, repaymentArr);
-    const expenditureArr = Array(weekLabels.length).fill(0);
+    const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
 
     const months = Array.from({length:12}, (_,i)=>`Month ${i+1}`);
     const incomeMonths = getMonthAgg(incomeArr,12);
@@ -434,10 +489,12 @@ document.addEventListener('DOMContentLoaded', function() {
       window.chartCanvasChart = new Chart(chartCanvasElem.getContext('2d'),{
         type:'line',
         data:{
-          labels:weekLabels.slice(0,incomeArr.length),
-          datasets:[{label:"Income",data:incomeArr,borderColor:"#4caf50",fill:false},
+          labels:weekLabels,
+          datasets:[
+            {label:"Income",data:incomeArr,borderColor:"#4caf50",fill:false},
             {label:"Expenditure",data:expenditureArr,borderColor:"#f44336",fill:false},
-            {label:"Repayments",data:repaymentArr,borderColor:"#f3b200",fill:false}]
+            {label:"Repayments",data:repaymentArr,borderColor:"#f3b200",fill:false}
+          ]
         },options:{responsive:true,maintainAspectRatio:false}
       });
     }
