@@ -41,14 +41,48 @@ document.addEventListener('DOMContentLoaded', function() {
   let mappedData = [];
   let mappingConfigured = false;
   let config = {
-    weekLabelRow: 0, // index of row containing week labels
-    weekColStart: 0, // index of first week column
-    weekColEnd: 0,   // index of last week column
-    firstDataRow: 1, // index of first data row
-    lastDataRow: 1   // index of last data row
+    weekLabelRow: 0,
+    weekColStart: 0,
+    weekColEnd: 0,
+    firstDataRow: 1,
+    lastDataRow: 1
   };
   let weekLabels = [];
   let repaymentRows = [];
+
+  // --- Auto-detect mapping on upload ---
+  function autoDetectMapping(sheet) {
+    // Try 10 rows, 30 cols max
+    for (let r = 0; r < Math.min(sheet.length, 10); r++) {
+      for (let c = 0; c < Math.min(sheet[r].length, 30); c++) {
+        const val = (sheet[r][c] || '').toString().toLowerCase();
+        if (/week\s*\d+/.test(val) || /week\s*\d+\/\d+/.test(val)) {
+          config.weekLabelRow = r;
+          config.weekColStart = c;
+          // scan right for last week col
+          let lastCol = c;
+          while (
+            lastCol < sheet[r].length &&
+            ((sheet[r][lastCol] || '').toLowerCase().indexOf('week') >= 0 ||
+            /^\d{1,2}\/\d{1,2}/.test(sheet[r][lastCol] || ''))
+          ) {
+            lastCol++;
+          }
+          config.weekColEnd = lastCol - 1;
+          // guess first/last data row
+          config.firstDataRow = r + 1;
+          config.lastDataRow = sheet.length-1;
+          return;
+        }
+      }
+    }
+    // Fallbacks (if nothing found, default to col 5, row 4)
+    config.weekLabelRow = 4;
+    config.weekColStart = 5;
+    config.weekColEnd = Math.max(5, (sheet[4]||[]).length-1);
+    config.firstDataRow = 6;
+    config.lastDataRow = sheet.length-1;
+  }
 
   // --- Spreadsheet Upload ---
   var spreadsheetUpload = document.getElementById('spreadsheetUpload');
@@ -63,9 +97,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!json.length) return;
         rawData = json;
         mappedData = json;
-        config.lastDataRow = mappedData.length-1;
-        renderMappingPanel(mappedData);
+        autoDetectMapping(mappedData);
         mappingConfigured = false;
+        renderMappingPanel(mappedData);
+        updateWeekLabels();
         updateAllTabs();
       };
       reader.readAsArrayBuffer(event.target.files[0]);
@@ -77,107 +112,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const panel = document.getElementById('mappingPanel');
     panel.innerHTML = '';
 
-    // Week label row selector
-    let rowSelectLabel = document.createElement('label');
-    rowSelectLabel.textContent = 'Which row contains week labels? ';
-    let rowSelect = document.createElement('select');
-    allRows.forEach((row, idx) => {
-      let opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = `Row ${idx+1}: ${row.join(', ').slice(0,40)}${row.length>0?'...':''}`;
-      rowSelect.appendChild(opt);
-    });
-    rowSelect.value = config.weekLabelRow;
-    rowSelect.onchange = function() {
-      config.weekLabelRow = parseInt(this.value, 10);
-      updateWeekLabels();
-      renderMappingPanel(allRows);
-      updateAllTabs();
+    // Mapping controls
+    const drop = (label, id, max, sel, onChange, items) => {
+      let lab = document.createElement('label');
+      lab.textContent = label;
+      let selElem = document.createElement('select');
+      selElem.className = 'mapping-dropdown';
+      for (let i = 0; i < max; i++) {
+        let opt = document.createElement('option');
+        opt.value = i;
+        let textVal = items && items[i] ? items[i] : (allRows[i] ? allRows[i].slice(0,8).join(',').slice(0,32) : '');
+        opt.textContent = `${id==='row'?'Row':'Col'} ${i+1}: ${textVal}`;
+        selElem.appendChild(opt);
+      }
+      selElem.value = sel;
+      selElem.onchange = function() { onChange(parseInt(this.value,10)); };
+      lab.appendChild(selElem);
+      panel.appendChild(lab);
     };
-    rowSelectLabel.appendChild(rowSelect);
-    panel.appendChild(rowSelectLabel);
+
+    drop('Which row contains week labels? ', 'row', Math.min(allRows.length, 30), config.weekLabelRow, v => { config.weekLabelRow = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); });
     panel.appendChild(document.createElement('br'));
 
-    // Week columns start selector
-    let colStartLabel = document.createElement('label');
-    colStartLabel.textContent = 'First week column: ';
-    let colStartSelect = document.createElement('select');
-    allRows[config.weekLabelRow].forEach((header, idx) => {
-      let opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = `Col ${idx+1}: ${header}`;
-      colStartSelect.appendChild(opt);
-    });
-    colStartSelect.value = config.weekColStart;
-    colStartSelect.onchange = function() {
-      config.weekColStart = parseInt(this.value, 10);
-      updateWeekLabels();
-      renderMappingPanel(allRows);
-      updateAllTabs();
-    };
-    colStartLabel.appendChild(colStartSelect);
-    panel.appendChild(colStartLabel);
+    // Use the detected week label row for columns
+    let weekRow = allRows[config.weekLabelRow] || [];
+    drop('First week column: ', 'col', weekRow.length, config.weekColStart, v => { config.weekColStart = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
+    drop('Last week column: ', 'col', weekRow.length, config.weekColEnd, v => { config.weekColEnd = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
     panel.appendChild(document.createElement('br'));
 
-    // Week columns end selector
-    let colEndLabel = document.createElement('label');
-    colEndLabel.textContent = 'Last week column: ';
-    let colEndSelect = document.createElement('select');
-    allRows[config.weekLabelRow].forEach((header, idx) => {
-      let opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = `Col ${idx+1}: ${header}`;
-      colEndSelect.appendChild(opt);
-    });
-    colEndSelect.value = config.weekColEnd;
-    colEndSelect.onchange = function() {
-      config.weekColEnd = parseInt(this.value, 10);
-      updateWeekLabels();
-      renderMappingPanel(allRows);
-      updateAllTabs();
-    };
-    colEndLabel.appendChild(colEndSelect);
-    panel.appendChild(colEndLabel);
-    panel.appendChild(document.createElement('br'));
-
-    // First data row selector
-    let firstDataLabel = document.createElement('label');
-    firstDataLabel.textContent = 'First data row: ';
-    let firstDataSelect = document.createElement('select');
-    allRows.forEach((row, idx) => {
-      let opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = `Row ${idx+1}: ${row.join(', ').slice(0,40)}${row.length>0?'...':''}`;
-      firstDataSelect.appendChild(opt);
-    });
-    firstDataSelect.value = config.firstDataRow;
-    firstDataSelect.onchange = function() {
-      config.firstDataRow = parseInt(this.value, 10);
-      renderMappingPanel(allRows);
-      updateAllTabs();
-    };
-    firstDataLabel.appendChild(firstDataSelect);
-    panel.appendChild(firstDataLabel);
-    panel.appendChild(document.createElement('br'));
-
-    // Last data row selector
-    let lastDataLabel = document.createElement('label');
-    lastDataLabel.textContent = 'Last data row: ';
-    let lastDataSelect = document.createElement('select');
-    allRows.forEach((row, idx) => {
-      let opt = document.createElement('option');
-      opt.value = idx;
-      opt.textContent = `Row ${idx+1}: ${row.join(', ').slice(0,40)}${row.length>0?'...':''}`;
-      lastDataSelect.appendChild(opt);
-    });
-    lastDataSelect.value = config.lastDataRow;
-    lastDataSelect.onchange = function() {
-      config.lastDataRow = parseInt(this.value, 10);
-      renderMappingPanel(allRows);
-      updateAllTabs();
-    };
-    lastDataLabel.appendChild(lastDataSelect);
-    panel.appendChild(lastDataLabel);
+    drop('First data row: ', 'row', Math.min(allRows.length, 50), config.firstDataRow, v => { config.firstDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
+    drop('Last data row: ', 'row', Math.min(allRows.length, 50), config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
     panel.appendChild(document.createElement('br'));
 
     // Save mapping button
@@ -190,23 +154,33 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     panel.appendChild(saveBtn);
 
-    // Preview spreadsheet (first 20 rows for brevity)
+    // Preview spreadsheet (first 20 rows, highlight mapped region)
     let table = document.createElement('table');
-    table.border = "1";
-    table.style.borderCollapse = "collapse";
+    table.className = 'mapping-preview-table';
     let thead = document.createElement('thead');
     let tr = document.createElement('tr');
-    allRows[0].forEach(h => { let th = document.createElement('th'); th.textContent = h; tr.appendChild(th); });
+    let colCount = Math.max(...allRows.slice(0,20).map(r=>r.length));
+    for(let c=0;c<colCount;c++) {
+      let th = document.createElement('th');
+      th.textContent = String.fromCharCode(65+c);
+      if (c >= config.weekColStart && c <= config.weekColEnd) th.className = 'highlight-mapping';
+      tr.appendChild(th);
+    }
     thead.appendChild(tr);
     table.appendChild(thead);
     let tbody = document.createElement('tbody');
-    allRows.slice(1,21).forEach(row => {
+    allRows.slice(0,20).forEach((row, rIdx) => {
       let tr = document.createElement('tr');
-      row.forEach(cell => {
+      for(let c=0;c<colCount;c++) {
         let td = document.createElement('td');
-        td.textContent = cell === undefined ? '' : cell;
+        td.textContent = row[c] === undefined ? '' : row[c];
+        if (rIdx === config.weekLabelRow && c >= config.weekColStart && c <= config.weekColEnd) {
+          td.className = 'highlight-week-labels';
+        } else if (c >= config.weekColStart && c <= config.weekColEnd) {
+          td.className = 'highlight-mapping';
+        }
         tr.appendChild(td);
-      });
+      }
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -344,10 +318,13 @@ document.addEventListener('DOMContentLoaded', function() {
       container.appendChild(div);
     });
   }
-  populateWeekDropdown();
-  renderRepaymentRows();
 
-  // --- Analysis Functions (Auto-detect Income/Expenditure per week column) ---
+  // --- Extraction Functions ---
+  function getWeekLabels() {
+    return mappedData[config.weekLabelRow]
+      .slice(config.weekColStart, config.weekColEnd+1)
+      .map(x => (x || '').toString().trim());
+  }
   function getIncomeArr() {
     if (!mappedData || !mappingConfigured) return [];
     let arr = [];
@@ -416,52 +393,6 @@ document.addEventListener('DOMContentLoaded', function() {
       out.push(sum);
     }
     return out;
-  }
-
-  // --- CHARTS & P&L ---
-  let mainChart = null;
-  function updateChartAndSummary() {
-    const ctxElem = document.getElementById('mainChart');
-    const ctx = ctxElem ? ctxElem.getContext('2d') : null;
-    if (mainChart && typeof mainChart.destroy === "function") mainChart.destroy();
-
-    const incomeArr = getIncomeArr();
-    const expenditureArr = getExpenditureArr();
-    const repaymentArr = getRepaymentArr();
-    const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-
-    if (ctx) {
-      mainChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: weekLabels.slice(0, incomeArr.length),
-          datasets: [
-            { label: 'Income', data: incomeArr, borderColor: '#4caf50', fill: false },
-            { label: 'Expenditure', data: expenditureArr, borderColor: '#f44336', fill: false },
-            { label: 'Repayments', data: repaymentArr, borderColor: '#f3b200', fill: false },
-            { label: 'Net Profit', data: netProfitArr, borderColor: '#2196f3', fill: false }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: true } }
-        }
-      });
-    }
-
-    let totalIncome = incomeArr.reduce((a,b)=>a+b,0);
-    let totalExpenditure = expenditureArr.reduce((a,b)=>a+b,0);
-    let totalRepayments = repaymentArr.reduce((a,b)=>a+b,0);
-    let totalNet = netProfitArr.reduce((a,b)=>a+b,0);
-    var mainChartSummary = document.getElementById('mainChartSummary');
-    if (mainChartSummary) {
-      mainChartSummary.innerHTML =
-        `<b>Total Income:</b> €${totalIncome.toLocaleString()}<br>
-         <b>Total Expenditure:</b> €${totalExpenditure.toLocaleString()}<br>
-         <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
-         <b>Total Net Profit:</b> €${totalNet.toLocaleString()}`;
-    }
   }
 
   // --- ALL TAB RENDERING ---
@@ -623,6 +554,52 @@ document.addEventListener('DOMContentLoaded', function() {
       },options:{responsive:true,maintainAspectRatio:false}
     });
     updateChartAndSummary();
+  }
+
+  // --- CHARTS & P&L ---
+  let mainChart = null;
+  function updateChartAndSummary() {
+    const ctxElem = document.getElementById('mainChart');
+    const ctx = ctxElem ? ctxElem.getContext('2d') : null;
+    if (mainChart && typeof mainChart.destroy === "function") mainChart.destroy();
+
+    const incomeArr = getIncomeArr();
+    const expenditureArr = getExpenditureArr();
+    const repaymentArr = getRepaymentArr();
+    const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+
+    if (ctx) {
+      mainChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: weekLabels.slice(0, incomeArr.length),
+          datasets: [
+            { label: 'Income', data: incomeArr, borderColor: '#4caf50', fill: false },
+            { label: 'Expenditure', data: expenditureArr, borderColor: '#f44336', fill: false },
+            { label: 'Repayments', data: repaymentArr, borderColor: '#f3b200', fill: false },
+            { label: 'Net Profit', data: netProfitArr, borderColor: '#2196f3', fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true } }
+        }
+      });
+    }
+
+    let totalIncome = incomeArr.reduce((a,b)=>a+b,0);
+    let totalExpenditure = expenditureArr.reduce((a,b)=>a+b,0);
+    let totalRepayments = repaymentArr.reduce((a,b)=>a+b,0);
+    let totalNet = netProfitArr.reduce((a,b)=>a+b,0);
+    var mainChartSummary = document.getElementById('mainChartSummary');
+    if (mainChartSummary) {
+      mainChartSummary.innerHTML =
+        `<b>Total Income:</b> €${totalIncome.toLocaleString()}<br>
+         <b>Total Expenditure:</b> €${totalExpenditure.toLocaleString()}<br>
+         <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
+         <b>Total Net Profit:</b> €${totalNet.toLocaleString()}`;
+    }
   }
 
   // --- EXPORT BUTTONS ---
