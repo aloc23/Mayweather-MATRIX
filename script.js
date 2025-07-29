@@ -452,24 +452,30 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // --- EXPORT BUTTONS ---
-  document.getElementById('exportPDFBtn')?.onclick = function() {
-    html2canvas(document.body).then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
-      pdf.save("mayweather_matrix_summary.pdf");
-    });
-  };
-  document.getElementById('exportExcelBtn')?.onclick = function() {
-    if (!rawData?.length) return;
-    const ws = XLSX.utils.aoa_to_sheet(rawData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, "mayweather_matrix_data.xlsx");
-  };
+  var exportPDFBtn = document.getElementById('exportPDFBtn');
+  if (exportPDFBtn) {
+    exportPDFBtn.onclick = function() {
+      html2canvas(document.body).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width * ratio, canvas.height * ratio);
+        pdf.save("mayweather_matrix_summary.pdf");
+      });
+    };
+  }
+  var exportExcelBtn = document.getElementById('exportExcelBtn');
+  if (exportExcelBtn) {
+    exportExcelBtn.onclick = function() {
+      if (!rawData?.length) return;
+      const ws = XLSX.utils.aoa_to_sheet(rawData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      XLSX.writeFile(wb, "mayweather_matrix_data.xlsx");
+    };
+  }
 
   // Initial chart and summary render
   updateAllTabs();
