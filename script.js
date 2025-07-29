@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // --- Tabs ---
+  // --- Tabs & Subtabs ---
   document.querySelectorAll('.tabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
@@ -10,8 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (panel) panel.classList.add('active');
     });
   });
-
-  // --- Subtabs ---
   document.querySelectorAll('.subtabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
@@ -38,84 +36,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // --- MAPPING STATE ---
+  // --- State ---
   let rawData = [];
+  let sheetHeaders = [];
+  let mappedData = [];
   let mappingConfigured = false;
-  let mappedData = null;
+  let config = {
+    weekLabelRow: 0, // index of row containing week labels
+    weekColStart: 0, // index of first week column
+    weekColEnd: 0,   // index of last week column
+    firstDataRow: 1, // index of first data row
+    lastDataRow: 1   // index of last data row
+  };
   let weekLabels = [];
-  let mappingSelection = { week: 0, income: 1, expenditure: 2 };
+  let repaymentRows = [];
 
-  // --- Spreadsheet Mapping UI ---
-  function renderMappingPanel(headers, data) {
-    var panel = document.getElementById('mappingPanel');
-    panel.innerHTML = '';
-
-    // Create mapping dropdowns
-    var roles = ['Week', 'Income', 'Expenditure'];
-    roles.forEach(role => {
-      var label = document.createElement('label');
-      label.textContent = role + ' Column: ';
-      var select = document.createElement('select');
-      select.id = 'mapping-' + role.toLowerCase();
-      headers.forEach((header, idx) => {
-        var opt = document.createElement('option');
-        opt.value = idx;
-        opt.textContent = header;
-        select.appendChild(opt);
-      });
-      select.value = mappingSelection[role.toLowerCase()] || 0;
-      select.onchange = function() {
-        mappingSelection[role.toLowerCase()] = parseInt(this.value, 10);
-        updateWeekLabels();
-        updateAllTabs();
-      };
-      label.appendChild(select);
-      panel.appendChild(label);
-      panel.appendChild(document.createElement('br'));
-    });
-
-    // Preview all rows of the spreadsheet
-    var table = document.createElement('table');
-    table.border = "1";
-    table.style.borderCollapse = "collapse";
-    var thead = document.createElement('thead');
-    var tr = document.createElement('tr');
-    headers.forEach(h => { var th = document.createElement('th'); th.textContent = h; tr.appendChild(th); });
-    thead.appendChild(tr);
-    table.appendChild(thead);
-
-    var tbody = document.createElement('tbody');
-    data.forEach(row => {
-      var tr = document.createElement('tr');
-      row.forEach(cell => {
-        var td = document.createElement('td');
-        td.textContent = cell === undefined ? '' : cell;
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    panel.appendChild(table);
-
-    // Save mapping button
-    var saveBtn = document.createElement('button');
-    saveBtn.textContent = "Use This Mapping";
-    saveBtn.onclick = function() {
-      mappingConfigured = true;
-      updateWeekLabels();
-      updateAllTabs();
-    };
-    panel.appendChild(saveBtn);
-  }
-
-  // --- Update week labels from mapping selection
-  function updateWeekLabels() {
-    if (!mappedData) return;
-    let weekCol = mappingSelection.week;
-    weekLabels = mappedData.map(row => row[weekCol]);
-  }
-
-  // --- Spreadsheet upload handler
+  // --- Spreadsheet Upload ---
   var spreadsheetUpload = document.getElementById('spreadsheetUpload');
   if (spreadsheetUpload) {
     spreadsheetUpload.addEventListener('change', function(event) {
@@ -126,21 +62,169 @@ document.addEventListener('DOMContentLoaded', function() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         if (!json.length) return;
-        mappedData = json.slice(1); // all rows except header
         rawData = json;
-        let headers = json[0];
-        renderMappingPanel(headers, mappedData);
-        updateWeekLabels();
+        sheetHeaders = json[0];
+        mappedData = json;
+        config.lastDataRow = mappedData.length-1;
+        renderMappingPanel(mappedData);
+        mappingConfigured = false;
         updateAllTabs();
       };
       reader.readAsArrayBuffer(event.target.files[0]);
     });
   }
 
-  // --- REPAYMENT SENSITIVITY STATE ---
+  // --- Mapping Panel UI
+  function renderMappingPanel(allRows) {
+    const panel = document.getElementById('mappingPanel');
+    panel.innerHTML = '';
+
+    // Week label row selector
+    let rowSelectLabel = document.createElement('label');
+    rowSelectLabel.textContent = 'Which row contains week labels? ';
+    let rowSelect = document.createElement('select');
+    allRows.forEach((row, idx) => {
+      let opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `Row ${idx+1}: ${row.join(', ').slice(0,40)}${row.length>0?'...':''}`;
+      rowSelect.appendChild(opt);
+    });
+    rowSelect.value = config.weekLabelRow;
+    rowSelect.onchange = function() {
+      config.weekLabelRow = parseInt(this.value, 10);
+      updateWeekLabels();
+      renderMappingPanel(allRows);
+      updateAllTabs();
+    };
+    rowSelectLabel.appendChild(rowSelect);
+    panel.appendChild(rowSelectLabel);
+    panel.appendChild(document.createElement('br'));
+
+    // Week columns start selector
+    let colStartLabel = document.createElement('label');
+    colStartLabel.textContent = 'First week column: ';
+    let colStartSelect = document.createElement('select');
+    allRows[config.weekLabelRow].forEach((header, idx) => {
+      let opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `Col ${idx+1}: ${header}`;
+      colStartSelect.appendChild(opt);
+    });
+    colStartSelect.value = config.weekColStart;
+    colStartSelect.onchange = function() {
+      config.weekColStart = parseInt(this.value, 10);
+      updateWeekLabels();
+      renderMappingPanel(allRows);
+      updateAllTabs();
+    };
+    colStartLabel.appendChild(colStartSelect);
+    panel.appendChild(colStartLabel);
+    panel.appendChild(document.createElement('br'));
+
+    // Week columns end selector
+    let colEndLabel = document.createElement('label');
+    colEndLabel.textContent = 'Last week column: ';
+    let colEndSelect = document.createElement('select');
+    allRows[config.weekLabelRow].forEach((header, idx) => {
+      let opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `Col ${idx+1}: ${header}`;
+      colEndSelect.appendChild(opt);
+    });
+    colEndSelect.value = config.weekColEnd;
+    colEndSelect.onchange = function() {
+      config.weekColEnd = parseInt(this.value, 10);
+      updateWeekLabels();
+      renderMappingPanel(allRows);
+      updateAllTabs();
+    };
+    colEndLabel.appendChild(colEndSelect);
+    panel.appendChild(colEndLabel);
+    panel.appendChild(document.createElement('br'));
+
+    // First data row selector
+    let firstDataLabel = document.createElement('label');
+    firstDataLabel.textContent = 'First data row: ';
+    let firstDataSelect = document.createElement('select');
+    allRows.forEach((row, idx) => {
+      let opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `Row ${idx+1}: ${row.join(', ').slice(0,40)}${row.length>0?'...':''}`;
+      firstDataSelect.appendChild(opt);
+    });
+    firstDataSelect.value = config.firstDataRow;
+    firstDataSelect.onchange = function() {
+      config.firstDataRow = parseInt(this.value, 10);
+      renderMappingPanel(allRows);
+      updateAllTabs();
+    };
+    firstDataLabel.appendChild(firstDataSelect);
+    panel.appendChild(firstDataLabel);
+    panel.appendChild(document.createElement('br'));
+
+    // Last data row selector
+    let lastDataLabel = document.createElement('label');
+    lastDataLabel.textContent = 'Last data row: ';
+    let lastDataSelect = document.createElement('select');
+    allRows.forEach((row, idx) => {
+      let opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `Row ${idx+1}: ${row.join(', ').slice(0,40)}${row.length>0?'...':''}`;
+      lastDataSelect.appendChild(opt);
+    });
+    lastDataSelect.value = config.lastDataRow;
+    lastDataSelect.onchange = function() {
+      config.lastDataRow = parseInt(this.value, 10);
+      renderMappingPanel(allRows);
+      updateAllTabs();
+    };
+    lastDataLabel.appendChild(lastDataSelect);
+    panel.appendChild(lastDataLabel);
+    panel.appendChild(document.createElement('br'));
+
+    // Save mapping button
+    let saveBtn = document.createElement('button');
+    saveBtn.textContent = "Save Mapping";
+    saveBtn.onclick = function() {
+      mappingConfigured = true;
+      updateWeekLabels();
+      updateAllTabs();
+    };
+    panel.appendChild(saveBtn);
+
+    // Preview spreadsheet (first 20 rows for brevity)
+    let table = document.createElement('table');
+    table.border = "1";
+    table.style.borderCollapse = "collapse";
+    let thead = document.createElement('thead');
+    let tr = document.createElement('tr');
+    allRows[0].forEach(h => { let th = document.createElement('th'); th.textContent = h; tr.appendChild(th); });
+    thead.appendChild(tr);
+    table.appendChild(thead);
+    let tbody = document.createElement('tbody');
+    allRows.slice(1,21).forEach(row => {
+      let tr = document.createElement('tr');
+      row.forEach(cell => {
+        let td = document.createElement('td');
+        td.textContent = cell === undefined ? '' : cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    panel.appendChild(table);
+  }
+
+  // --- Update week labels ---
+  function updateWeekLabels() {
+    let weekRow = mappedData[config.weekLabelRow] || [];
+    weekLabels = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+    populateWeekDropdown(weekLabels);
+  }
+
+  // --- Repayment Sensitivity ---
   const weekSelect = document.getElementById('weekSelect');
   const repaymentFrequency = document.getElementById('repaymentFrequency');
-  let repaymentRows = [];
 
   function populateWeekDropdown(labels) {
     weekSelect.innerHTML = '';
@@ -152,7 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // --- RADIO TOGGLE FOR WEEK / FREQUENCY ---
   document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
     radio.addEventListener('change', function() {
       if (this.value === "week") {
@@ -165,7 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // --- ADD REPAYMENT ROW ---
   document.getElementById('addRepaymentForm').onsubmit = function(e) {
     e.preventDefault();
     const type = document.querySelector('input[name="repaymentType"]:checked').value;
@@ -189,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAllTabs();
   };
 
-  // --- EDITABLE REPAYMENT ROWS ---
   function renderRepaymentRows() {
     const container = document.getElementById('repaymentRows');
     container.innerHTML = "";
@@ -197,7 +278,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const div = document.createElement('div');
       div.className = 'repayment-row';
 
-      // Week dropdown
       const weekSelectElem = document.createElement('select');
       (weekLabels.length ? weekLabels : Array.from({length:52}, (_,i)=>`Week ${i+1}`)).forEach(label => {
         const opt = document.createElement('option');
@@ -208,7 +288,6 @@ document.addEventListener('DOMContentLoaded', function() {
       weekSelectElem.value = row.week || "";
       weekSelectElem.disabled = !row.editing || row.type !== "week";
 
-      // Frequency select
       const freqSelect = document.createElement('select');
       ["monthly", "quarterly", "one-off"].forEach(f => {
         const opt = document.createElement('option');
@@ -219,14 +298,12 @@ document.addEventListener('DOMContentLoaded', function() {
       freqSelect.value = row.frequency || "monthly";
       freqSelect.disabled = !row.editing || row.type !== "frequency";
 
-      // Amount input
       const amountInput = document.createElement('input');
       amountInput.type = 'number';
       amountInput.value = row.amount;
       amountInput.placeholder = 'Repayment €';
       amountInput.disabled = !row.editing;
 
-      // Edit button
       const editBtn = document.createElement('button');
       editBtn.textContent = row.editing ? 'Save' : 'Edit';
       editBtn.onclick = function() {
@@ -243,7 +320,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAllTabs();
       };
 
-      // Remove button
       const removeBtn = document.createElement('button');
       removeBtn.textContent = 'Remove';
       removeBtn.onclick = function() {
@@ -252,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAllTabs();
       };
 
-      // Mode label
       const modeLabel = document.createElement('span');
       modeLabel.style.marginRight = "10px";
       modeLabel.textContent = row.type === "week" ? "Week" : "Frequency";
@@ -274,16 +349,36 @@ document.addEventListener('DOMContentLoaded', function() {
   populateWeekDropdown();
   renderRepaymentRows();
 
-  // --- Analysis Functions using Mapped Columns ---
+  // --- Analysis Functions (Auto-detect Income/Expenditure per week column) ---
   function getIncomeArr() {
     if (!mappedData || !mappingConfigured) return [];
-    let incomeCol = mappingSelection.income;
-    return mappedData.map(row => parseFloat(row[incomeCol]) || 0);
+    let arr = [];
+    for (let w = config.weekColStart; w <= config.weekColEnd; w++) {
+      let sum = 0;
+      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+        let val = mappedData[r][w];
+        if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+        let num = parseFloat(val);
+        if (!isNaN(num) && num > 0) sum += num;
+      }
+      arr.push(sum);
+    }
+    return arr;
   }
   function getExpenditureArr() {
     if (!mappedData || !mappingConfigured) return [];
-    let expenditureCol = mappingSelection.expenditure;
-    return mappedData.map(row => parseFloat(row[expenditureCol]) || 0);
+    let arr = [];
+    for (let w = config.weekColStart; w <= config.weekColEnd; w++) {
+      let sum = 0;
+      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+        let val = mappedData[r][w];
+        if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+        let num = parseFloat(val);
+        if (!isNaN(num) && num < 0) sum += num;
+      }
+      arr.push(Math.abs(sum));
+    }
+    return arr;
   }
   function getRepaymentArr() {
     if (!mappingConfigured || !weekLabels.length) return [];
@@ -325,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return out;
   }
 
-  // --- CHART & SUMMARY FOR CHARTS PANEL ---
+  // --- CHARTS & P&L ---
   let mainChart = null;
   function updateChartAndSummary() {
     const ctxElem = document.getElementById('mainChart');
@@ -341,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
       mainChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: weekLabels,
+          labels: weekLabels.slice(0, incomeArr.length),
           datasets: [
             { label: 'Income', data: incomeArr, borderColor: '#4caf50', fill: false },
             { label: 'Expenditure', data: expenditureArr, borderColor: '#f44336', fill: false },
@@ -483,13 +578,12 @@ document.addEventListener('DOMContentLoaded', function() {
     safeDestroy(window.summaryChart);
     safeDestroy(window.chartCanvasChart);
 
-    // Only create chartCanvasChart if the element exists
     const chartCanvasElem = document.getElementById('chartCanvas');
     if (chartCanvasElem) {
       window.chartCanvasChart = new Chart(chartCanvasElem.getContext('2d'),{
         type:'line',
         data:{
-          labels:weekLabels,
+          labels:weekLabels.slice(0, incomeArr.length),
           datasets:[
             {label:"Income",data:incomeArr,borderColor:"#4caf50",fill:false},
             {label:"Expenditure",data:expenditureArr,borderColor:"#f44336",fill:false},
