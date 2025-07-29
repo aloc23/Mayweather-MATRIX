@@ -1,4 +1,3 @@
-/* General container and headings */
 .container {
   max-width: 1000px;
   margin: 0 auto;
@@ -92,17 +91,20 @@ h3 {
 .collapsible-content.active {
   display: block;
 }
-.chart-wrapper {
+.chart-wrapper, .roi-charts-wrapper {
   display: flex;
   gap: 32px;
   flex-wrap: wrap;
   align-items: flex-start;
   margin-bottom: 18px;
+  overflow-x: auto;
+  max-width: 100%;
 }
 canvas {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+  min-width: 360px;
 }
 #mainChartSummary, #mappingPanel, #repaymentSensitivityResults {
   margin-top: 18px;
@@ -111,6 +113,10 @@ canvas {
   border-radius: 8px;
   font-size: 1.02em;
   color: #005fa3;
+}
+.scroll-x {
+  overflow-x: auto;
+  width: 100%;
 }
 .repayment-row {
   display: flex;
@@ -153,7 +159,7 @@ input[type="number"], select {
 input[type="file"] {
   margin-top: 7px;
 }
-button[type="submit"], #exportPDFBtn, #exportExcelBtn {
+button[type="submit"], #exportPDFBtn, #exportExcelBtn, #refreshRoiBtn {
   background: #4caf50;
   color: #fff;
   border: none;
@@ -165,41 +171,57 @@ button[type="submit"], #exportPDFBtn, #exportExcelBtn {
   transition: background 0.2s;
   margin-left: 7px;
 }
-button[type="submit"]:hover, #exportPDFBtn:hover, #exportExcelBtn:hover {
+button[type="submit"]:hover, #exportPDFBtn:hover, #exportExcelBtn:hover, #refreshRoiBtn:hover {
   background: #388e3c;
 }
 .week-checkbox-group {
   display: flex;
-  flex-wrap: wrap;
-  max-height: 90px;
-  overflow-y: auto;
-  border: 1px solid #bce0fa;
-  background: #f7fbff;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   padding: 4px 8px;
   border-radius: 6px;
   margin-bottom: 8px;
+  border: 1px solid #bce0fa;
+  background: #f7fbff;
+  gap: 12px;
 }
 .week-checkbox-group label {
-  margin-right: 16px;
-  font-size: 0.98em;
+  min-width: 120px;
   margin-bottom: 3px;
   white-space: nowrap;
 }
 .compact-preview-table {
+  overflow-x: auto;
+  display: block;
+  width: 100%;
+  max-width: 100%;
   margin: 14px 0 14px 0;
   border-collapse: separate;
   border-spacing: 0 2px;
 }
-.compact-preview-table th {
-  background: #e9f5ff;
-  font-weight: bold;
-  font-size: 1.05em;
-  border-bottom: 2px solid #bce0fa;
-  padding: 5px 10px;
+.compact-preview-table th, .compact-preview-table td {
+  min-width: 110px;
+  text-align: center;
 }
-.compact-preview-table td {
-  background: #f9fbfd;
-  border-bottom: 1px solid #e5e5e5;
-  font-size: 1.05em;
-  padding: 4px 10px;
+.negative-balance-row {
+  background: #ffeaea !important;
+}
+.payback-highlight {
+  background: #d4ffd4 !important;
+  font-weight: bold;
+}
+.payback-weeks-table {
+  border-collapse: collapse;
+  margin-top: 12px;
+  min-width: 400px;
+}
+.payback-weeks-table th, .payback-weeks-table td {
+  border: 1px solid #cce;
+  padding: 3px 10px;
+  text-align: center;
+}
+.payback-weeks-table .neg-balance {
+  color: #c00;
+  background: #ffeaea;
+  font-weight: bold;
 }
