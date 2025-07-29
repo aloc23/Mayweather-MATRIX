@@ -1,6 +1,3 @@
-// Mayweather-MATRIX Investment Tool - Full Script.js (with Tornado Chart and All Calculations/Tables/Charts)
-// Paste this file in its entirety, works with the HTML/CSS provided.
-
 document.addEventListener('DOMContentLoaded', function() {
   // --- State ---
   let rawData = [];
