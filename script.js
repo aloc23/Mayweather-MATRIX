@@ -8,10 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var tabId = btn.getAttribute('data-tab');
       var panel = document.getElementById(tabId);
       if (panel) panel.classList.add('active');
-      // If switching to charts tab, update charts (for Chart.js visibility)
-      if (tabId === 'main' || tabId === 'pnl' || tabId === 'roi' || tabId === 'summary') {
-        setTimeout(updateAllTabs, 50);
-      }
+      setTimeout(updateAllTabs, 50);
     });
   });
   document.querySelectorAll('.subtabs button').forEach(btn => {
@@ -116,19 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
     drop('Last data row: ', 'row', allRows.length, config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
     panel.appendChild(document.createElement('br'));
 
-    // Outstanding loan input
-    let loanDiv = document.createElement('div');
-    loanDiv.innerHTML = `Outstanding Loan: <input type="number" id="loanOutstandingInput" value="${loanOutstanding}" style="width:120px;">`;
-    panel.appendChild(loanDiv);
-    setTimeout(() => {
-      let loanInput = document.getElementById('loanOutstandingInput');
-      if (loanInput) loanInput.oninput = function() {
-        loanOutstanding = parseFloat(loanInput.value) || 0;
-        updateAllTabs();
-        renderMappingPanel(allRows);
-      };
-    }, 0);
-
     // Opening balance input
     let obDiv = document.createElement('div');
     obDiv.innerHTML = `Opening Balance: <input type="number" id="openingBalanceInput" value="${openingBalance}" style="width:120px;">`;
@@ -166,6 +150,18 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       panel.appendChild(weekFilterDiv);
     }
+
+    // --- Save Mapping Button ---
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = "Save Mapping";
+    saveBtn.style.margin = "10px 0";
+    saveBtn.onclick = function() {
+      mappingConfigured = true;
+      updateWeekLabels();
+      updateAllTabs();
+      renderMappingPanel(allRows);
+    };
+    panel.appendChild(saveBtn);
 
     // --- Compact Preview Table ---
     if (weekLabels.length && mappingConfigured) {
@@ -750,6 +746,12 @@ document.addEventListener('DOMContentLoaded', function() {
       XLSX.writeFile(wb, "mayweather_matrix_data.xlsx");
     };
   }
+
+  // Loan summary input handling
+  document.getElementById('loanOutstandingInput').oninput = function() {
+    loanOutstanding = parseFloat(this.value) || 0;
+    updateLoanSummary();
+  };
 
   updateAllTabs();
 });
