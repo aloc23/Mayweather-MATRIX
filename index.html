@@ -9,35 +9,6 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; }
-    .container { background: #fff; max-width: 1200px; margin: 24px auto; padding: 24px 32px; border-radius: 8px; }
-    h1, h2, h3 { color: #1268be; }
-    .tabs, .subtabs { margin-bottom: 16px; display: flex; gap: 8px; }
-    .tabs button, .subtabs button { padding: 8px 14px; border: none; border-radius: 4px; background: #e9e9e9; cursor: pointer; }
-    .tabs button.active, .subtabs button.active { background: #1268be; color: #fff; }
-    .tab-content, .subtab-panel { display: none; }
-    .tab-content.active, .subtab-panel.active { display: block; }
-    .collapsible-header { background: #e9e9e9; border: none; padding: 10px; cursor: pointer; width: 100%; text-align: left; margin-top: 14px; font-weight: bold; }
-    .collapsible-content { display: none; padding: 10px 0 0 0; }
-    .collapsible-content.active { display: block; }
-    .chart-wrapper { display: flex; gap: 24px; }
-    canvas { background: #fff; border: 1px solid #ddd; }
-    table { width: 100%; margin-top: 10px; background: #fff; }
-    th, td { padding: 5px 10px; border: 1px solid #ccc; }
-    th { background: #f4f4f4; }
-    .repayment-row { margin-bottom: 4px; }
-    #mappingPanel { margin-top: 20px; }
-    .mapping-dropdown { margin-right: 8px; }
-    .mapping-preview-table { max-width: 100%; overflow-x: auto; }
-    .mapping-preview-table th, .mapping-preview-table td { font-size: 12px; }
-    .highlight-mapping { background: #d1eaff !important; }
-    .highlight-week-labels { background: #e6ffe6 !important; }
-    @media (max-width: 900px) {
-      .container { padding: 8px; }
-      .chart-wrapper { flex-direction: column; }
-    }
-  </style>
 </head>
 <body>
   <div class="container">
@@ -56,6 +27,12 @@
         <button data-subtab="charts">Cashflow Charts & Reports</button>
         <button data-subtab="settings">Tool Settings</button>
       </div>
+      <div id="subtab-repayment" class="subtab-panel active">
+        <div id="loan-summary" style="display:flex; gap:2em; align-items:center; margin-bottom:12px;">
+          <label>Outstanding Loan: <input type="number" id="loanOutstandingInput" style="width:120px;"></label>
+          <div id="totalRepaidBox">Total Repaid: €0</div>
+          <div id="remainingBox">Remaining: €0</div>
+        </div>
         <h3>Repayment Sensitivity Analysis</h3>
         <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;">
           <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
@@ -72,11 +49,6 @@
         <div id="repaymentRows" style="margin-top:18px;"></div>
         <div id="repaymentSensitivityResults" style="margin-top:24px;"></div>
       </div>
-  <div id="loan-summary" style="display:flex; gap:2em; align-items:center; margin-top:18px;">
-  <label>Outstanding Loan: <input type="number" id="loanOutstandingInput" style="width:120px;"></label>
-  <div id="totalRepaidBox">Total Repaid: €0</div>
-  <div id="remainingBox">Remaining: €0</div>
-</div>
       <div id="subtab-mapping" class="subtab-panel">
         <h3>Spreadsheet Mapping</h3>
         <input type="file" id="spreadsheetUpload" accept=".xlsx,.xls,.csv">
