@@ -57,6 +57,11 @@
         <button data-subtab="settings">Tool Settings</button>
       </div>
       <div id="subtab-repayment" class="subtab-panel active">
+        <div id="loan-summary" style="display:flex; gap:2em; align-items:center; margin-top:18px;">
+  <label>Outstanding Loan: <input type="number" id="loanOutstandingInput" style="width:120px;"></label>
+  <div id="totalRepaidBox">Total Repaid: €0</div>
+  <div id="remainingBox">Remaining: €0</div>
+</div>
         <h3>Repayment Sensitivity Analysis</h3>
         <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;">
           <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
