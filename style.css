@@ -92,14 +92,17 @@ h3 {
 .collapsible-content.active {
   display: block;
 }
-.chart-wrapper {
-  display: flex;
-  gap: 32px;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  margin-bottom: 18px;
+.chart-wrapper, .chart-container {
+  max-width: 900px;
+  margin: 0 auto;
+  overflow-x: auto;
 }
 canvas {
+  width: 100% !important;
+  max-width: 900px;
+  height: 320px !important;
+  max-height: 400px;
+  min-height: 200px;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.09);
