@@ -140,8 +140,9 @@ document.addEventListener('DOMContentLoaded', function() {
     drop('Last week column: ', 'col', weekRow.length, config.weekColEnd, v => { config.weekColEnd = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
     panel.appendChild(document.createElement('br'));
 
-    drop('First data row: ', 'row', Math.min(allRows.length, 50), config.firstDataRow, v => { config.firstDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
-    drop('Last data row: ', 'row', Math.min(allRows.length, 50), config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
+    // Fix: allow mapping over allRows.length, not just first 50
+    drop('First data row: ', 'row', allRows.length, config.firstDataRow, v => { config.firstDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
+    drop('Last data row: ', 'row', allRows.length, config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
     panel.appendChild(document.createElement('br'));
 
     // Save mapping button
