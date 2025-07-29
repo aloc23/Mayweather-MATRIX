@@ -1,5 +1,3 @@
-/* Mayweather-MATRIX Investment Tool Styles */
-
 /* General container and headings */
 .container {
   max-width: 1000px;
@@ -16,266 +14,157 @@ h1 {
   letter-spacing: 1px;
   font-weight: 700;
 }
+h2 {
+  color: #333;
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
 h3 {
   color: #005fa3;
   margin-top: 0;
   margin-bottom: 12px;
+  font-size: 1.17em;
+  font-weight: 700;
 }
-/* Repayment controls */
-.repayment-controls {
+.tabs, .subtabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 15px;
-  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
-/* Loan balance input controls */
-.loan-balance-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 10px;
-  align-items: center;
-}
-.loan-balance-controls input[type="number"] {
-  padding: 6px 12px;
-  width: 190px;
+.tabs button, .subtabs button {
+  background: #e9f5ff;
+  color: #005fa3;
+  border: 1px solid #bce0fa;
+  border-radius: 8px;
+  padding: 7px 18px;
   font-size: 1em;
-  border-radius: 5px;
-  border: 1px solid #b6daff;
-  background: #f7fbff;
-  box-sizing: border-box;
-}
-/* Week filter controls styling */
-#weekFilterControls {
-  margin-bottom: 1em;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1em;
-}
-#weekFilterControls label {
-  font-weight: 500;
-  margin-right: 3px;
-}
-#weekFilterControls select {
-  min-width: 120px;
-  margin-right: 8px;
-  padding: 2px 6px;
-}
-/* Repayment input row styling */
-.repayment-row {
-  margin: 4px 0;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.repayment-row select,
-.repayment-row input[type="number"] {
-  padding: 2px 6px;
-  min-width: 120px;
-}
-/* Repayment highlight */
-.repayment-highlight {
-  background: #ffe0b3 !important;
-}
-/* Chart section */
-.chart-wrapper {
-  background: #f8fcff;
-  border: 1px solid #dbeaff;
-  border-radius: 5px;
-  padding: 8px 0 8px 0;
-  margin-bottom: 10px;
-}
-#chartCanvas {
-  width: 100%;
-  min-height: 320px;
-  max-width: 900px;
-}
-/* Chart controls */
-.chart-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-/* Summary section */
-.summary {
-  margin: 18px 0 10px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2em;
-  font-size: 1.15em;
-  font-weight: 500;
-  background: #f8faff;
-  border-radius: 6px;
-  padding: 10px 20px;
-  border: 1px solid #e7eefe;
-  align-items: flex-start;
-}
-.summary .negatives-collapse summary {
-  color: #2075d3;
   cursor: pointer;
-  font-size: .98em;
-  margin-left: 4px;
-  display: inline-block;
+  transition: background 0.2s, color 0.2s;
 }
-.summary .negatives-collapse {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 1em;
-  vertical-align: middle;
-}
-.summary .negatives-collapse ul {
-  margin: 5px 0 0 8px;
-  padding-left: 16px;
-  font-size: .98em;
-}
-/* Spreadsheet summary table */
-.spreadsheet-summary-table th,
-.spreadsheet-summary-table td {
-  text-align: center;
-  padding: 4px 8px;
-  border: 1px solid #dbeaff;
-}
-.spreadsheet-summary-table th {
-  background: #f0f7ff;
-  font-weight: 500;
-  position: sticky;
-  left: 0;
-  z-index: 2;
-}
-.spreadsheet-summary-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-.spreadsheet-summary-table .balance-row {
-  background: #e4ffe4;
+.tabs button.active, .subtabs button.active {
+  background: #bce0fa;
+  color: #003d66;
   font-weight: bold;
 }
-.spreadsheet-summary-table .week-label-row td {
-  background: #f7fbff;
-  font-weight: 500;
+.tab-content {
+  display: none;
+  padding: 16px 0 0 0;
 }
-.spreadsheet-summary-table .sticky-week-label {
-  background: #eaf5ff;
-  position: sticky;
-  left: 0;
-  z-index: 1;
+.tab-content.active {
+  display: block;
 }
-.spreadsheet-summary-scroll {
-  overflow-x: auto;
-  max-width: 98vw;
+.subtab-panel {
+  display: none;
+  padding-top: 16px;
 }
-@media (max-width: 900px) {
-  .spreadsheet-summary-scroll {
-    font-size: 12px;
-  }
+.subtab-panel.active {
+  display: block;
 }
-/* Collapsible section styles */
-.collapsible-section {
+.collapsible-table-section {
   margin-bottom: 24px;
 }
-/* Toggle button styles */
-.toggle-btn {
-  background: #f2f7ff;
-  border: 1px solid #b6daff;
-  color: #0077cc;
-  border-radius: 5px;
-  padding: 6px 15px;
-  font-size: 15px;
-  cursor: pointer;
-  margin-bottom: 10px;
-  margin-top: 8px;
-  transition: background .18s, color .18s;
-}
-.toggle-btn:hover {
-  background: #e1efff;
+.collapsible-header {
+  background: #e9f5ff;
+  border: none;
   color: #005fa3;
-}
-/* Sheet mapping/config panel */
-#sheetConfigPanel {
-  background: #f9f9f9;
-  border: 1px solid #cce4ff;
-  border-radius: 6px;
-  padding: 14px 18px;
-  margin: 12px 0 18px 0;
-  max-width: 700px;
-}
-#sheetConfigPanel label {
-  font-weight: 500;
-  margin-right: 6px;
-}
-.sheet-config-row {
-  margin-bottom: 8px;
+  font-size: 1.08em;
+  padding: 8px 12px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 5px;
 }
-#sheetPreviewTable {
-  border-collapse: collapse;
-  margin-bottom: 8px;
-  max-width: 95vw;
-  overflow-x: auto;
-  font-size: 13px;
+.caret {
+  margin-right: 7px;
+  font-size: 1.2em;
+  transition: transform 0.2s;
 }
-#sheetPreviewTable td, #sheetPreviewTable th {
-  border: 1px solid #e0eaff;
-  padding: 2px 6px;
-  text-align: center;
-  background: #f5faff;
+.collapsible-content {
+  display: none;
+  background: #f9fbfd;
+  border-radius: 7px;
+  padding: 9px 6px;
+  margin-bottom: 10px;
 }
-/* Utility styles */
-button, select, input[type="number"] {
-  font-family: inherit;
+.collapsible-content.active {
+  display: block;
 }
-button {
-  background: #eaf5ff;
-  border: 1px solid #b6daff;
-  border-radius: 4px;
-  padding: 6px 18px;
+.chart-wrapper {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+canvas {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+}
+#mainChartSummary, #mappingPanel, #repaymentSensitivityResults {
+  margin-top: 18px;
+  background: #eef8ff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 1.02em;
   color: #005fa3;
+}
+.repayment-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.repayment-row button {
+  background: #bce0fa;
+  border: none;
+  border-radius: 6px;
+  color: #003d66;
+  padding: 5px 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.repayment-row button:hover {
+  background: #90cdf4;
+}
+.repayment-info-btn {
+  background: #7ed6fa;
+}
+.repayment-table-row {
+  background: #fdf2e9;
+}
+.repayment-info {
+  margin-top: 7px;
+  background: #fff6e9;
+  color: #444;
+  padding: 6px 14px;
+  border-radius: 7px;
+}
+input[type="number"], select {
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid #bce0fa;
+  font-size: 1em;
+}
+input[type="file"] {
+  margin-top: 7px;
+}
+button[type="submit"], #exportPDFBtn, #exportExcelBtn {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 20px;
+  font-weight: 600;
   cursor: pointer;
   font-size: 1em;
-  transition: background .15s, color .15s;
+  transition: background 0.2s;
+  margin-left: 7px;
 }
-button:hover {
-  background: #d2eaff;
-  color: #0077cc;
-}
-/* Hide scrollbars for summary scroll on webkit browsers */
-.spreadsheet-summary-scroll::-webkit-scrollbar {
-  height: 7px;
-  background: #f0f7ff;
-}
-.spreadsheet-summary-scroll::-webkit-scrollbar-thumb {
-  background: #b6daff;
-  border-radius: 5px;
-}
-/* Misc */
-input[type="file"] {
-  font-size: 1em;
-  padding: 4px;
-  margin-right: 10px;
-}
-@media (max-width: 700px) {
-  .container {
-    padding: 8px 2px 18px 2px;
-  }
-  h1 {
-    font-size: 1.3em;
-  }
-  .summary {
-    padding: 10px 2vw;
-    gap: 1em;
-    font-size: 1em;
-  }
-  .chart-wrapper {
-    padding: 4px 0 4px 0;
-  }
-  #chartCanvas {
-    min-height: 120px;
-    font-size: 12px;
-  }
+button[type="submit"]:hover, #exportPDFBtn:hover, #exportExcelBtn:hover {
+  background: #388e3c;
 }
