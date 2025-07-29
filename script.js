@@ -311,10 +311,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateAllTabs() {
     renderRepaymentRows();
 
+    var pnlSummary = document.getElementById('pnlSummary');
+    var roiSummary = document.getElementById('roiSummary');
+    var summaryKeyFinancials = document.getElementById('summaryKeyFinancials');
     if (!rawData.length || !weekLabels.length) {
-      var pnlSummary = document.getElementById('pnlSummary');
-      var roiSummary = document.getElementById('roiSummary');
-      var summaryKeyFinancials = document.getElementById('summaryKeyFinancials');
       if (pnlSummary) pnlSummary.innerHTML = '';
       if (roiSummary) roiSummary.innerHTML = '';
       if (summaryKeyFinancials) summaryKeyFinancials.innerHTML = '';
@@ -341,7 +341,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const expenditureMonths = getMonthAgg(expenditureArr,12);
     const repaymentMonths = getMonthAgg(repaymentArr,12);
     const netProfitMonths = getMonthAgg(netProfitArr,12);
-    let tbody = document.getElementById('pnlMonthlyBreakdown').querySelector('tbody');
+
+    // Only declare 'tbody', 'cashTbody', and 'paybackTbody' once per function
+    var tbody = document.getElementById('pnlMonthlyBreakdown').querySelector('tbody');
     tbody.innerHTML = "";
     for(let i=0; i<months.length; i++) {
       let row = document.createElement('tr');
@@ -368,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
       tbody.appendChild(row);
     }
     // Cash Flow Table
-    let cashTbody = document.getElementById('pnlCashFlow').querySelector('tbody');
+    var cashTbody = document.getElementById('pnlCashFlow').querySelector('tbody');
     cashTbody.innerHTML = "";
     let opening = 20000;
     for(let i=0;i<months.length;i++) {
@@ -396,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <b>Annual Profit:</b> €${annualProfit.toLocaleString()}<br>
       <b>Estimated Payback:</b> ${paybackYears} years
     `;
-    let paybackTbody = document.getElementById('paybackTable').querySelector('tbody');
+    var paybackTbody = document.getElementById('paybackTable').querySelector('tbody');
     paybackTbody.innerHTML = "";
     let cumulative = 0;
     for(let y=1;y<=10;y++){
