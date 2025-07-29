@@ -1,11 +1,3 @@
-function toggleCollapse(btn) {
-  const caret = btn.querySelector('.caret');
-  const content = btn.nextElementSibling;
-  content.classList.toggle('active');
-  caret.style.transform = content.classList.contains('active') ? 'none' : 'rotate(-90deg)';
-  content.style.display = content.classList.contains('active') ? 'block' : 'none';
-}
-
 document.addEventListener('DOMContentLoaded', function() {
   // --- TABS ---
   document.querySelectorAll('.tabs button').forEach(btn => {
@@ -14,7 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
       this.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(sec => sec.classList.remove('active'));
       var tabId = this.getAttribute('data-tab');
-      document.getElementById(tabId).classList.add('active');
+      var panel = document.getElementById(tabId);
+      if (panel) panel.classList.add('active');
     });
   });
 
@@ -25,7 +18,23 @@ document.addEventListener('DOMContentLoaded', function() {
       this.classList.add('active');
       document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
       var subtabId = 'subtab-' + this.getAttribute('data-subtab');
-      document.getElementById(subtabId).classList.add('active');
+      var subpanel = document.getElementById(subtabId);
+      if (subpanel) subpanel.classList.add('active');
+    });
+  });
+
+  // --- COLLAPSIBLES ---
+  document.querySelectorAll('.collapsible-header').forEach(btn => {
+    btn.addEventListener('click', function() {
+      var content = btn.nextElementSibling;
+      var caret = btn.querySelector('.caret');
+      if (content.classList.contains('active')) {
+        content.classList.remove('active');
+        if (caret) caret.style.transform = 'rotate(-90deg)';
+      } else {
+        content.classList.add('active');
+        if (caret) caret.style.transform = 'none';
+      }
     });
   });
 
@@ -342,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const repaymentMonths = getMonthAgg(repaymentArr,12);
     const netProfitMonths = getMonthAgg(netProfitArr,12);
 
-    // Only declare 'tbody', 'cashTbody', and 'paybackTbody' once per function
     var tbody = document.getElementById('pnlMonthlyBreakdown').querySelector('tbody');
     tbody.innerHTML = "";
     for(let i=0; i<months.length; i++) {
@@ -369,7 +377,6 @@ document.addEventListener('DOMContentLoaded', function() {
       row.appendChild(repayCell);
       tbody.appendChild(row);
     }
-    // Cash Flow Table
     var cashTbody = document.getElementById('pnlCashFlow').querySelector('tbody');
     cashTbody.innerHTML = "";
     let opening = 20000;
