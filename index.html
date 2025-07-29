@@ -57,10 +57,10 @@
       <div id="subtab-charts" class="subtab-panel">
         <h3>Cashflow Charts & Reports</h3>
         <div class="chart-wrapper">
-          <canvas id="mainChart" height="150"></canvas>
-          <canvas id="chartCanvas" height="150"></canvas>
+          <canvas id="mainChart" height="180"></canvas>
         </div>
         <div id="mainChartSummary"></div>
+        <div id="mainChartNoData" style="display:none; color:#c00; margin-top:12px;">No data to display. Please map and filter your weeks.</div>
       </div>
       <div id="subtab-settings" class="subtab-panel">
         <h3>Tool Settings</h3>
@@ -81,9 +81,29 @@
       <div id="pnlSummary"></div>
       <div class="collapsible-table-section">
         <button class="collapsible-header" type="button">
-          <span class="caret">&#9660;</span> Monthly Breakdown
+          <span class="caret">&#9660;</span> Weekly Breakdown
         </button>
         <div class="collapsible-content active">
+          <table id="pnlWeeklyBreakdown">
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Income</th>
+                <th>Expenditure</th>
+                <th>Repayment</th>
+                <th>Net Profit</th>
+                <th>Rolling Bank Balance</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="collapsible-table-section">
+        <button class="collapsible-header" type="button">
+          <span class="caret">&#9660;</span> Monthly Breakdown (summary)
+        </button>
+        <div class="collapsible-content">
           <table id="pnlMonthlyBreakdown">
             <thead>
               <tr>
