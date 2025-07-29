@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- State ---
   let rawData = [];
-  let sheetHeaders = [];
   let mappedData = [];
   let mappingConfigured = false;
   let config = {
@@ -63,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         if (!json.length) return;
         rawData = json;
-        sheetHeaders = json[0];
         mappedData = json;
         config.lastDataRow = mappedData.length-1;
         renderMappingPanel(mappedData);
