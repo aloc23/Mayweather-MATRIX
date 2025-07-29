@@ -1,29 +1,29 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // --- TABS ---
+  // --- Tabs ---
   document.querySelectorAll('.tabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(sec => sec.classList.remove('active'));
-      var tabId = this.getAttribute('data-tab');
+      var tabId = btn.getAttribute('data-tab');
       var panel = document.getElementById(tabId);
       if (panel) panel.classList.add('active');
     });
   });
 
-  // --- SUBTABS ---
+  // --- Subtabs ---
   document.querySelectorAll('.subtabs button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
       document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
-      var subtabId = 'subtab-' + this.getAttribute('data-subtab');
+      var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
       var subpanel = document.getElementById(subtabId);
       if (subpanel) subpanel.classList.add('active');
     });
   });
 
-  // --- COLLAPSIBLES ---
+  // --- Collapsibles ---
   document.querySelectorAll('.collapsible-header').forEach(btn => {
     btn.addEventListener('click', function() {
       var content = btn.nextElementSibling;
