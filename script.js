@@ -173,33 +173,36 @@ document.addEventListener('DOMContentLoaded', function() {
   renderRepaymentRows();
 
   // --- MAPPING PANEL & FILE UPLOAD ---
-  document.getElementById('spreadsheetUpload')?.addEventListener('change', function(event) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-      mappedData = json;
-      rawData = json;
-      mappingConfigured = true;
-      // Extract week labels
-      let weekRow = json.find(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("week")));
-      if (weekRow) {
-        weekLabels = weekRow.filter(cell => typeof cell === "string" && cell.toLowerCase().includes("week"));
-        if (weekLabels.length === 0) {
-          let firstWeekIdx = weekRow.findIndex(cell => typeof cell === "string" && cell.toLowerCase().includes("week"));
-          weekLabels = weekRow.slice(firstWeekIdx);
+  var spreadsheetUpload = document.getElementById('spreadsheetUpload');
+  if (spreadsheetUpload) {
+    spreadsheetUpload.addEventListener('change', function(event) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        mappedData = json;
+        rawData = json;
+        mappingConfigured = true;
+        // Extract week labels
+        let weekRow = json.find(row => row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("week")));
+        if (weekRow) {
+          weekLabels = weekRow.filter(cell => typeof cell === "string" && cell.toLowerCase().includes("week"));
+          if (weekLabels.length === 0) {
+            let firstWeekIdx = weekRow.findIndex(cell => typeof cell === "string" && cell.toLowerCase().includes("week"));
+            weekLabels = weekRow.slice(firstWeekIdx);
+          }
+          if (weekLabels.length === 0) weekLabels = ["Week 1", "Week 2"];
         }
-        if (weekLabels.length === 0) weekLabels = ["Week 1", "Week 2"];
-      }
-      populateWeekDropdown(weekLabels);
-      renderRepaymentRows();
-      document.getElementById('mappingPanel').innerHTML = "<span>Mapping loaded. Weeks found: "+weekLabels.join(", ")+"</span>";
-      updateAllTabs();
-    };
-    reader.readAsArrayBuffer(event.target.files[0]);
-  });
+        populateWeekDropdown(weekLabels);
+        renderRepaymentRows();
+        document.getElementById('mappingPanel').innerHTML = "<span>Mapping loaded. Weeks found: "+weekLabels.join(", ")+"</span>";
+        updateAllTabs();
+      };
+      reader.readAsArrayBuffer(event.target.files[0]);
+    });
+  }
 
   // --- CALCULATIONS & CHART ---
   function getIncomeArr() {
@@ -265,37 +268,43 @@ document.addEventListener('DOMContentLoaded', function() {
   // --- CHART & SUMMARY FOR CHARTS PANEL ---
   let mainChart = null;
   function updateChartAndSummary() {
-    const ctx = document.getElementById('mainChart')?.getContext('2d');
+    const ctxElem = document.getElementById('mainChart');
+    const ctx = ctxElem ? ctxElem.getContext('2d') : null;
     if (mainChart && typeof mainChart.destroy === "function") mainChart.destroy();
 
     const incomeArr = getIncomeArr();
     const repaymentArr = getRepaymentArr();
     const netProfitArr = getNetProfitArr(incomeArr, repaymentArr);
 
-    mainChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: weekLabels,
-        datasets: [
-          { label: 'Income', data: incomeArr, borderColor: '#4caf50', fill: false },
-          { label: 'Repayments', data: repaymentArr, borderColor: '#f3b200', fill: false },
-          { label: 'Net Profit', data: netProfitArr, borderColor: '#2196f3', fill: false }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: true } }
-      }
-    });
+    if (ctx) {
+      mainChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: weekLabels,
+          datasets: [
+            { label: 'Income', data: incomeArr, borderColor: '#4caf50', fill: false },
+            { label: 'Repayments', data: repaymentArr, borderColor: '#f3b200', fill: false },
+            { label: 'Net Profit', data: netProfitArr, borderColor: '#2196f3', fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true } }
+        }
+      });
+    }
 
     let totalIncome = incomeArr.reduce((a,b)=>a+b,0);
     let totalRepayments = repaymentArr.reduce((a,b)=>a+b,0);
     let totalNet = netProfitArr.reduce((a,b)=>a+b,0);
-    document.getElementById('mainChartSummary').innerHTML =
-      `<b>Total Income:</b> €${totalIncome.toLocaleString()}<br>
-       <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
-       <b>Total Net Profit:</b> €${totalNet.toLocaleString()}`;
+    var mainChartSummary = document.getElementById('mainChartSummary');
+    if (mainChartSummary) {
+      mainChartSummary.innerHTML =
+        `<b>Total Income:</b> €${totalIncome.toLocaleString()}<br>
+         <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
+         <b>Total Net Profit:</b> €${totalNet.toLocaleString()}`;
+    }
   }
 
   // --- ALL TAB RENDERING ---
@@ -303,15 +312,22 @@ document.addEventListener('DOMContentLoaded', function() {
     renderRepaymentRows();
 
     if (!rawData.length || !weekLabels.length) {
-      document.getElementById('pnlSummary').innerHTML = '';
-      document.getElementById('roiSummary').innerHTML = '';
-      document.getElementById('summaryKeyFinancials').innerHTML = '';
+      var pnlSummary = document.getElementById('pnlSummary');
+      var roiSummary = document.getElementById('roiSummary');
+      var summaryKeyFinancials = document.getElementById('summaryKeyFinancials');
+      if (pnlSummary) pnlSummary.innerHTML = '';
+      if (roiSummary) roiSummary.innerHTML = '';
+      if (summaryKeyFinancials) summaryKeyFinancials.innerHTML = '';
       ['roiLineChart','roiBarChart','roiPieChart','tornadoChart','summaryChart','chartCanvas'].forEach(id=>{
-        const canvas=document.getElementById(id);if(canvas)canvas?.getContext && canvas?.getContext('2d').clearRect(0,0,900,320);
+        var canvas=document.getElementById(id);
+        if(canvas && canvas.getContext) canvas.getContext('2d').clearRect(0,0,900,320);
       });
-      document.getElementById('pnlMonthlyBreakdown').querySelector('tbody').innerHTML = '';
-      document.getElementById('pnlCashFlow').querySelector('tbody').innerHTML = '';
-      document.getElementById('paybackTable').querySelector('tbody').innerHTML = '';
+      var monthlyTbody = document.getElementById('pnlMonthlyBreakdown');
+      var cashTbody = document.getElementById('pnlCashFlow');
+      var paybackTbody = document.getElementById('paybackTable');
+      if (monthlyTbody) monthlyTbody.querySelector('tbody').innerHTML = '';
+      if (cashTbody) cashTbody.querySelector('tbody').innerHTML = '';
+      if (paybackTbody) paybackTbody.querySelector('tbody').innerHTML = '';
       updateChartAndSummary();
       return;
     }
@@ -469,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var exportExcelBtn = document.getElementById('exportExcelBtn');
   if (exportExcelBtn) {
     exportExcelBtn.onclick = function() {
-      if (!rawData?.length) return;
+      if (!rawData || !rawData.length) return;
       const ws = XLSX.utils.aoa_to_sheet(rawData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
