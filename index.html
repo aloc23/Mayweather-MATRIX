@@ -61,7 +61,6 @@
         </div>
         <div id="mainChartSummary"></div>
         <div id="mainChartNoData" style="display:none; color:#c00; margin-top:12px;">No data to display. Please map and filter your weeks.</div>
-        <!-- Negative weeks dropdown will be injected here by JS -->
       </div>
       <div id="subtab-settings" class="subtab-panel">
         <h3>Tool Settings</h3>
@@ -85,19 +84,21 @@
           <span class="caret">&#9660;</span> Weekly Breakdown
         </button>
         <div class="collapsible-content active">
-          <table id="pnlWeeklyBreakdown">
-            <thead>
-              <tr>
-                <th>Week</th>
-                <th>Income</th>
-                <th>Expenditure</th>
-                <th>Repayment</th>
-                <th>Net Profit</th>
-                <th>Rolling Bank Balance</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div class="scroll-x">
+            <table id="pnlWeeklyBreakdown">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Income</th>
+                  <th>Expenditure</th>
+                  <th>Repayment</th>
+                  <th>Net Profit</th>
+                  <th>Rolling Bank Balance</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>
       <div class="collapsible-table-section">
@@ -141,16 +142,22 @@
     </section>
     <section id="roi" class="tab-content">
       <h2>ROI &amp; Payback</h2>
+      <div style="display:flex;gap:2em;align-items:center;">
+        <label>Total Investment: <input type="number" id="roiInvestmentInput" value="120000" style="width:110px"></label>
+        <label>Interest Rate (%): <input type="number" id="roiInterestInput" value="0" min="0" step="0.01" style="width:60px"></label>
+        <button id="refreshRoiBtn" style="margin-left:10px;">Refresh ROI</button>
+      </div>
       <div id="roiSummary"></div>
       <div class="collapsible-table-section">
         <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> ROI Charts
         </button>
         <div class="collapsible-content active">
-          <canvas id="roiLineChart" height="140"></canvas>
-          <canvas id="roiBarChart" height="120"></canvas>
-          <canvas id="roiPieChart" height="120"></canvas>
-          <canvas id="tornadoChart" height="120"></canvas>
+          <div class="roi-charts-wrapper">
+            <canvas id="roiLineChart" height="180"></canvas>
+            <canvas id="roiBarChart" height="180"></canvas>
+            <canvas id="roiPieChart" height="180"></canvas>
+          </div>
         </div>
       </div>
       <div class="collapsible-table-section">
@@ -158,10 +165,21 @@
           <span class="caret">&#9660;</span> Payback Table
         </button>
         <div class="collapsible-content active">
-          <table id="paybackTable">
-            <thead><tr><th>Year</th><th>Cumulative Profit</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="scroll-x">
+            <table id="paybackTable">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Cumulative Profit</th>
+                  <th>Repayments</th>
+                  <th>Final Bank Balance</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div id="paybackWeeksTableWrap"></div>
+          </div>
         </div>
       </div>
     </section>
