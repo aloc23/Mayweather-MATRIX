@@ -10,6 +10,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
+  <!-- Optional favicon, comment or remove if not needed -->
+  <!-- <link rel="icon" href="favicon.ico"> -->
 </head>
 <body>
   <div class="container">
@@ -53,8 +55,8 @@
       <div id="subtab-charts" class="subtab-panel">
         <h3>Cashflow Charts & Reports</h3>
         <div class="chart-wrapper">
-          <canvas id="mainChart"></canvas>
-          <canvas id="chartCanvas"></canvas>
+          <canvas id="mainChart" height="150"></canvas>
+          <canvas id="chartCanvas" height="150"></canvas>
         </div>
         <div id="mainChartSummary"></div>
       </div>
@@ -76,7 +78,7 @@
       <h2>Profit &amp; Loss Statement</h2>
       <div id="pnlSummary"></div>
       <div class="collapsible-table-section">
-        <button class="collapsible-header" onclick="toggleCollapse(this)">
+        <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> Monthly Breakdown
         </button>
         <div class="collapsible-content active">
@@ -95,7 +97,7 @@
         </div>
       </div>
       <div class="collapsible-table-section">
-        <button class="collapsible-header" onclick="toggleCollapse(this)">
+        <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> Cash Flow Table
         </button>
         <div class="collapsible-content active">
@@ -118,7 +120,7 @@
       <h2>ROI &amp; Payback</h2>
       <div id="roiSummary"></div>
       <div class="collapsible-table-section">
-        <button class="collapsible-header" onclick="toggleCollapse(this)">
+        <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> ROI Charts
         </button>
         <div class="collapsible-content active">
@@ -129,7 +131,7 @@
         </div>
       </div>
       <div class="collapsible-table-section">
-        <button class="collapsible-header" onclick="toggleCollapse(this)">
+        <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> Payback Table
         </button>
         <div class="collapsible-content active">
@@ -144,7 +146,7 @@
       <h2>Summary Report</h2>
       <div id="summaryKeyFinancials"></div>
       <div class="collapsible-table-section">
-        <button class="collapsible-header" onclick="toggleCollapse(this)">
+        <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> Summary Chart
         </button>
         <div class="collapsible-content active">
@@ -155,7 +157,6 @@
       <button id="exportExcelBtn">Export Excel</button>
     </section>
   </div>
-  <!-- Use absolute path for maximum compatibility -->
-  <script src="/Mayweather-MATRIX/script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
