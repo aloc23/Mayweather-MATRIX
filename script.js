@@ -1002,97 +1002,60 @@ function renderSummaryTab() {
     document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
 
     // Charts
-function renderRoiCharts(investment, repayments) {
-  if (!Array.isArray(repayments) || repayments.length === 0) return;
+    renderRoiCharts(investment, repayments);
 
-  // Build cumulative and discounted cumulative arrays
-  let cumArr = [];
-  let discCumArr = [];
-  let cum = 0, discCum = 0;
-  const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
-  for (let i = 0; i < repayments.length; i++) {
-    cum += repayments[i] || 0;
-    cumArr.push(cum);
-
-    // Discounted only if repayment > 0
-    if (repayments[i] > 0) {
-      discCum += repayments[i] / Math.pow(1 + discountRate / 100, i + 1);
+    if (!repayments.length || repayments.reduce((a, b) => a + b, 0) === 0) {
+      document.getElementById('roiSummary').innerHTML += '<div class="alert alert-warning">No repayments scheduled. ROI cannot be calculated.</div>';
     }
-    discCumArr.push(discCum);
   }
 
-  // Build X labels
-  const weekLabels = window.weekLabels || repayments.map((_, i) => `Week ${i + 1}`);
+  function renderRoiCharts(investment, repayments) {
+    if (!Array.isArray(repayments) || repayments.length === 0) return;
+    let cumArr = [];
+    let cum = 0;
+    for (let i = 0; i < repayments.length; i++) {
+      cum += repayments[i] || 0;
+      cumArr.push(cum);
+    }
 
-  // ROI Performance Chart (Line)
-  let roiLineElem = document.getElementById('roiLineChart');
-  if (roiLineElem) {
-    const roiLineCtx = roiLineElem.getContext('2d');
-    if (window.roiLineChart && typeof window.roiLineChart.destroy === "function") window.roiLineChart.destroy();
-    window.roiLineChart = new Chart(roiLineCtx, {
-      type: 'line',
-      data: {
-        labels: weekLabels.slice(0, repayments.length),
-        datasets: [
-          {
-            label: "Cumulative Repayments",
-            data: cumArr,
-            borderColor: "#4caf50",
-            backgroundColor: "#4caf5040",
-            fill: false,
-            tension: 0.15
-          },
-          {
-            label: "Discounted Cumulative",
-            data: discCumArr,
-            borderColor: "#1976d2",
-            backgroundColor: "#1976d240",
-            borderDash: [6,4],
-            fill: false,
-            tension: 0.15
-          },
-          {
-            label: "Initial Investment",
-            data: Array(repayments.length).fill(investment),
-            borderColor: "#f44336",
-            borderDash: [3,3],
-            borderWidth: 1,
-            pointRadius: 0,
-            fill: false
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: true } },
-        scales: {
-          y: { beginAtZero: true, title: { display: true, text: "€" } }
-        }
-      }
-    });
-  }
+    // Pie chart
+    let roiPieElem = document.getElementById('roiPieChart');
+    if (roiPieElem) {
+      const roiPieCtx = roiPieElem.getContext('2d');
+      if (roiPieChart && typeof roiPieChart.destroy === "function") roiPieChart.destroy();
+      roiPieChart = new Chart(roiPieCtx, {
+        type: 'pie',
+        data: {
+          labels: ["Total Repayments", "Unrecouped"],
+          datasets: [{
+            data: [
+              cumArr[cumArr.length - 1] || 0,
+              Math.max(investment - (cumArr[cumArr.length - 1] || 0), 0)
+            ],
+            backgroundColor: ["#4caf50", "#f3b200"]
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
 
-  // Pie chart (optional, can keep or remove)
-  let roiPieElem = document.getElementById('roiPieChart');
-  if (roiPieElem) {
-    const roiPieCtx = roiPieElem.getContext('2d');
-    if (window.roiPieChart && typeof window.roiPieChart.destroy === "function") window.roiPieChart.destroy();
-    window.roiPieChart = new Chart(roiPieCtx, {
-      type: 'pie',
-      data: {
-        labels: ["Total Repayments", "Unrecouped"],
-        datasets: [{
-          data: [
-            cumArr[cumArr.length - 1] || 0,
-            Math.max(investment - (cumArr[cumArr.length - 1] || 0), 0)
-          ],
-          backgroundColor: ["#4caf50", "#f3b200"]
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+    // Line chart - Cumulative
+    let roiLineElem = document.getElementById('roiLineChart');
+    if (roiLineElem) {
+      const roiLineCtx = roiLineElem.getContext('2d');
+      if (roiLineChart && typeof roiLineChart.destroy === "function") roiLineChart.destroy();
+      roiLineChart = new Chart(roiLineCtx, {
+        type: 'line',
+        data: {
+          labels: repayments.map((_, i) => weekLabels[investmentWeekIndex + i] || ('W' + (investmentWeekIndex + i + 1))),
+          datasets: [
+            { label: "Cumulative Repayments", data: cumArr, borderColor: "#2196f3", fill: false }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } } }
+      });
+    }
   }
-}
 
   // --- ROI input events ---
   document.getElementById('roiInvestmentInput').addEventListener('input', renderRoiSection);
