@@ -1036,18 +1036,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // -------------------- Update All Tabs --------------------
   // Always render ROI section so calculations and charts are up-to-date,
   // regardless of whether ROI tab is currently visible.
-  function updateAllTabs() {
-    renderRepaymentRows();
-    updateLoanSummary();
-    updateChartAndSummary();
-    renderPnlTables();
-    renderSummaryTab();
-    renderRoiSection();
-  }
-  updateAllTabs();
-});
-
-  // Initial render
-  updateAllTabs();
-
-});
+ function updateAllTabs() {
+  renderRepaymentRows();
+  updateLoanSummary();
+  updateChartAndSummary();
+  renderPnlTables();
+  renderSummaryTab();
+  renderRoiSection();
+}
+updateAllTabs();
