@@ -717,87 +717,107 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ---------- P&L Tab Functions ----------
-  function renderPnlTables() {
-    // Weekly Breakdown
-    const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
-    const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
-    const cashFlowTable = document.getElementById('pnlCashFlow');
-    const pnlSummary = document.getElementById('pnlSummary');
-    if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
-    let tbody = weeklyTable.querySelector('tbody');
-    if (tbody) tbody.innerHTML = '';
-    let incomeArr = getIncomeArr();
-    let expenditureArr = getExpenditureArr();
-    let repaymentArr = getRepaymentArr();
-    let rollingArr = getRollingBankBalanceArr();
-    let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-    let weekIdxs = getFilteredWeekIndices();
-    let rows = '';
-    let minBal = null, minBalWeek = null;
-    weekIdxs.forEach((idx, i) => {
-      let row = `<tr${rollingArr[i]<0?' class="negative-balance-row"':''}>` +
-        `<td>${weekLabels[idx]}</td>` +
-        `<td>€${Math.round(incomeArr[idx]||0).toLocaleString()}</td>` +
-        `<td>€${Math.round(expenditureArr[idx]||0).toLocaleString()}</td>` +
-        `<td>€${Math.round(repaymentArr[i]||0).toLocaleString()}</td>` +
-        `<td>€${Math.round(netArr[idx]||0).toLocaleString()}</td>` +
-        `<td>€${Math.round(rollingArr[i]||0).toLocaleString()}</td></tr>`;
-      rows += row;
-      if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
-    });
-    if (tbody) tbody.innerHTML = rows;
+function renderPnlTables() {
+  // Weekly Breakdown
+  const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
+  const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
+  const cashFlowTable = document.getElementById('pnlCashFlow');
+  const pnlSummary = document.getElementById('pnlSummary');
+  if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
+  let tbody = weeklyTable.querySelector('tbody');
+  if (tbody) tbody.innerHTML = '';
+  let incomeArr = getIncomeArr();
+  let expenditureArr = getExpenditureArr();
+  let repaymentArr = getRepaymentArr();
+  let rollingArr = getRollingBankBalanceArr();
+  let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+  let weekIdxs = getFilteredWeekIndices();
+  let rows = '';
+  let minBal = null, minBalWeek = null;
 
-    // Monthly Breakdown
-    let months = 12;
-    let incomeMonth = getMonthAgg(incomeArr, months);
-    let expMonth = getMonthAgg(expenditureArr, months);
-    let repayMonth = getMonthAgg(repaymentArr, months);
-    let netMonth = incomeMonth.map((inc, i) => inc - (expMonth[i]||0) - (repayMonth[i]||0));
-    let mtbody = monthlyTable.querySelector('tbody');
-    if (mtbody) {
-      mtbody.innerHTML = '';
-      for (let m=0; m<months; m++) {
-        mtbody.innerHTML += `<tr>
-          <td>Month ${m+1}</td>
-          <td>€${Math.round(incomeMonth[m]||0).toLocaleString()}</td>
-          <td>€${Math.round(expMonth[m]||0).toLocaleString()}</td>
-          <td>€${Math.round(netMonth[m]||0).toLocaleString()}</td>
-          <td>€${Math.round(repayMonth[m]||0).toLocaleString()}</td>
-        </tr>`;
-      }
-    }
+  weekIdxs.forEach((idx, i) => {
+    const net = (incomeArr[idx] || 0) - (expenditureArr[idx] || 0) - (repaymentArr[i] || 0);
+    const netTooltip = `Income - Expenditure - Repayment\n${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${net}`;
+    const balTooltip = `Prev Bal + Income - Expenditure - Repayment\n${i===0?openingBalance:rollingArr[i-1]} + ${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${rollingArr[i]||0}`;
+    let row = `<tr${rollingArr[i]<0?' class="negative-balance-row"':''}>` +
+      `<td>${weekLabels[idx]}</td>` +
+      `<td${incomeArr[idx]<0?' class="negative-number"':''}>€${Math.round(incomeArr[idx]||0).toLocaleString()}</td>` +
+      `<td${expenditureArr[idx]<0?' class="negative-number"':''}>€${Math.round(expenditureArr[idx]||0).toLocaleString()}</td>` +
+      `<td${repaymentArr[i]<0?' class="negative-number"':''}>€${Math.round(repaymentArr[i]||0).toLocaleString()}</td>` +
+      `<td class="${net<0?'negative-number':''}" data-tooltip="${netTooltip}">€${Math.round(net||0).toLocaleString()}</td>` +
+      `<td${rollingArr[i]<0?' class="negative-number"':''} data-tooltip="${balTooltip}">€${Math.round(rollingArr[i]||0).toLocaleString()}</td></tr>`;
+    rows += row;
+    if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
+  });
+  if (tbody) tbody.innerHTML = rows;
 
-    // Cash Flow Table
-    let ctbody = cashFlowTable.querySelector('tbody');
-    if (ctbody) {
-      ctbody.innerHTML = '';
-      let closing = opening = openingBalance;
-      for (let m=0; m<months; m++) {
-        let inflow = incomeMonth[m] || 0;
-        let outflow = (expMonth[m] || 0) + (repayMonth[m] || 0);
-        closing = opening + inflow - outflow;
-        ctbody.innerHTML += `<tr>
-          <td>Month ${m+1}</td>
-          <td>€${Math.round(opening).toLocaleString()}</td>
-          <td>€${Math.round(inflow).toLocaleString()}</td>
-          <td>€${Math.round(outflow).toLocaleString()}</td>
-          <td>€${Math.round(closing).toLocaleString()}</td>
-        </tr>`;
-        opening = closing;
-      }
-    }
-    // P&L Summary
-    if (pnlSummary) {
-      pnlSummary.innerHTML = `
-        <b>Total Income:</b> €${Math.round(incomeArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
-        <b>Total Expenditure:</b> €${Math.round(expenditureArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
-        <b>Total Repayments:</b> €${Math.round(repaymentArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
-        <b>Final Bank Balance:</b> <span style="color:${rollingArr[rollingArr.length-1]<0?'#c00':'#388e3c'}">€${Math.round(rollingArr[rollingArr.length-1]||0).toLocaleString()}</span><br>
-        <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">${minBalWeek?minBalWeek+': ':''}€${Math.round(minBal||0).toLocaleString()}</span>
-      `;
+  // Section summary + sparkline for weekly
+  renderSectionSummary('weekly-breakdown-header', `Total Net: €${netArr.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netArr);
+
+  // Export button logic is handled globally (see addExportButtons())
+
+  // Monthly Breakdown
+  let months = 12;
+  let incomeMonth = getMonthAgg(incomeArr, months);
+  let expMonth = getMonthAgg(expenditureArr, months);
+  let repayMonth = getMonthAgg(repaymentArr, months);
+  let netMonth = incomeMonth.map((inc, i) => inc - (expMonth[i]||0) - (repayMonth[i]||0));
+  let mtbody = monthlyTable.querySelector('tbody');
+  if (mtbody) {
+    mtbody.innerHTML = '';
+    for (let m=0; m<months; m++) {
+      const netTooltip = `Income - Expenditure - Repayment\n${incomeMonth[m]||0} - ${expMonth[m]||0} - ${repayMonth[m]||0} = ${netMonth[m]||0}`;
+      mtbody.innerHTML += `<tr>
+        <td>Month ${m+1}</td>
+        <td${incomeMonth[m]<0?' class="negative-number"':''}>€${Math.round(incomeMonth[m]||0).toLocaleString()}</td>
+        <td${expMonth[m]<0?' class="negative-number"':''}>€${Math.round(expMonth[m]||0).toLocaleString()}</td>
+        <td class="${netMonth[m]<0?'negative-number':''}" data-tooltip="${netTooltip}">€${Math.round(netMonth[m]||0).toLocaleString()}</td>
+        <td${repayMonth[m]<0?' class="negative-number"':''}>€${Math.round(repayMonth[m]||0).toLocaleString()}</td>
+      </tr>`;
     }
   }
+  renderSectionSummary('monthly-breakdown-header', `Total Net: €${netMonth.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netMonth);
 
+  // Cash Flow Table
+  let ctbody = cashFlowTable.querySelector('tbody');
+  let closingArr = [];
+  if (ctbody) {
+    ctbody.innerHTML = '';
+    let closing = opening = openingBalance;
+    for (let m=0; m<months; m++) {
+      let inflow = incomeMonth[m] || 0;
+      let outflow = (expMonth[m] || 0) + (repayMonth[m] || 0);
+      closing = opening + inflow - outflow;
+      closingArr.push(closing);
+      const closingTooltip = `Opening + Inflow - Outflow\n${opening} + ${inflow} - ${outflow} = ${closing}`;
+      ctbody.innerHTML += `<tr>
+        <td>Month ${m+1}</td>
+        <td>€${Math.round(opening).toLocaleString()}</td>
+        <td>€${Math.round(inflow).toLocaleString()}</td>
+        <td>€${Math.round(outflow).toLocaleString()}</td>
+        <td${closing<0?' class="negative-number"':''} data-tooltip="${closingTooltip}">€${Math.round(closing).toLocaleString()}</td>
+      </tr>`;
+      opening = closing;
+    }
+  }
+  renderSectionSummary('cashflow-header', `Closing Bal: €${Math.round(closingArr[closingArr.length-1]||0).toLocaleString()}`, closingArr);
+
+  // P&L Summary
+  if (pnlSummary) {
+    pnlSummary.innerHTML = `
+      <b>Total Income:</b> €${Math.round(incomeArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
+      <b>Total Expenditure:</b> €${Math.round(expenditureArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
+      <b>Total Repayments:</b> €${Math.round(repaymentArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
+      <b>Final Bank Balance:</b> <span style="color:${rollingArr[rollingArr.length-1]<0?'#c00':'#388e3c'}">€${Math.round(rollingArr[rollingArr.length-1]||0).toLocaleString()}</span><br>
+      <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">${minBalWeek?minBalWeek+': ':''}€${Math.round(minBal||0).toLocaleString()}</span>
+    `;
+  }
+
+  // Enhance tables and add export buttons
+  enhancePLTables();
+  addExportButtons();
+  setupConsistentCollapsibles();
+}
   // ---------- Summary Tab Functions ----------
   function renderSummaryTab() {
     // Key Financials
