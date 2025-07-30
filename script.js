@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let roiPieChart = null;
   let roiBarChart = null;
   let roiLineChart = null;
-  let tornadoChartObj = null;
+  window.tornadoChartObj = null; // global for tornado chart
   let summaryChart = null;
 
   // -------------------- Tabs & UI Interactions --------------------
@@ -36,7 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var tabId = btn.getAttribute('data-tab');
         var panel = document.getElementById(tabId);
         if (panel) panel.classList.add('active');
-        setTimeout(updateAllTabs, 50);
+        setTimeout(() => {
+          updateAllTabs();
+          if (tabId === 'roi') renderRoiSection();
+        }, 50);
       });
     });
     document.querySelectorAll('.subtabs button').forEach(btn => {
@@ -908,8 +911,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!tornadoCanvas) return;
     let impact = getRowImpact();
     let ctx = tornadoCanvas.getContext('2d');
-    if (tornadoChartObj && typeof tornadoChartObj.destroy === "function") tornadoChartObj.destroy();
-    tornadoChartObj = new Chart(ctx, {
+    if (window.tornadoChartObj && typeof window.tornadoChartObj.destroy === "function") {
+      window.tornadoChartObj.destroy();
+    }
+    window.tornadoChartObj = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: impact.map(x=>x.label),
@@ -949,22 +954,17 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateAllTabs() {
     renderRepaymentRows();
     updateLoanSummary();
-    renderRoiSection();
     updateChartAndSummary();
     renderTornadoChart();
     renderPnlTables();
     renderSummaryTab();
+    let roiTab = document.getElementById('roi');
+    if (roiTab && roiTab.classList.contains('active')) {
+      renderRoiSection();
+    }
   }
 
   // Initial render
   updateAllTabs();
 
-  // Automatically render ROI when ROI tab becomes visible
-  const roiTab = document.getElementById('roi');
-  const observer = new MutationObserver(() => {
-    if (roiTab.classList.contains('active')) {
-      renderRoiSection();
-    }
-  });
-  observer.observe(roiTab, { attributes: true, attributeFilter: ['class'] });
 });
