@@ -798,32 +798,42 @@ if (weekLabels.length) {
   }
 
   // ---------- Summary Tab Functions ----------
-  function renderSummaryTab() {
-    // Key Financials
-    let incomeArr = getIncomeArr();
-    let expenditureArr = getExpenditureArr();
-    let repaymentArr = getRepaymentArr();
-    let rollingArr = getRollingBankBalanceArr();
-    let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-    let totalIncome = incomeArr.reduce((a,b)=>a+(b||0),0);
-    let totalExpenditure = expenditureArr.reduce((a,b)=>a+(b||0),0);
-    let totalRepayment = repaymentArr.reduce((a,b)=>a+(b||0),0);
-    let finalBal = rollingArr[rollingArr.length-1]||0;
-    let minBal = Math.min(...rollingArr);
-    let summaryElem = document.getElementById('summaryKeyFinancials');
-    if (summaryElem) {
-      summaryElem.innerHTML = `
-        <b>Total Income:</b> €${Math.round(totalIncome).toLocaleString()}<br>
-        <b>Total Expenditure:</b> €${Math.round(totalExpenditure).toLocaleString()}<br>
-        <b>Total Repayments:</b> €${Math.round(totalRepayment).toLocaleString()}<br>
-        <b>Final Bank Balance:</b> <span style="color:${finalBal<0?'#c00':'#388e3c'}">€${Math.round(finalBal).toLocaleString()}</span><br>
-        <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">€${Math.round(minBal).toLocaleString()}</span>
-      `;
-    }
-    // Summary Chart
-    let summaryChartElem = document.getElementById('summaryChart');
-    if (!summaryChartElem) return;
-    if (summaryChart && typeof summaryChart.destroy === "function") summaryChart.destroy();
+function renderSummaryTab() {
+  // Key Financials
+  let incomeArr = getIncomeArr();
+  let expenditureArr = getExpenditureArr();
+  let repaymentArr = getRepaymentArr();
+  let rollingArr = getRollingBankBalanceArr();
+  let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+  let totalIncome = incomeArr.reduce((a,b)=>a+(b||0),0);
+  let totalExpenditure = expenditureArr.reduce((a,b)=>a+(b||0),0);
+  let totalRepayment = repaymentArr.reduce((a,b)=>a+(b||0),0);
+  let finalBal = rollingArr[rollingArr.length-1]||0;
+  let minBal = Math.min(...rollingArr);
+
+  // Update KPI cards if present
+  if (document.getElementById('kpiTotalIncome')) {
+    document.getElementById('kpiTotalIncome').textContent = '€' + totalIncome.toLocaleString();
+    document.getElementById('kpiTotalExpenditure').textContent = '€' + totalExpenditure.toLocaleString();
+    document.getElementById('kpiTotalRepayments').textContent = '€' + totalRepayment.toLocaleString();
+    document.getElementById('kpiFinalBank').textContent = '€' + Math.round(finalBal).toLocaleString();
+    document.getElementById('kpiLowestBank').textContent = '€' + Math.round(minBal).toLocaleString();
+  }
+
+  let summaryElem = document.getElementById('summaryKeyFinancials');
+  if (summaryElem) {
+    summaryElem.innerHTML = `
+      <b>Total Income:</b> €${Math.round(totalIncome).toLocaleString()}<br>
+      <b>Total Expenditure:</b> €${Math.round(totalExpenditure).toLocaleString()}<br>
+      <b>Total Repayments:</b> €${Math.round(totalRepayment).toLocaleString()}<br>
+      <b>Final Bank Balance:</b> <span style="color:${finalBal<0?'#c00':'#388e3c'}">€${Math.round(finalBal).toLocaleString()}</span><br>
+      <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">€${Math.round(minBal).toLocaleString()}</span>
+    `;
+  }
+  // Summary Chart
+  let summaryChartElem = document.getElementById('summaryChart');
+  if (summaryChart && typeof summaryChart.destroy === "function") summaryChart.destroy();
+  if (summaryChartElem) {
     summaryChart = new Chart(summaryChartElem.getContext('2d'), {
       type: 'bar',
       data: {
@@ -849,6 +859,42 @@ if (weekLabels.length) {
       }
     });
   }
+
+  // Tornado Chart logic
+  function renderTornadoChart() {
+    // Calculate row impact by "sum of absolute values" for each data row
+    let impact = [];
+    if (!mappedData || !mappingConfigured) return;
+    for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+      let label = mappedData[r][0] || `Row ${r + 1}`;
+      let vals = [];
+      for (let w = 0; w < weekLabels.length; w++) {
+        if (!weekCheckboxStates[w]) continue;
+        let absCol = config.weekColStart + w;
+        let val = mappedData[r][absCol];
+        if (typeof val === "string") val = val.replace(/,/g,'').replace(/€|\s/g,'');
+        let num = parseFloat(val);
+        if (!isNaN(num)) vals.push(num);
+      }
+      let total = vals.reduce((a,b)=>a+Math.abs(b),0);
+      if (total > 0) impact.push({label, total});
+    }
+    impact.sort((a,b)=>b.total-a.total);
+    impact = impact.slice(0, 10);
+
+    let ctx = document.getElementById('tornadoChart').getContext('2d');
+    if (window.tornadoChartObj && typeof window.tornadoChartObj.destroy === "function") window.tornadoChartObj.destroy();
+    window.tornadoChartObj = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: impact.map(x=>x.label),
+        datasets: [{ label: "Total Impact (€)", data: impact.map(x=>x.total), backgroundColor: '#1976d2' }]
+      },
+      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+    });
+  }
+  renderTornadoChart();
+}
 
   // -------------------- ROI/Payback Section --------------------
 
