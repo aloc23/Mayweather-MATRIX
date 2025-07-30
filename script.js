@@ -818,8 +818,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let roiSummary = document.getElementById('roiSummary');
     if (roiSummary) roiSummary.innerHTML = summary;
 
-    renderRoiCharts();
-    renderTornadoChart();
+    setTimeout(() => {
+      const isVisible = document.getElementById('roi')?.classList.contains('active');
+      if (isVisible) {
+        renderRoiCharts();
+        renderTornadoChart();
+      }
+    }, 100);
   }
 
   function renderRoiCharts() {
