@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (panel) panel.classList.add('active');
         setTimeout(() => {
           updateAllTabs();
-          if (tabId === 'roi') renderRoiSection();
+          // ROI render only called if tab is visible in updateAllTabs
         }, 50);
       });
     });
@@ -955,9 +955,9 @@ document.addEventListener('DOMContentLoaded', function() {
     renderRepaymentRows();
     updateLoanSummary();
     updateChartAndSummary();
-    renderTornadoChart();
     renderPnlTables();
     renderSummaryTab();
+    // Only render ROI if ROI tab is active and visible
     let roiTab = document.getElementById('roi');
     if (roiTab && roiTab.classList.contains('active')) {
       renderRoiSection();
