@@ -159,48 +159,88 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     panel.appendChild(resetBtn);
 
-    // Week filter UI
-    if (weekLabels.length) {
-      const weekFilterDiv = document.createElement('div');
-      weekFilterDiv.innerHTML = '<b>Filter week columns to include:</b>';
-      const groupDiv = document.createElement('div');
-      groupDiv.className = 'week-checkbox-group';
-      weekLabels.forEach((label, idx) => {
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = weekCheckboxStates[idx] !== false;
-        cb.id = 'weekcol_cb_' + idx;
-        cb.onchange = function() {
-          weekCheckboxStates[idx] = cb.checked;
-          updateAllTabs();
-          renderMappingPanel(allRows);
-        };
-        const lab = document.createElement('label');
-        lab.htmlFor = cb.id;
-        lab.textContent = label;
-        groupDiv.appendChild(cb);
-        groupDiv.appendChild(lab);
-      });
-      // Select All / Deselect All
-      const selectAllBtn = document.createElement('button');
-      selectAllBtn.textContent = "Select All";
-      selectAllBtn.onclick = function() {
-        weekCheckboxStates = weekCheckboxStates.map(()=>true);
-        updateAllTabs();
-        renderMappingPanel(allRows);
-      };
-      const deselectAllBtn = document.createElement('button');
-      deselectAllBtn.textContent = "Deselect All";
-      deselectAllBtn.onclick = function() {
-        weekCheckboxStates = weekCheckboxStates.map(()=>false);
-        updateAllTabs();
-        renderMappingPanel(allRows);
-      };
-      weekFilterDiv.appendChild(selectAllBtn);
-      weekFilterDiv.appendChild(deselectAllBtn);
-      weekFilterDiv.appendChild(groupDiv);
-      panel.appendChild(weekFilterDiv);
-    }
+// Collapsible Week filter UI
+if (weekLabels.length) {
+  const weekFilterDiv = document.createElement('div');
+  weekFilterDiv.className = "collapsible-week-filter";
+
+  // Collapsible header
+  const collapseBtn = document.createElement('button');
+  collapseBtn.type = 'button';
+  collapseBtn.className = 'collapse-toggle';
+  collapseBtn.innerHTML = `<span class="caret" style="display:inline-block;transition:transform 0.2s;margin-right:6px;">&#9654;</span>Filter week columns to include:`;
+  collapseBtn.style.marginBottom = '10px';
+  collapseBtn.style.background = 'none';
+  collapseBtn.style.color = '#1976d2';
+  collapseBtn.style.fontWeight = 'bold';
+  collapseBtn.style.fontSize = '1.06em';
+  collapseBtn.style.border = 'none';
+  collapseBtn.style.cursor = 'pointer';
+  collapseBtn.style.outline = 'none';
+  collapseBtn.style.padding = '4px 0';
+
+  // Collapsible content
+  const collapsibleContent = document.createElement('div');
+  collapsibleContent.className = "week-checkbox-collapsible-content";
+  collapsibleContent.style.display = 'none';
+  collapsibleContent.style.margin = '14px 0 4px 0';
+
+  // Buttons
+  const selectAllBtn = document.createElement('button');
+  selectAllBtn.textContent = "Select All";
+  selectAllBtn.type = 'button';
+  selectAllBtn.style.marginRight = '8px';
+  selectAllBtn.onclick = function() {
+    weekCheckboxStates = weekCheckboxStates.map(()=>true);
+    updateAllTabs();
+    renderMappingPanel(allRows);
+  };
+  const deselectAllBtn = document.createElement('button');
+  deselectAllBtn.textContent = "Deselect All";
+  deselectAllBtn.type = 'button';
+  deselectAllBtn.onclick = function() {
+    weekCheckboxStates = weekCheckboxStates.map(()=>false);
+    updateAllTabs();
+    renderMappingPanel(allRows);
+  };
+  collapsibleContent.appendChild(selectAllBtn);
+  collapsibleContent.appendChild(deselectAllBtn);
+
+  // Checkbox group
+  const groupDiv = document.createElement('div');
+  groupDiv.className = 'week-checkbox-group';
+  groupDiv.style.marginTop = '8px';
+  weekLabels.forEach((label, idx) => {
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = weekCheckboxStates[idx] !== false;
+    cb.id = 'weekcol_cb_' + idx;
+    cb.onchange = function() {
+      weekCheckboxStates[idx] = cb.checked;
+      updateAllTabs();
+      renderMappingPanel(allRows);
+    };
+    const lab = document.createElement('label');
+    lab.htmlFor = cb.id;
+    lab.textContent = label;
+    lab.style.marginRight = '13px';
+    groupDiv.appendChild(cb);
+    groupDiv.appendChild(lab);
+  });
+  collapsibleContent.appendChild(groupDiv);
+
+  // Collapsible logic
+  collapseBtn.addEventListener('click', function() {
+    const isOpen = collapsibleContent.style.display !== 'none';
+    collapsibleContent.style.display = isOpen ? 'none' : 'block';
+    const caret = collapseBtn.querySelector('.caret');
+    caret.style.transform = isOpen ? 'rotate(0)' : 'rotate(90deg)';
+  });
+
+  weekFilterDiv.appendChild(collapseBtn);
+  weekFilterDiv.appendChild(collapsibleContent);
+  panel.appendChild(weekFilterDiv);
+}
 
     // Save Mapping Button
     const saveBtn = document.createElement('button');
