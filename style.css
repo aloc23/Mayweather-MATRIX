@@ -225,3 +225,52 @@ button[type="submit"]:hover, #exportPDFBtn:hover, #exportExcelBtn:hover, #refres
   background: #ffeaea;
   font-weight: bold;
 }
+.roi-tab-section {
+  background: #f7fcff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(96,150,220,0.07);
+  margin: 24px 0;
+}
+.roi-input-bar {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#roiSummary .badge {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.98em;
+}
+.badge-success { background: #4caf50; color: #fff; }
+.badge-warning { background: #ff9800; color: #fff; }
+.badge-danger { background: #f44336; color: #fff; }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.table th, .table td {
+  padding: 5px 8px;
+  border: 1px solid #e0e0e0;
+  text-align: right;
+}
+.table th { background: #e7f1fa; }
+.table td:first-child, .table th:first-child { text-align: left; }
+#roiChart {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(33,150,243,0.05);
+}
+.alert-warning {
+  background: #fffbe6;
+  color: #b26a00;
+  border: 1px solid #ffe082;
+  padding: 7px 12px;
+  margin-top: 12px;
+  border-radius: 6px;
+  font-size: 0.97em;
+}
