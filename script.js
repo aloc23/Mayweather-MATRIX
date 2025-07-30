@@ -1,5 +1,3 @@
-// spreadsheet_mapping.js - Complete Mayweather-MATRIX dashboard with all tabs, tables, and charts
-
 document.addEventListener('DOMContentLoaded', function() {
   // -------------------- State --------------------
   let rawData = [];
@@ -41,20 +39,17 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateAllTabs, 50);
       });
     });
-document.querySelectorAll('.subtabs button').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
-    this.classList.add('active');
-    document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
-    var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
-    var subpanel = document.getElementById(subtabId);
-    if (subpanel) subpanel.classList.add('active');
-    setTimeout(updateAllTabs, 50);
-
-    // ✅ THIS LINE TRIGGERS ROI CHART RENDERING
-    if (btn.getAttribute('data-subtab') === "roi") renderRoiSection();
-  });
-});
+    document.querySelectorAll('.subtabs button').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
+        var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
+        var subpanel = document.getElementById(subtabId);
+        if (subpanel) subpanel.classList.add('active');
+        setTimeout(updateAllTabs, 50);
+      });
+    });
     document.querySelectorAll('.collapsible-header').forEach(btn => {
       btn.addEventListener('click', function() {
         var content = btn.nextElementSibling;
@@ -969,13 +964,3 @@ document.querySelectorAll('.subtabs button').forEach(btn => {
   // Initial render
   updateAllTabs();
 });
-
-
-// Automatically render ROI when ROI tab becomes visible
-const roiTab = document.getElementById('roi');
-const observer = new MutationObserver(() => {
-  if (roiTab.classList.contains('active')) {
-    renderRoiSection();
-  }
-});
-observer.observe(roiTab, { attributes: true, attributeFilter: ['class'] });
