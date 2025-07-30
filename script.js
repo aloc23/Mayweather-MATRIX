@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var panel = document.getElementById(tabId);
         if (panel) panel.classList.add('active');
         setTimeout(updateAllTabs, 50);
-         if (tabId === "roi") renderRoiSection();
       });
     });
     document.querySelectorAll('.subtabs button').forEach(btn => {
@@ -51,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
         var subpanel = document.getElementById(subtabId);
         if (subpanel) subpanel.classList.add('active');
         setTimeout(updateAllTabs, 50);
-         if (tabId === "roi") renderRoiSection();
       });
     });
     document.querySelectorAll('.collapsible-header').forEach(btn => {
@@ -968,3 +966,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial render
   updateAllTabs();
 });
+
+
+// Automatically render ROI when ROI tab becomes visible
+const roiTab = document.getElementById('roi');
+const observer = new MutationObserver(() => {
+  if (roiTab.classList.contains('active')) {
+    renderRoiSection();
+  }
+});
+observer.observe(roiTab, { attributes: true, attributeFilter: ['class'] });
