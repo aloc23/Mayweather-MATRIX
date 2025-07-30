@@ -892,8 +892,8 @@ document.addEventListener('DOMContentLoaded', function() {
     else badge = '';
 
     // 8. Render summary and table in their respective containers
-    document.getElementById('roiSummary').innerHTML = summary + badge;
-    document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
+  document.getElementById('roiSummary').innerHTML = summary + badge;
+  document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
 
     // 9. Render ROI charts (cumulative repayments, etc)
     renderRoiCharts(investment, repayments);
