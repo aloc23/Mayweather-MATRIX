@@ -85,14 +85,9 @@
     <section id="pnl" class="tab-content">
       <h2>Profit &amp; Loss Statement</h2>
       <div id="pnlSummary"></div>
-
-      <!-- Weekly Breakdown Section -->
       <div class="collapsible-table-section">
-        <button class="collapsible-header" id="weekly-breakdown-header" type="button" aria-expanded="true">
-          <span class="caret">&#9654;</span>
-          Weekly Breakdown
-          <span class="section-summary"></span>
-          <button data-export-table="pnlWeeklyBreakdown" class="export-btn">Export CSV</button>
+        <button class="collapsible-header" type="button">
+          <span class="caret">&#9660;</span> Weekly Breakdown
         </button>
         <div class="collapsible-content active">
           <div class="scroll-x">
@@ -112,14 +107,9 @@
           </div>
         </div>
       </div>
-
-      <!-- Monthly Breakdown Section -->
       <div class="collapsible-table-section">
-        <button class="collapsible-header" id="monthly-breakdown-header" type="button" aria-expanded="false">
-          <span class="caret">&#9654;</span>
-          Monthly Breakdown (summary)
-          <span class="section-summary"></span>
-          <button data-export-table="pnlMonthlyBreakdown" class="export-btn">Export CSV</button>
+        <button class="collapsible-header" type="button">
+          <span class="caret">&#9660;</span> Monthly Breakdown (summary)
         </button>
         <div class="collapsible-content">
           <table id="pnlMonthlyBreakdown">
@@ -136,16 +126,11 @@
           </table>
         </div>
       </div>
-
-      <!-- Cash Flow Section -->
       <div class="collapsible-table-section">
-        <button class="collapsible-header" id="cashflow-header" type="button" aria-expanded="false">
-          <span class="caret">&#9654;</span>
-          Cash Flow Table
-          <span class="section-summary"></span>
-          <button data-export-table="pnlCashFlow" class="export-btn">Export CSV</button>
+        <button class="collapsible-header" type="button">
+          <span class="caret">&#9660;</span> Cash Flow Table
         </button>
-        <div class="collapsible-content">
+        <div class="collapsible-content active">
           <table id="pnlCashFlow">
             <thead>
               <tr>
@@ -161,7 +146,6 @@
         </div>
       </div>
     </section>
-
     <section id="roi" class="tab-content">
       <h2>ROI &amp; Payback</h2>
       <div class="roi-input-bar" style="display:flex; gap:1em; align-items:center; margin-bottom:1em;">
@@ -189,7 +173,6 @@
         </div>
       </div>
     </section>
-
     <section id="summary" class="tab-content">
       <h2>Summary Report</h2>
       <div class="kpi-cards">

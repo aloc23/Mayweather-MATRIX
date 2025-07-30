@@ -718,14 +718,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ---------- P&L Tab Functions ----------
 function renderPnlTables() {
-  // --- Table references ---
+  // Weekly Breakdown
   const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
   const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
   const cashFlowTable = document.getElementById('pnlCashFlow');
   const pnlSummary = document.getElementById('pnlSummary');
   if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
-
-  // --- Data ---
   let tbody = weeklyTable.querySelector('tbody');
   if (tbody) tbody.innerHTML = '';
   let incomeArr = getIncomeArr();
@@ -737,7 +735,6 @@ function renderPnlTables() {
   let rows = '';
   let minBal = null, minBalWeek = null;
 
-  // --- Weekly Breakdown Table ---
   weekIdxs.forEach((idx, i) => {
     const net = (incomeArr[idx] || 0) - (expenditureArr[idx] || 0) - (repaymentArr[i] || 0);
     const netTooltip = `Income - Expenditure - Repayment\n${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${net}`;
@@ -754,10 +751,12 @@ function renderPnlTables() {
   });
   if (tbody) tbody.innerHTML = rows;
 
-  // --- Section summary + sparkline for weekly ---
+  // Section summary + sparkline for weekly
   renderSectionSummary('weekly-breakdown-header', `Total Net: €${netArr.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netArr);
 
-  // --- Monthly Breakdown Table ---
+  // Export button logic is handled globally (see addExportButtons())
+
+  // Monthly Breakdown
   let months = 12;
   let incomeMonth = getMonthAgg(incomeArr, months);
   let expMonth = getMonthAgg(expenditureArr, months);
@@ -779,7 +778,7 @@ function renderPnlTables() {
   }
   renderSectionSummary('monthly-breakdown-header', `Total Net: €${netMonth.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netMonth);
 
-  // --- Cash Flow Table ---
+  // Cash Flow Table
   let ctbody = cashFlowTable.querySelector('tbody');
   let closingArr = [];
   if (ctbody) {
@@ -803,7 +802,7 @@ function renderPnlTables() {
   }
   renderSectionSummary('cashflow-header', `Closing Bal: €${Math.round(closingArr[closingArr.length-1]||0).toLocaleString()}`, closingArr);
 
-  // --- P&L Summary ---
+  // P&L Summary
   if (pnlSummary) {
     pnlSummary.innerHTML = `
       <b>Total Income:</b> €${Math.round(incomeArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
@@ -814,7 +813,7 @@ function renderPnlTables() {
     `;
   }
 
-  // --- Enhance tables and add export buttons/collapsibles ---
+  // Enhance tables and add export buttons
   enhancePLTables();
   addExportButtons();
   setupConsistentCollapsibles();
