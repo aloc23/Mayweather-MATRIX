@@ -142,48 +142,36 @@
       </div>
     </section>
     <section id="roi" class="tab-content">
-      <h2>ROI &amp; Payback</h2>
-      <div style="display:flex;gap:2em;align-items:center;">
-        <label>Total Investment: <input type="number" id="roiInvestmentInput" value="120000" style="width:110px"></label>
-        <label>Interest Rate (%): <input type="number" id="roiInterestInput" value="0" min="0" step="0.01" style="width:60px"></label>
-        <button id="refreshRoiBtn" style="margin-left:10px;">Refresh ROI</button>
+<div id="roiTab" class="tab-content active">
+  <h2>ROI &amp; Payback</h2>
+  <div class="roi-input-bar" style="display:flex; gap:1em; align-items:center; margin-bottom:1em;">
+    <label for="loanStartDate"><b>Loan Start Date:</b></label>
+    <input type="date" id="loanStartDate" name="loanStartDate" style="margin-right:1em;">
+
+    <label for="roiInvestmentInput"><b>Total Investment:</b></label>
+    <input type="number" id="roiInvestmentInput" value="300000" style="width:120px; margin-right:1em;">
+
+    <label for="roiInterestInput"><b>Interest Rate (%):</b></label>
+    <input type="number" id="roiInterestInput" value="20" style="width:70px; margin-right:1em;">
+
+    <button id="refreshRoiBtn" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px;">Refresh ROI</button>
+  </div>
+  <div id="roiSummary" style="margin-bottom:1em;"></div>
+
+  <div style="display:flex; gap:2em; flex-wrap:wrap;">
+    <div style="flex:2;">
+      <h4>Repayment &amp; Payback Table</h4>
+      <div id="roiPaybackTableWrap">
+        <!-- The table is injected by JS -->
       </div>
-      <div id="roiSummary"></div>
-      <div class="collapsible-table-section">
-        <button class="collapsible-header" type="button">
-          <span class="caret">&#9660;</span> ROI Charts
-        </button>
-        <div class="collapsible-content active">
-          <div class="roi-charts-wrapper">
-            <canvas id="roiLineChart" height="180"></canvas>
-            <canvas id="roiBarChart" height="180"></canvas>
-            <canvas id="roiPieChart" height="180"></canvas>
-            <canvas id="tornadoChart" height="180"></canvas>
-          </div>
-        </div>
-      </div>
-      <div class="collapsible-table-section">
-        <button class="collapsible-header" type="button">
-          <span class="caret">&#9660;</span> Payback Table
-        </button>
-        <div class="collapsible-content active">
-          <div class="scroll-x">
-            <table id="paybackTable">
-              <thead>
-                <tr>
-                  <th>Year</th>
-                  <th>Cumulative Profit</th>
-                  <th>Repayments</th>
-                  <th>Final Bank Balance</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-            <div id="paybackWeeksTableWrap"></div>
-          </div>
-        </div>
-      </div>
+    </div>
+    <div style="flex:1; min-width:340px;">
+      <h4>ROI Performance Chart</h4>
+      <canvas id="roiLineChart" style="min-height:300px; width:100%; margin-bottom:1em;"></canvas>
+      <canvas id="roiPieChart" style="min-height:200px; width:100%;"></canvas>
+    </div>
+  </div>
+</div>
     </section>
     <section id="summary" class="tab-content">
       <h2>Summary Report</h2>
