@@ -825,6 +825,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function renderRoiCharts() {
     let repayments = getRepaymentArr();
+    if (!Array.isArray(repayments) || repayments.length === 0) {
+      // Optionally show a warning or fallback
+      return;
+    }
     let cumArr = [];
     let cum = 0;
     for (let i=0; i<repayments.length; i++) {
@@ -951,17 +955,15 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // -------------------- Update All Tabs --------------------
+  // Always render ROI section so calculations and charts are up-to-date,
+  // regardless of whether ROI tab is currently visible.
   function updateAllTabs() {
     renderRepaymentRows();
     updateLoanSummary();
     updateChartAndSummary();
     renderPnlTables();
     renderSummaryTab();
-    // Only render ROI if ROI tab is active and visible
-    let roiTab = document.getElementById('roi');
-    if (roiTab && roiTab.classList.contains('active')) {
-      renderRoiSection();
-    }
+    renderRoiSection();
   }
 
   // Initial render
