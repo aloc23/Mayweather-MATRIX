@@ -2,18 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mayweather-MATRIX Investment Tool</title>
+  <title>MATRIX-Mayweather</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- External libraries -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="container">
+  <div class="header">
+    <img src="mw-logo.png" alt="Mayweather Limited Logo" class="logo">
     <h1>Mayweather-MATRIX Investment Tool</h1>
+  </div>
+  <div class="container">
     <nav class="tabs" role="tablist">
       <button data-tab="main" class="active">Analysis & Mapping</button>
       <button data-tab="pnl">Profit & Loss</button>
@@ -159,9 +162,7 @@
       <div style="display:flex; gap:2em; flex-wrap:wrap;">
         <div style="flex:2;">
           <h4>Repayment &amp; Payback Table</h4>
-          <div id="roiPaybackTableWrap">
-            <!-- The table is injected by JS -->
-          </div>
+          <div id="roiPaybackTableWrap"></div>
         </div>
         <div style="flex:1; min-width:340px;">
           <h4>ROI Performance Chart</h4>
@@ -172,7 +173,33 @@
     </section>
     <section id="summary" class="tab-content">
       <h2>Summary Report</h2>
+      <div class="kpi-cards">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Income</div>
+          <div class="kpi-value" id="kpiTotalIncome">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Expenditure</div>
+          <div class="kpi-value" id="kpiTotalExpenditure">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Repayments</div>
+          <div class="kpi-value" id="kpiTotalRepayments">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Final Bank Balance</div>
+          <div class="kpi-value" id="kpiFinalBank">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Lowest Bank Balance</div>
+          <div class="kpi-value" id="kpiLowestBank">--</div>
+        </div>
+      </div>
       <div id="summaryKeyFinancials"></div>
+      <div class="summary-section">
+        <h3>Top Contributors (Tornado Chart)</h3>
+        <canvas id="tornadoChart" style="min-height:300px; width:100%;"></canvas>
+      </div>
       <div class="collapsible-table-section">
         <button class="collapsible-header" type="button">
           <span class="caret">&#9660;</span> Summary Chart
