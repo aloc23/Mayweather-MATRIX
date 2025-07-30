@@ -17,36 +17,17 @@ document.addEventListener('DOMContentLoaded', function() {
   let loanOutstanding = 0;
   let roiInvestment = 120000;
   let roiInterest = 0.0;
-  let loanStartDate = null;
+
+  // ROI week/date mapping
+  let weekStartDates = [];
+  let investmentWeekIndex = 0;
 
   // --- Chart.js chart instances for destroy ---
   let mainChart = null;
   let roiPieChart = null;
-  let roiBarChart = null;
   let roiLineChart = null;
   window.tornadoChartObj = null; // global for tornado chart
   let summaryChart = null;
-
-    // --- Loan Start Date UI ---
-  const loanStartDateInput = document.getElementById('loanStartDate');
-  if (loanStartDateInput) {
-    loanStartDateInput.addEventListener('change', function() {
-      loanStartDate = this.value ? new Date(this.value) : null;
-      updateAllTabs();
-    });
-  }
-
-  // Helper: get period dates array
-  function getPeriodDates(startDate, numPeriods) {
-    if (!startDate) return Array(numPeriods).fill('');
-    let dates = [];
-    let curr = new Date(startDate);
-    for (let i = 0; i < numPeriods; i++) {
-      dates.push(new Date(curr));
-      curr.setDate(curr.getDate() + 7); // weekly
-    }
-    return dates;
-  }
 
   // -------------------- Tabs & UI Interactions --------------------
   function setupTabs() {
@@ -60,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (panel) panel.classList.add('active');
         setTimeout(() => {
           updateAllTabs();
-          // ROI render only called if tab is visible in updateAllTabs
         }, 50);
       });
     });
@@ -295,6 +275,43 @@ document.addEventListener('DOMContentLoaded', function() {
     config.lastDataRow = sheet.length-1;
   }
 
+  function extractWeekStartDates(weekLabels, baseYear) {
+    let currentYear = baseYear;
+    let lastMonthIdx = -1;
+    const months = [
+      "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"
+    ];
+    return weekLabels.map(label => {
+      let match = label.match(/(\d{1,2})\s*([A-Za-z]{3,})/);
+      if (!match) return null;
+      let [_, day, monthStr] = match;
+      let monthIdx = months.findIndex(m =>
+        monthStr.toLowerCase().startsWith(m)
+      );
+      if (monthIdx === -1) return null;
+      if (lastMonthIdx !== -1 && monthIdx < lastMonthIdx) currentYear++;
+      lastMonthIdx = monthIdx;
+      let date = new Date(currentYear, monthIdx, parseInt(day, 10));
+      return date;
+    });
+  }
+
+  function populateInvestmentWeekDropdown() {
+    const dropdown = document.getElementById('investmentWeek');
+    if (!dropdown) return;
+    dropdown.innerHTML = '';
+    weekLabels.forEach((label, i) => {
+      const opt = document.createElement('option');
+      let dateStr = weekStartDates[i]
+        ? weekStartDates[i].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'N/A';
+      opt.value = i;
+      opt.textContent = `${label} (${dateStr})`;
+      dropdown.appendChild(opt);
+    });
+    dropdown.value = investmentWeekIndex;
+  }
+
   function updateWeekLabels() {
     let weekRow = mappedData[config.weekLabelRow] || [];
     weekLabels = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
@@ -302,6 +319,10 @@ document.addEventListener('DOMContentLoaded', function() {
       weekCheckboxStates = weekLabels.map(() => true);
     }
     populateWeekDropdown(weekLabels);
+
+    // ROI week start date integration. Use a default base year (2025) or prompt user for year.
+    weekStartDates = extractWeekStartDates(weekLabels, 2025);
+    populateInvestmentWeekDropdown();
   }
 
   function getFilteredWeekIndices() {
