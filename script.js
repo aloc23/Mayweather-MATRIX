@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (payback === null && discCum >= investment) payback = i;
     }
 
-    // 5. Render repayment schedule table with calendar dates
+    // 5. Build table HTML
     let tableHtml = `
       <table class="table table-sm">
         <thead>
@@ -891,8 +891,9 @@ document.addEventListener('DOMContentLoaded', function() {
     else if (!isNaN(irrVal)) badge = '<span class="badge badge-danger">Low ROI</span>';
     else badge = '';
 
-    // 8. Output to DOM
-    document.getElementById('roiSummary').innerHTML = summary + badge + tableHtml;
+    // 8. Render summary and table in their respective containers
+    document.getElementById('roiSummary').innerHTML = summary + badge;
+    document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
 
     // 9. Render ROI charts (cumulative repayments, etc)
     renderRoiCharts(investment, repayments);
@@ -934,22 +935,6 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {responsive:true,maintainAspectRatio:false}
       });
     }
-    // Bar chart
-    let roiBarElem = document.getElementById('roiBarChart');
-    if (roiBarElem) {
-      const roiBarCtx = roiBarElem.getContext('2d');
-      if (roiBarChart && typeof roiBarChart.destroy === "function") roiBarChart.destroy();
-      roiBarChart = new Chart(roiBarCtx, {
-        type: 'bar',
-        data: {
-          labels: repayments.map((_, i) => 'W'+(i+1)),
-          datasets: [
-            { label: "Repayments", data: repayments, backgroundColor: "#4caf50" }
-          ]
-        },
-        options: {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}}}
-      });
-    }
     // Line chart - Cumulative
     let roiLineElem = document.getElementById('roiLineChart');
     if (roiLineElem) {
@@ -967,7 +952,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   }
-
   // -------------------- Tornado Chart --------------------
   function getRowImpact() {
     let impact = [];
@@ -1036,13 +1020,13 @@ document.addEventListener('DOMContentLoaded', function() {
 // -------------------- Update All Tabs --------------------
 // Always render ROI section so calculations and charts are up-to-date,
 // regardless of whether ROI tab is currently visible.
-function updateAllTabs() {
-  renderRepaymentRows();
-  updateLoanSummary();
-  updateChartAndSummary();
-  renderPnlTables();
-  renderSummaryTab();
-  renderRoiSection();
-}
-updateAllTabs();
+  function updateAllTabs() {
+    renderRepaymentRows();
+    updateLoanSummary();
+    updateChartAndSummary();
+    renderPnlTables();
+    renderSummaryTab();
+    renderRoiSection();
+  }
+  updateAllTabs();
 });
