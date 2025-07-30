@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let loanOutstanding = 0;
   let roiInvestment = 120000;
   let roiInterest = 0.0;
+  let loanStartDate = null;
 
   // --- Chart.js chart instances for destroy ---
   let mainChart = null;
@@ -25,6 +26,27 @@ document.addEventListener('DOMContentLoaded', function() {
   let roiLineChart = null;
   window.tornadoChartObj = null; // global for tornado chart
   let summaryChart = null;
+
+    // --- Loan Start Date UI ---
+  const loanStartDateInput = document.getElementById('loanStartDate');
+  if (loanStartDateInput) {
+    loanStartDateInput.addEventListener('change', function() {
+      loanStartDate = this.value ? new Date(this.value) : null;
+      updateAllTabs();
+    });
+  }
+
+  // Helper: get period dates array
+  function getPeriodDates(startDate, numPeriods) {
+    if (!startDate) return Array(numPeriods).fill('');
+    let dates = [];
+    let curr = new Date(startDate);
+    for (let i = 0; i < numPeriods; i++) {
+      dates.push(new Date(curr));
+      curr.setDate(curr.getDate() + 7); // weekly
+    }
+    return dates;
+  }
 
   // -------------------- Tabs & UI Interactions --------------------
   function setupTabs() {
@@ -768,6 +790,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // -------------------- ROI/Payback Section --------------------
+
   function npv(rate, cashflows) {
     if (!cashflows.length) return 0;
     return cashflows.reduce((acc, val, i) => acc + val/Math.pow(1+rate, i), 0);
@@ -800,86 +823,89 @@ document.addEventListener('DOMContentLoaded', function() {
   if (roiIntInput) roiIntInput.addEventListener('input', updateRoiSettings);
   if (refreshRoiBtn) refreshRoiBtn.addEventListener('click', updateRoiSettings);
 
-function renderRoiSection() {
-  // 1. Get user inputs
-  const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
-  const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
+  function renderRoiSection() {
+    // 1. Get user inputs
+    const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
+    const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
 
-  // 2. Get repayments per period from global schedule (entered in the other tab)
-  const repayments = getRepaymentArr(); // This array is auto-updated from the repayments UI in the analysis/company tab
-  const periodLabels = weekLabels; // Or whatever your period label array is
+    // 2. Get repayments per period from global schedule (entered in the other tab)
+    const repayments = getRepaymentArr();
+    const periodLabels = weekLabels;
+    // 2a. Get period date mapping
+    const periodDates = loanStartDate ? getPeriodDates(loanStartDate, repayments.length) : Array(repayments.length).fill('');
 
-  // 3. Build cashflows: -investment at t=0, repayments at t=1,2,...
-  const cashflows = [-investment, ...repayments];
+    // 3. Build cashflows: -investment at t=0, repayments at t=1,2,...
+    const cashflows = [-investment, ...repayments];
 
-  // 4. Calculate IRR, NPV, discounted payback
-  let irrVal = irr(cashflows);
-  let npvVal = discountRate ? npv(discountRate/100, cashflows) : null;
-  let discCum = 0, payback = null;
-  for (let i = 1; i < cashflows.length; i++) {
-    let discounted = repayments[i-1] / Math.pow(1 + discountRate/100, i);
-    discCum += discounted;
-    if (payback === null && discCum >= investment) payback = i;
-  }
+    // 4. Calculate IRR, NPV, discounted payback
+    let irrVal = irr(cashflows);
+    let npvVal = discountRate ? npv(discountRate/100, cashflows) : null;
+    let discCum = 0, payback = null;
+    for (let i = 1; i < cashflows.length; i++) {
+      let discounted = repayments[i-1] / Math.pow(1 + discountRate/100, i);
+      discCum += discounted;
+      if (payback === null && discCum >= investment) payback = i;
+    }
 
-  // 5. Render repayment schedule table
-  let tableHtml = `
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          <th>Period</th>
-          <th>Repayment</th>
-          <th>Cumulative</th>
-          <th>Discounted Cumulative</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  let cum = 0, discCum2 = 0;
-  for (let i = 0; i < repayments.length; i++) {
-    cum += repayments[i];
-    discCum2 += repayments[i] / Math.pow(1 + discountRate/100, i+1);
-    tableHtml += `
-      <tr>
-        <td>${periodLabels[i] || (i+1)}</td>
-        <td>€${repayments[i].toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td>€${discCum2.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-      </tr>
+    // 5. Render repayment schedule table with calendar dates
+    let tableHtml = `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Date</th>
+            <th>Repayment</th>
+            <th>Cumulative</th>
+            <th>Discounted Cumulative</th>
+          </tr>
+        </thead>
+        <tbody>
     `;
+    let cum = 0, discCum2 = 0;
+    for (let i = 0; i < repayments.length; i++) {
+      cum += repayments[i];
+      discCum2 += repayments[i] / Math.pow(1 + discountRate/100, i+1);
+      tableHtml += `
+        <tr>
+          <td>${periodLabels[i] || (i+1)}</td>
+          <td>${periodDates[i] ? periodDates[i].toLocaleDateString() : '-'}</td>
+          <td>€${repayments[i].toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          <td>€${discCum2.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        </tr>
+      `;
+    }
+    tableHtml += `</tbody></table>`;
+
+    // 6. Render summary
+    let summary = `<b>Total Investment:</b> €${investment.toLocaleString()}<br>
+      <b>Total Repayments:</b> €${repayments.reduce((a,b)=>a+b,0).toLocaleString()}<br>
+      <b>NPV (${discountRate}%):</b> ${typeof npvVal === "number" ? "€"+npvVal.toLocaleString(undefined,{maximumFractionDigits:2}) : "n/a"}<br>
+      <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal*100).toFixed(2)+'%' : 'n/a'}<br>
+      <b>Discounted Payback (periods):</b> ${payback ?? 'n/a'}`;
+
+    // 7. Investment guidance badge
+    let badge = '';
+    if (irrVal > 0.15) badge = '<span class="badge badge-success">Attractive ROI</span>';
+    else if (irrVal > 0.08) badge = '<span class="badge badge-warning">Moderate ROI</span>';
+    else if (!isNaN(irrVal)) badge = '<span class="badge badge-danger">Low ROI</span>';
+    else badge = '';
+
+    // 8. Output to DOM
+    document.getElementById('roiSummary').innerHTML = summary + badge + tableHtml;
+
+    // 9. Render ROI charts (cumulative repayments, etc)
+    renderRoiCharts(investment, repayments);
+
+    // 10. Optional: Warning if no repayments
+    if (!repayments.length || repayments.reduce((a, b) => a + b, 0) === 0) {
+      document.getElementById('roiSummary').innerHTML += '<div class="alert alert-warning">No repayments scheduled. ROI cannot be calculated.</div>';
+    }
   }
-  tableHtml += `</tbody></table>`;
-
-  // 6. Render summary
-  let summary = `<b>Total Investment:</b> €${investment.toLocaleString()}<br>
-    <b>Total Repayments:</b> €${repayments.reduce((a,b)=>a+b,0).toLocaleString()}<br>
-    <b>NPV (${discountRate}%):</b> ${typeof npvVal === "number" ? "€"+npvVal.toLocaleString(undefined,{maximumFractionDigits:2}) : "n/a"}<br>
-    <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal*100).toFixed(2)+'%' : 'n/a'}<br>
-    <b>Discounted Payback (periods):</b> ${payback ?? 'n/a'}`;
-
-  // 7. Simple investment "attractiveness" guidance
-  let badge = '';
-  if (irrVal > 0.15) badge = '<span class="badge badge-success">Attractive ROI</span>';
-  else if (irrVal > 0.08) badge = '<span class="badge badge-warning">Moderate ROI</span>';
-  else if (!isNaN(irrVal)) badge = '<span class="badge badge-danger">Low ROI</span>';
-  else badge = '';
-
-  // 8. Output to DOM
-  document.getElementById('roiSummary').innerHTML = summary + badge + tableHtml;
-
-  // 9. Render ROI charts (cumulative repayments, etc)
-  renderRoiCharts(investment, repayments);
-
-  // 10. Optional: Warning if no repayments
-  if (!repayments.length || repayments.reduce((a, b) => a + b, 0) === 0) {
-    document.getElementById('roiSummary').innerHTML += '<div class="alert alert-warning">No repayments scheduled. ROI cannot be calculated.</div>';
-  }
-}
 
   function renderRoiCharts() {
     let repayments = getRepaymentArr();
     if (!Array.isArray(repayments) || repayments.length === 0) {
-      // Optionally show a warning or fallback
       return;
     }
     let cumArr = [];
@@ -1018,6 +1044,8 @@ function renderRoiSection() {
     renderSummaryTab();
     renderRoiSection();
   }
+  updateAllTabs();
+});
 
   // Initial render
   updateAllTabs();
