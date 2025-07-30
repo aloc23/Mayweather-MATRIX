@@ -33,6 +33,7 @@ h1 {
   color: #1976d2;
   text-shadow: 0 2px 6px rgba(30,60,90,0.07);
 }
+/* --- TABS --- */
 nav.tabs {
   display: flex;
   justify-content: center;
@@ -67,13 +68,12 @@ nav.tabs button.active {
   padding: 32px 24px;
   margin-bottom: 34px;
   min-height: 370px;
-}
-.tab-content {
   display: none;
 }
 .tab-content.active {
   display: block;
 }
+/* --- SUBTABS --- */
 .subtabs {
   display: flex;
   gap: 10px;
