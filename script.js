@@ -41,17 +41,20 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateAllTabs, 50);
       });
     });
-    document.querySelectorAll('.subtabs button').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
-        var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
-        var subpanel = document.getElementById(subtabId);
-        if (subpanel) subpanel.classList.add('active');
-        setTimeout(updateAllTabs, 50);
-      });
-    });
+document.querySelectorAll('.subtabs button').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
+    var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
+    var subpanel = document.getElementById(subtabId);
+    if (subpanel) subpanel.classList.add('active');
+    setTimeout(updateAllTabs, 50);
+
+    // ✅ THIS LINE TRIGGERS ROI CHART RENDERING
+    if (btn.getAttribute('data-subtab') === "roi") renderRoiSection();
+  });
+});
     document.querySelectorAll('.collapsible-header').forEach(btn => {
       btn.addEventListener('click', function() {
         var content = btn.nextElementSibling;
