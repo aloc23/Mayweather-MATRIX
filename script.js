@@ -800,28 +800,81 @@ document.addEventListener('DOMContentLoaded', function() {
   if (roiIntInput) roiIntInput.addEventListener('input', updateRoiSettings);
   if (refreshRoiBtn) refreshRoiBtn.addEventListener('click', updateRoiSettings);
 
-  function renderRoiSection() {
-    let repayments = getRepaymentArr();
-    let cashflows = [-roiInvestment, ...repayments];
-    let cum = 0, payback = null;
-    for (let i=1; i<cashflows.length; i++) {
-      cum += cashflows[i];
-      if (payback === null && cum >= roiInvestment) payback = i;
-    }
-    let npvVal = roiInterest ? npv(roiInterest/100, cashflows) : null;
-    let irrVal = irr(cashflows);
+function renderRoiSection() {
+  // 1. Get user inputs
+  const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
+  const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
 
-    let summary = `<b>Total Investment:</b> €${roiInvestment.toLocaleString()}<br>
-      <b>Total Repayments:</b> €${repayments.reduce((a,b)=>a+b,0).toLocaleString()}<br>
-      <b>NPV (${roiInterest}%):</b> ${typeof npvVal === "number" ? "€"+npvVal.toLocaleString(undefined,{maximumFractionDigits:2}) : "n/a"}<br>
-      <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal*100).toFixed(2)+'%' : 'n/a'}<br>
-      <b>Payback (weeks):</b> ${payback ?? 'n/a'}`;
-    let roiSummary = document.getElementById('roiSummary');
-    if (roiSummary) roiSummary.innerHTML = summary;
+  // 2. Get repayments per period from global schedule (entered in the other tab)
+  const repayments = getRepaymentArr(); // This array is auto-updated from the repayments UI in the analysis/company tab
+  const periodLabels = weekLabels; // Or whatever your period label array is
 
-    renderRoiCharts();
-    renderTornadoChart();
+  // 3. Build cashflows: -investment at t=0, repayments at t=1,2,...
+  const cashflows = [-investment, ...repayments];
+
+  // 4. Calculate IRR, NPV, discounted payback
+  let irrVal = irr(cashflows);
+  let npvVal = discountRate ? npv(discountRate/100, cashflows) : null;
+  let discCum = 0, payback = null;
+  for (let i = 1; i < cashflows.length; i++) {
+    let discounted = repayments[i-1] / Math.pow(1 + discountRate/100, i);
+    discCum += discounted;
+    if (payback === null && discCum >= investment) payback = i;
   }
+
+  // 5. Render repayment schedule table
+  let tableHtml = `
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Repayment</th>
+          <th>Cumulative</th>
+          <th>Discounted Cumulative</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  let cum = 0, discCum2 = 0;
+  for (let i = 0; i < repayments.length; i++) {
+    cum += repayments[i];
+    discCum2 += repayments[i] / Math.pow(1 + discountRate/100, i+1);
+    tableHtml += `
+      <tr>
+        <td>${periodLabels[i] || (i+1)}</td>
+        <td>€${repayments[i].toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td>€${discCum2.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+      </tr>
+    `;
+  }
+  tableHtml += `</tbody></table>`;
+
+  // 6. Render summary
+  let summary = `<b>Total Investment:</b> €${investment.toLocaleString()}<br>
+    <b>Total Repayments:</b> €${repayments.reduce((a,b)=>a+b,0).toLocaleString()}<br>
+    <b>NPV (${discountRate}%):</b> ${typeof npvVal === "number" ? "€"+npvVal.toLocaleString(undefined,{maximumFractionDigits:2}) : "n/a"}<br>
+    <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal*100).toFixed(2)+'%' : 'n/a'}<br>
+    <b>Discounted Payback (periods):</b> ${payback ?? 'n/a'}`;
+
+  // 7. Simple investment "attractiveness" guidance
+  let badge = '';
+  if (irrVal > 0.15) badge = '<span class="badge badge-success">Attractive ROI</span>';
+  else if (irrVal > 0.08) badge = '<span class="badge badge-warning">Moderate ROI</span>';
+  else if (!isNaN(irrVal)) badge = '<span class="badge badge-danger">Low ROI</span>';
+  else badge = '';
+
+  // 8. Output to DOM
+  document.getElementById('roiSummary').innerHTML = summary + badge + tableHtml;
+
+  // 9. Render ROI charts (cumulative repayments, etc)
+  renderRoiCharts(investment, repayments);
+
+  // 10. Optional: Warning if no repayments
+  if (!repayments.length || repayments.reduce((a, b) => a + b, 0) === 0) {
+    document.getElementById('roiSummary').innerHTML += '<div class="alert alert-warning">No repayments scheduled. ROI cannot be calculated.</div>';
+  }
+}
 
   function renderRoiCharts() {
     let repayments = getRepaymentArr();
