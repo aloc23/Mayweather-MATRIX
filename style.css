@@ -28,9 +28,17 @@ body {
 h1 {
   font-size: 2.5em;
   margin: 0;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 2px;
+  color: #5d758c;
+  text-shadow: 0 2px 6px rgba(30,60,90,0.07);
+}
+.header-subtitle {
   color: #1976d2;
+  font-size: 1.3em;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #5d758c;
   text-shadow: 0 2px 6px rgba(30,60,90,0.07);
 }
 /* --- TABS --- */
