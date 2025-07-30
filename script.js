@@ -816,13 +816,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let roiSummary = document.getElementById('roiSummary');
     if (roiSummary) roiSummary.innerHTML = summary;
 
-    setTimeout(() => {
-      const isVisible = document.getElementById('roi')?.classList.contains('active');
-      if (isVisible) {
-        renderRoiCharts();
-        renderTornadoChart();
-      }
-    }, 100);
+    renderRoiCharts();
+    renderTornadoChart();
   }
 
   function renderRoiCharts() {
@@ -963,4 +958,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initial render
   updateAllTabs();
+
+  // Automatically render ROI when ROI tab becomes visible
+  const roiTab = document.getElementById('roi');
+  const observer = new MutationObserver(() => {
+    if (roiTab.classList.contains('active')) {
+      renderRoiSection();
+    }
+  });
+  observer.observe(roiTab, { attributes: true, attributeFilter: ['class'] });
 });
