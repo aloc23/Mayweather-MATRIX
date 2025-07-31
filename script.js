@@ -717,42 +717,60 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ---------- P&L Tab Functions ----------
-function renderPnlTables() {
-  // Weekly Breakdown
-  const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
-  const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
-  const cashFlowTable = document.getElementById('pnlCashFlow');
-  const pnlSummary = document.getElementById('pnlSummary');
-  if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
-  let tbody = weeklyTable.querySelector('tbody');
-  if (tbody) tbody.innerHTML = '';
-  let incomeArr = getIncomeArr();
-  let expenditureArr = getExpenditureArr();
-  let repaymentArr = getRepaymentArr();
-  let rollingArr = getRollingBankBalanceArr();
-  let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-  let weekIdxs = getFilteredWeekIndices();
-  let rows = '';
-  let minBal = null, minBalWeek = null;
+function renderSectionSummary(sectionId, text, data) {
+  var el = document.getElementById(sectionId);
+  if (!el) return;
 
-  weekIdxs.forEach((idx, i) => {
-    const net = (incomeArr[idx] || 0) - (expenditureArr[idx] || 0) - (repaymentArr[i] || 0);
-    const netTooltip = `Income - Expenditure - Repayment\n${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${net}`;
-    const balTooltip = `Prev Bal + Income - Expenditure - Repayment\n${i===0?openingBalance:rollingArr[i-1]} + ${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${rollingArr[i]||0}`;
-    let row = `<tr${rollingArr[i]<0?' class="negative-balance-row"':''}>` +
-      `<td>${weekLabels[idx]}</td>` +
-      `<td${incomeArr[idx]<0?' class="negative-number"':''}>€${Math.round(incomeArr[idx]||0).toLocaleString()}</td>` +
-      `<td${expenditureArr[idx]<0?' class="negative-number"':''}>€${Math.round(expenditureArr[idx]||0).toLocaleString()}</td>` +
-      `<td${repaymentArr[i]<0?' class="negative-number"':''}>€${Math.round(repaymentArr[i]||0).toLocaleString()}</td>` +
-      `<td class="${net<0?'negative-number':''}" data-tooltip="${netTooltip}">€${Math.round(net||0).toLocaleString()}</td>` +
-      `<td${rollingArr[i]<0?' class="negative-number"':''} data-tooltip="${balTooltip}">€${Math.round(rollingArr[i]||0).toLocaleString()}</td></tr>`;
-    rows += row;
-    if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
-  });
-  if (tbody) tbody.innerHTML = rows;
+  // Basic stats
+  let min = Math.min(...data);
+  let max = Math.max(...data);
+  let avg = data.reduce((a, b) => a + b, 0) / data.length;
 
-  // Section summary + sparkline for weekly
-  renderSectionSummary('weekly-breakdown-header', `Total Net: €${netArr.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netArr);
+  // Create a canvas for sparkline
+  let canvasId = sectionId + '-sparkline';
+  let sparklineHtml = `<canvas id="${canvasId}" height="24" style="width:100px;height:24px;vertical-align:middle"></canvas>`;
+
+  // Add stats and sparkline to summary
+  el.innerHTML = `
+    ${text} 
+    <span style="font-size:0.85em;color:#888">
+      (Min: €${Math.round(min)}, Max: €${Math.round(max)}, Avg: €${Math.round(avg)})
+    </span>
+    ${sparklineHtml}
+  `;
+
+  // Draw the sparkline using Chart.js (if available)
+  setTimeout(() => {
+    if (typeof Chart !== "undefined") {
+      let ctx = document.getElementById(canvasId).getContext('2d');
+      // Destroy previous chart if any
+      if (el._sparklineChart && typeof el._sparklineChart.destroy === 'function') el._sparklineChart.destroy();
+      el._sparklineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map((_,i)=>i+1),
+          datasets: [{
+            data,
+            borderColor: "#1976d2",
+            backgroundColor: "rgba(25,118,210,0.1)",
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0.2
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+          elements: { line: { borderJoinStyle: 'miter' } },
+          animation: false,
+          responsive: false,
+          maintainAspectRatio: false
+        }
+      });
+    }
+  }, 0);
+}
 
   // Export button logic is handled globally (see addExportButtons())
 
