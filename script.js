@@ -917,14 +917,7 @@ function renderPnlTables() {
     renderTornadoChart();
   }
 
-// --- ROI section: Only up to last repayment for NPV, IRR, discounted cumulative ---
-function getLastRepaymentIndex(arr) {
-  for (let i = arr.length - 1; i >= 0; i--) {
-    if (arr[i] && Math.abs(arr[i]) > 0.00001) return i;
-  }
-  return -1;
-}
-
+  // -------------------- ROI/Payback Section --------------------
 function renderRoiSection() {
   const dropdown = document.getElementById('investmentWeek');
   if (!dropdown || !weekStartDates.length) return;
@@ -937,10 +930,7 @@ function renderRoiSection() {
   const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
   const repayments = repaymentsFull.slice(investmentWeek);
 
-  // Only include periods up to last nonzero repayment
-  const lastIdx = getLastRepaymentIndex(repayments);
-  const repaymentsToUse = lastIdx >= 0 ? repayments.slice(0, lastIdx + 1) : [];
-  const cashflows = [-investment, ...repaymentsToUse];
+  const cashflows = [-investment, ...repayments];
 
   let cashflowDates = [investmentDate];
   for (let i = 1; i < cashflows.length; i++) {
@@ -980,10 +970,9 @@ function renderRoiSection() {
     npv_date(discountRate / 100, cashflows, cashflowDates) : null;
   let irrVal = (cashflows.length > 1) ? irr(cashflows) : NaN;
 
-  // Discounted cumulative only up to last repayment
   let discCum = 0, payback = null;
   for (let i = 1; i < cashflows.length; i++) {
-    let discounted = (cashflows[i] || 0) / Math.pow(1 + discountRate / 100, i);
+    let discounted = repayments[i - 1] / Math.pow(1 + discountRate / 100, i);
     discCum += discounted;
     if (payback === null && discCum >= investment) payback = i;
   }
@@ -1002,16 +991,17 @@ function renderRoiSection() {
       <tbody>
   `;
   let cum = 0, discCum2 = 0;
-  for (let i = 0; i < repaymentsToUse.length; i++) {
-    cum += repaymentsToUse[i];
-    if (repaymentsToUse[i] > 0) {
-      discCum2 += repaymentsToUse[i] / Math.pow(1 + discountRate / 100, i + 1);
+  for (let i = 0; i < repayments.length; i++) {
+    cum += repayments[i];
+    // Discounted cumulative only increases if repayment > 0
+    if (repayments[i] > 0) {
+      discCum2 += repayments[i] / Math.pow(1 + discountRate / 100, i + 1);
     }
     tableHtml += `
       <tr>
         <td>${weekLabels[investmentWeek + i] || (i + 1)}</td>
         <td>${weekStartDates[investmentWeek + i] ? weekStartDates[investmentWeek + i].toLocaleDateString('en-GB') : '-'}</td>
-        <td>€${repaymentsToUse[i].toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        <td>€${repayments[i].toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
         <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
         <td>€${discCum2.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
       </tr>
@@ -1020,7 +1010,7 @@ function renderRoiSection() {
   tableHtml += `</tbody></table>`;
 
   let summary = `<b>Total Investment:</b> €${investment.toLocaleString()}<br>
-    <b>Total Repayments:</b> €${repaymentsToUse.reduce((a, b) => a + b, 0).toLocaleString()}<br>
+    <b>Total Repayments:</b> €${repayments.reduce((a, b) => a + b, 0).toLocaleString()}<br>
     <b>NPV (${discountRate}%):</b> ${typeof npvVal === "number" ? "€" + npvVal.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "n/a"}<br>
     <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal * 100).toFixed(2) + '%' : 'n/a'}<br>
     <b>Discounted Payback (periods):</b> ${payback ?? 'n/a'}`;
@@ -1035,16 +1025,18 @@ function renderRoiSection() {
   document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
 
   // Charts
-  renderRoiCharts(investment, repaymentsToUse);
+  renderRoiCharts(investment, repayments);
 
-  if (!repaymentsToUse.length || repaymentsToUse.reduce((a, b) => a + b, 0) === 0) {
+  if (!repayments.length || repayments.reduce((a, b) => a + b, 0) === 0) {
     document.getElementById('roiSummary').innerHTML += '<div class="alert alert-warning">No repayments scheduled. ROI cannot be calculated.</div>';
   }
 }
 
+// ROI Performance Chart (line) + Pie chart
 function renderRoiCharts(investment, repayments) {
   if (!Array.isArray(repayments) || repayments.length === 0) return;
 
+  // Build cumulative and discounted cumulative arrays
   let cumArr = [];
   let discCumArr = [];
   let cum = 0, discCum = 0;
@@ -1052,14 +1044,18 @@ function renderRoiCharts(investment, repayments) {
   for (let i = 0; i < repayments.length; i++) {
     cum += repayments[i] || 0;
     cumArr.push(cum);
+
+    // Discounted only if repayment > 0
     if (repayments[i] > 0) {
       discCum += repayments[i] / Math.pow(1 + discountRate / 100, i + 1);
     }
     discCumArr.push(discCum);
   }
 
+  // Build X labels
   const weekLabels = window.weekLabels || repayments.map((_, i) => `Week ${i + 1}`);
 
+  // ROI Performance Chart (Line)
   let roiLineElem = document.getElementById('roiLineChart');
   if (roiLineElem) {
     const roiLineCtx = roiLineElem.getContext('2d');
@@ -1107,6 +1103,7 @@ function renderRoiCharts(investment, repayments) {
     });
   }
 
+  // Pie chart (optional)
   let roiPieElem = document.getElementById('roiPieChart');
   if (roiPieElem) {
     const roiPieCtx = roiPieElem.getContext('2d');
