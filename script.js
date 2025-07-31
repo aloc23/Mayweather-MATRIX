@@ -773,6 +773,8 @@ function renderSectionSummary(sectionId, text, data) {
 }
 
 function renderPnlTables() {
+  // You may need to define or fetch incomeArr, expenditureArr, repaymentArr, rollingArr, minBal, minBalWeek, openingBalance, monthlyTable, cashFlowTable, pnlSummary, etc. at the top of this function or globally.
+
   // Monthly Breakdown
   let months = 12;
   let incomeMonth = getMonthAgg(incomeArr, months);
@@ -835,6 +837,7 @@ function renderPnlTables() {
   addExportButtons();
   setupConsistentCollapsibles();
 }
+
 // ---------- Summary Tab Functions ----------
 function renderSummaryTab() {
   // Key Financials
