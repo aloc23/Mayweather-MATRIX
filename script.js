@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
   }
 
-  // ---------- P&L Tab Functions ----------
+// ---------- P&L Tab Functions ----------
 function renderPnlTables() {
   // Weekly Breakdown
   const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
@@ -724,6 +724,8 @@ function renderPnlTables() {
   const cashFlowTable = document.getElementById('pnlCashFlow');
   const pnlSummary = document.getElementById('pnlSummary');
   if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
+
+  // ---- Weekly table ----
   let tbody = weeklyTable.querySelector('tbody');
   if (tbody) tbody.innerHTML = '';
   let incomeArr = getIncomeArr();
@@ -750,13 +752,9 @@ function renderPnlTables() {
     if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
   });
   if (tbody) tbody.innerHTML = rows;
-
-  // Section summary + sparkline for weekly
   renderSectionSummary('weekly-breakdown-header', `Total Net: €${netArr.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netArr);
 
-  // Export button logic is handled globally (see addExportButtons())
-
-  // Monthly Breakdown
+  // ---- Monthly Breakdown ----
   let months = 12;
   let incomeMonth = getMonthAgg(incomeArr, months);
   let expMonth = getMonthAgg(expenditureArr, months);
@@ -778,7 +776,7 @@ function renderPnlTables() {
   }
   renderSectionSummary('monthly-breakdown-header', `Total Net: €${netMonth.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netMonth);
 
-  // Cash Flow Table
+  // ---- Cash Flow Table ----
   let ctbody = cashFlowTable.querySelector('tbody');
   let closingArr = [];
   if (ctbody) {
@@ -802,7 +800,7 @@ function renderPnlTables() {
   }
   renderSectionSummary('cashflow-header', `Closing Bal: €${Math.round(closingArr[closingArr.length-1]||0).toLocaleString()}`, closingArr);
 
-  // P&L Summary
+  // ---- P&L Summary ----
   if (pnlSummary) {
     pnlSummary.innerHTML = `
       <b>Total Income:</b> €${Math.round(incomeArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
