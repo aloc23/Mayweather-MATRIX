@@ -815,10 +815,6 @@ document.addEventListener('DOMContentLoaded', function() {
       <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">${minBalWeek?minBalWeek+': ':''}€${Math.round(minBal||0).toLocaleString()}</span>
     `;
   }
-
-  // Enhance tables and add export buttons
-  addExportButtons();
-  setupConsistentCollapsibles();
 }
   // ---------- Summary Tab Functions ----------
   function renderSummaryTab() {
