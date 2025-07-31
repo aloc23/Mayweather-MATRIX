@@ -817,6 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Enhance tables and add export buttons
+  enhancePLTables();
   addExportButtons();
   setupConsistentCollapsibles();
 }
