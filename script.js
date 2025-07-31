@@ -716,7 +716,6 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
   }
 
-document.addEventListener('DOMContentLoaded', function() {
   // ---------- P&L Tab Functions ----------
   function renderSectionSummary(headerId, text, arr) {
     const headerElem = document.getElementById(headerId);
