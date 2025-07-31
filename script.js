@@ -716,64 +716,45 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
   }
 
-// ---------- P&L Tab Functions ----------
-function renderSectionSummary(sectionId, text, data) {
-  var el = document.getElementById(sectionId);
-  if (!el) return;
-
-  // Basic stats
-  let min = Math.min(...data);
-  let max = Math.max(...data);
-  let avg = data.reduce((a, b) => a + b, 0) / data.length;
-
-  // Create a canvas for sparkline
-  let canvasId = sectionId + '-sparkline';
-  let sparklineHtml = `<canvas id="${canvasId}" height="24" style="width:100px;height:24px;vertical-align:middle"></canvas>`;
-
-  // Add stats and sparkline to summary
-  el.innerHTML = `
-    ${text} 
-    <span style="font-size:0.85em;color:#888">
-      (Min: €${Math.round(min)}, Max: €${Math.round(max)}, Avg: €${Math.round(avg)})
-    </span>
-    ${sparklineHtml}
-  `;
-
-  // Draw the sparkline using Chart.js (if available)
-  setTimeout(() => {
-    if (typeof Chart !== "undefined") {
-      let ctx = document.getElementById(canvasId).getContext('2d');
-      // Destroy previous chart if any
-      if (el._sparklineChart && typeof el._sparklineChart.destroy === 'function') el._sparklineChart.destroy();
-      el._sparklineChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map((_,i)=>i+1),
-          datasets: [{
-            data,
-            borderColor: "#1976d2",
-            backgroundColor: "rgba(25,118,210,0.1)",
-            fill: true,
-            pointRadius: 0,
-            borderWidth: 2,
-            tension: 0.2
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: { x: { display: false }, y: { display: false } },
-          elements: { line: { borderJoinStyle: 'miter' } },
-          animation: false,
-          responsive: false,
-          maintainAspectRatio: false
-        }
-      });
-    }
-  }, 0);
-}
-
+  // ---------- P&L Tab Functions ----------
 function renderPnlTables() {
-  // You may need to define or fetch incomeArr, expenditureArr, repaymentArr, rollingArr, minBal, minBalWeek, openingBalance, monthlyTable, cashFlowTable, pnlSummary, etc. at the top of this function or globally.
+  // Weekly Breakdown
+  const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
+  const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
+  const cashFlowTable = document.getElementById('pnlCashFlow');
+  const pnlSummary = document.getElementById('pnlSummary');
+  if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
+  let tbody = weeklyTable.querySelector('tbody');
+  if (tbody) tbody.innerHTML = '';
+  let incomeArr = getIncomeArr();
+  let expenditureArr = getExpenditureArr();
+  let repaymentArr = getRepaymentArr();
+  let rollingArr = getRollingBankBalanceArr();
+  let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+  let weekIdxs = getFilteredWeekIndices();
+  let rows = '';
+  let minBal = null, minBalWeek = null;
+
+  weekIdxs.forEach((idx, i) => {
+    const net = (incomeArr[idx] || 0) - (expenditureArr[idx] || 0) - (repaymentArr[i] || 0);
+    const netTooltip = `Income - Expenditure - Repayment\n${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${net}`;
+    const balTooltip = `Prev Bal + Income - Expenditure - Repayment\n${i===0?openingBalance:rollingArr[i-1]} + ${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${rollingArr[i]||0}`;
+    let row = `<tr${rollingArr[i]<0?' class="negative-balance-row"':''}>` +
+      `<td>${weekLabels[idx]}</td>` +
+      `<td${incomeArr[idx]<0?' class="negative-number"':''}>€${Math.round(incomeArr[idx]||0).toLocaleString()}</td>` +
+      `<td${expenditureArr[idx]<0?' class="negative-number"':''}>€${Math.round(expenditureArr[idx]||0).toLocaleString()}</td>` +
+      `<td${repaymentArr[i]<0?' class="negative-number"':''}>€${Math.round(repaymentArr[i]||0).toLocaleString()}</td>` +
+      `<td class="${net<0?'negative-number':''}" data-tooltip="${netTooltip}">€${Math.round(net||0).toLocaleString()}</td>` +
+      `<td${rollingArr[i]<0?' class="negative-number"':''} data-tooltip="${balTooltip}">€${Math.round(rollingArr[i]||0).toLocaleString()}</td></tr>`;
+    rows += row;
+    if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
+  });
+  if (tbody) tbody.innerHTML = rows;
+
+  // Section summary + sparkline for weekly
+  renderSectionSummary('weekly-breakdown-header', `Total Net: €${netArr.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netArr);
+
+  // Export button logic is handled globally (see addExportButtons())
 
   // Monthly Breakdown
   let months = 12;
@@ -828,7 +809,7 @@ function renderPnlTables() {
       <b>Total Expenditure:</b> €${Math.round(expenditureArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
       <b>Total Repayments:</b> €${Math.round(repaymentArr.reduce((a,b)=>a+(b||0),0)).toLocaleString()}<br>
       <b>Final Bank Balance:</b> <span style="color:${rollingArr[rollingArr.length-1]<0?'#c00':'#388e3c'}">€${Math.round(rollingArr[rollingArr.length-1]||0).toLocaleString()}</span><br>
-      <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">${minBalWeek ? (minBalWeek + ': ') : ''}€${Math.round(minBal||0).toLocaleString()}</span>
+      <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">${minBalWeek?minBalWeek+': ':''}€${Math.round(minBal||0).toLocaleString()}</span>
     `;
   }
 
@@ -837,105 +818,104 @@ function renderPnlTables() {
   addExportButtons();
   setupConsistentCollapsibles();
 }
+  // ---------- Summary Tab Functions ----------
+  function renderSummaryTab() {
+    // Key Financials
+    let incomeArr = getIncomeArr();
+    let expenditureArr = getExpenditureArr();
+    let repaymentArr = getRepaymentArr();
+    let rollingArr = getRollingBankBalanceArr();
+    let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
+    let totalIncome = incomeArr.reduce((a,b)=>a+(b||0),0);
+    let totalExpenditure = expenditureArr.reduce((a,b)=>a+(b||0),0);
+    let totalRepayment = repaymentArr.reduce((a,b)=>a+(b||0),0);
+    let finalBal = rollingArr[rollingArr.length-1]||0;
+    let minBal = Math.min(...rollingArr);
 
-// ---------- Summary Tab Functions ----------
-function renderSummaryTab() {
-  // Key Financials
-  let incomeArr = getIncomeArr();
-  let expenditureArr = getExpenditureArr();
-  let repaymentArr = getRepaymentArr();
-  let rollingArr = getRollingBankBalanceArr();
-  let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-  let totalIncome = incomeArr.reduce((a,b)=>a+(b||0),0);
-  let totalExpenditure = expenditureArr.reduce((a,b)=>a+(b||0),0);
-  let totalRepayment = repaymentArr.reduce((a,b)=>a+(b||0),0);
-  let finalBal = rollingArr[rollingArr.length-1]||0;
-  let minBal = Math.min(...rollingArr);
-
-  // Update KPI cards if present
-  if (document.getElementById('kpiTotalIncome')) {
-    document.getElementById('kpiTotalIncome').textContent = '€' + totalIncome.toLocaleString();
-    document.getElementById('kpiTotalExpenditure').textContent = '€' + totalExpenditure.toLocaleString();
-    document.getElementById('kpiTotalRepayments').textContent = '€' + totalRepayment.toLocaleString();
-    document.getElementById('kpiFinalBank').textContent = '€' + Math.round(finalBal).toLocaleString();
-    document.getElementById('kpiLowestBank').textContent = '€' + Math.round(minBal).toLocaleString();
-  }
-
-  let summaryElem = document.getElementById('summaryKeyFinancials');
-  if (summaryElem) {
-    summaryElem.innerHTML = `
-      <b>Total Income:</b> €${Math.round(totalIncome).toLocaleString()}<br>
-      <b>Total Expenditure:</b> €${Math.round(totalExpenditure).toLocaleString()}<br>
-      <b>Total Repayments:</b> €${Math.round(totalRepayment).toLocaleString()}<br>
-      <b>Final Bank Balance:</b> <span style="color:${finalBal<0?'#c00':'#388e3c'}">€${Math.round(finalBal).toLocaleString()}</span><br>
-      <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">€${Math.round(minBal).toLocaleString()}</span>
-    `;
-  }
-  // Summary Chart
-  let summaryChartElem = document.getElementById('summaryChart');
-  if (summaryChart && typeof summaryChart.destroy === "function") summaryChart.destroy();
-  if (summaryChartElem) {
-    summaryChart = new Chart(summaryChartElem.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: ["Income", "Expenditure", "Repayment", "Final Bank", "Lowest Bank"],
-        datasets: [{
-          label: "Totals",
-          data: [
-            Math.round(totalIncome),
-            -Math.round(totalExpenditure),
-            -Math.round(totalRepayment),
-            Math.round(finalBal),
-            Math.round(minBal)
-          ],
-          backgroundColor: [
-            "#4caf50","#f44336","#ffc107","#2196f3","#9c27b0"
-          ]
-        }]
-      },
-      options: {
-        responsive:true,
-        plugins:{legend:{display:false}},
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  // Tornado Chart logic
-  function renderTornadoChart() {
-    // Calculate row impact by "sum of absolute values" for each data row
-    let impact = [];
-    if (!mappedData || !mappingConfigured) return;
-    for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
-      let label = mappedData[r][0] || `Row ${r + 1}`;
-      let vals = [];
-      for (let w = 0; w < weekLabels.length; w++) {
-        if (!weekCheckboxStates[w]) continue;
-        let absCol = config.weekColStart + w;
-        let val = mappedData[r][absCol];
-        if (typeof val === "string") val = val.replace(/,/g,'').replace(/€|\s/g,'');
-        let num = parseFloat(val);
-        if (!isNaN(num)) vals.push(num);
-      }
-      let total = vals.reduce((a,b)=>a+Math.abs(b),0);
-      if (total > 0) impact.push({label, total});
+    // Update KPI cards if present
+    if (document.getElementById('kpiTotalIncome')) {
+      document.getElementById('kpiTotalIncome').textContent = '€' + totalIncome.toLocaleString();
+      document.getElementById('kpiTotalExpenditure').textContent = '€' + totalExpenditure.toLocaleString();
+      document.getElementById('kpiTotalRepayments').textContent = '€' + totalRepayment.toLocaleString();
+      document.getElementById('kpiFinalBank').textContent = '€' + Math.round(finalBal).toLocaleString();
+      document.getElementById('kpiLowestBank').textContent = '€' + Math.round(minBal).toLocaleString();
     }
-    impact.sort((a,b)=>b.total-a.total);
-    impact = impact.slice(0, 10);
 
-    let ctx = document.getElementById('tornadoChart').getContext('2d');
-    if (window.tornadoChartObj && typeof window.tornadoChartObj.destroy === "function") window.tornadoChartObj.destroy();
-    window.tornadoChartObj = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: impact.map(x=>x.label),
-        datasets: [{ label: "Total Impact (€)", data: impact.map(x=>x.total), backgroundColor: '#1976d2' }]
-      },
-      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
-    });
+    let summaryElem = document.getElementById('summaryKeyFinancials');
+    if (summaryElem) {
+      summaryElem.innerHTML = `
+        <b>Total Income:</b> €${Math.round(totalIncome).toLocaleString()}<br>
+        <b>Total Expenditure:</b> €${Math.round(totalExpenditure).toLocaleString()}<br>
+        <b>Total Repayments:</b> €${Math.round(totalRepayment).toLocaleString()}<br>
+        <b>Final Bank Balance:</b> <span style="color:${finalBal<0?'#c00':'#388e3c'}">€${Math.round(finalBal).toLocaleString()}</span><br>
+        <b>Lowest Bank Balance:</b> <span style="color:${minBal<0?'#c00':'#388e3c'}">€${Math.round(minBal).toLocaleString()}</span>
+      `;
+    }
+    // Summary Chart
+    let summaryChartElem = document.getElementById('summaryChart');
+    if (summaryChart && typeof summaryChart.destroy === "function") summaryChart.destroy();
+    if (summaryChartElem) {
+      summaryChart = new Chart(summaryChartElem.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ["Income", "Expenditure", "Repayment", "Final Bank", "Lowest Bank"],
+          datasets: [{
+            label: "Totals",
+            data: [
+              Math.round(totalIncome),
+              -Math.round(totalExpenditure),
+              -Math.round(totalRepayment),
+              Math.round(finalBal),
+              Math.round(minBal)
+            ],
+            backgroundColor: [
+              "#4caf50","#f44336","#ffc107","#2196f3","#9c27b0"
+            ]
+          }]
+        },
+        options: {
+          responsive:true,
+          plugins:{legend:{display:false}},
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Tornado Chart logic
+    function renderTornadoChart() {
+      // Calculate row impact by "sum of absolute values" for each data row
+      let impact = [];
+      if (!mappedData || !mappingConfigured) return;
+      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+        let label = mappedData[r][0] || `Row ${r + 1}`;
+        let vals = [];
+        for (let w = 0; w < weekLabels.length; w++) {
+          if (!weekCheckboxStates[w]) continue;
+          let absCol = config.weekColStart + w;
+          let val = mappedData[r][absCol];
+          if (typeof val === "string") val = val.replace(/,/g,'').replace(/€|\s/g,'');
+          let num = parseFloat(val);
+          if (!isNaN(num)) vals.push(num);
+        }
+        let total = vals.reduce((a,b)=>a+Math.abs(b),0);
+        if (total > 0) impact.push({label, total});
+      }
+      impact.sort((a,b)=>b.total-a.total);
+      impact = impact.slice(0, 10);
+
+      let ctx = document.getElementById('tornadoChart').getContext('2d');
+      if (window.tornadoChartObj && typeof window.tornadoChartObj.destroy === "function") window.tornadoChartObj.destroy();
+      window.tornadoChartObj = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: impact.map(x=>x.label),
+          datasets: [{ label: "Total Impact (€)", data: impact.map(x=>x.total), backgroundColor: '#1976d2' }]
+        },
+        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+      });
+    }
+    renderTornadoChart();
   }
-  renderTornadoChart();
-}
 
 // --- ROI section: Only up to last repayment for NPV, IRR, discounted cumulative ---
 function getLastRepaymentIndex(arr) {
