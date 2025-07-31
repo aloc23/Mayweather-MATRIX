@@ -717,7 +717,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
 // ---------- P&L Tab Functions ----------
-function renderPnlTables() {
+function renderSectionSummary(headerId, text, arr) {
+  const headerElem = document.getElementById(headerId);
+  if (!headerElem) return;
+  headerElem.innerHTML = text;
+  // Optionally, you can add a small sparkline or summary visualization here
+}
+  function renderPnlTables() {
   // Weekly Breakdown
   const weeklyTable = document.getElementById('pnlWeeklyBreakdown');
   const monthlyTable = document.getElementById('pnlMonthlyBreakdown');
