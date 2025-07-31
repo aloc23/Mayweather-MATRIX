@@ -1142,6 +1142,7 @@ document.getElementById('investmentWeek').addEventListener('change', renderRoiSe
     renderPnlTables();
     renderSummaryTab();
     renderRoiSection();
+    renderTornadoChart();
   }
   updateAllTabs();
 });
