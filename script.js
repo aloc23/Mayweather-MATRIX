@@ -1075,109 +1075,101 @@ document.addEventListener('DOMContentLoaded', function() {
       return { suggestedRepayments: [], achievedIRR: null };
     }
 
-    const totalWeeks = filteredWeeks.length;
-    const suggestedArray = new Array(totalWeeks).fill(0);
+    // Calculate total amount that needs to be recouped (investment + target return)
+    const targetReturn = investment * (1 + targetIRR);
+    
+    // Calculate suggested installment amount based on target installment count
+    const suggestedInstallmentAmount = targetReturn / installmentCount;
     
     // Find investment index in filtered weeks
     const investmentIndex = filteredWeeks.indexOf(investmentWeekIndex);
+    const startIndex = investmentIndex === -1 ? 0 : investmentIndex + 1;
     
-    if (investmentIndex === -1) {
-      // If investment week not found, start from week 0
-      const remainingWeeks = totalWeeks - 1;
-      if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
+    // Initialize variables for the new logic
+    let outstanding = targetReturn;
+    let repayments = [];
+    let currentWeekIndex = startIndex;
+    let extendedWeeks = [...filteredWeeks];
+    let extendedWeekStartDates = [...weekStartDates];
+    
+    // Helper function to add a week with proper date calculation
+    function addWeekToSchedule() {
+      const newWeekIndex = extendedWeeks.length;
+      extendedWeeks.push(newWeekIndex);
       
-      // Calculate repayment schedule based on installment count
-      const actualInstallments = Math.min(installmentCount, remainingWeeks);
-      const targetReturn = investment * (1 + targetIRR);
-      const baseRepayment = targetReturn / actualInstallments;
+      // Calculate date for the new week (7 days after the last week)
+      const lastDate = extendedWeekStartDates[extendedWeekStartDates.length - 1] || new Date(2025, 0, 1);
+      const newDate = new Date(lastDate);
+      newDate.setDate(lastDate.getDate() + 7);
+      extendedWeekStartDates.push(newDate);
       
-      // Distribute repayments evenly across the timeline
-      const weeksBetweenInstallments = Math.floor(remainingWeeks / actualInstallments);
-      
-      for (let i = 0; i < actualInstallments; i++) {
-        const weekIndex = Math.min(1 + i * weeksBetweenInstallments, totalWeeks - 1);
-        suggestedArray[weekIndex] = baseRepayment;
-      }
-      
-      // Calculate achieved IRR using XIRR with actual dates for accurate annualized return
-      const cashflows = [-investment, ...suggestedArray.slice(1)];
-      const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
-      
-      // Build dates for cash flows from investment week onwards
-      for (let i = 1; i < cashflows.length; i++) {
-        let weekIdx = investmentWeekIndex + i;
-        cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
-      }
-      
-      const achievedIRR = calculateIRR(cashflows, cashflowDates);
-      
-      return {
-        suggestedRepayments: suggestedArray,
-        achievedIRR: achievedIRR
-      };
+      return newWeekIndex;
     }
     
-    const remainingWeeks = totalWeeks - investmentIndex - 1;
-    if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
-    
-    // Calculate repayment schedule based on installment count
-    const actualInstallments = Math.min(installmentCount, remainingWeeks);
-    const weeksBetweenInstallments = Math.floor(remainingWeeks / actualInstallments);
-    
-    // Calculate base repayment amount to achieve target IRR
-    // Using compound interest: FV = PV * (1 + r)^n
-    const targetReturn = investment * (1 + targetIRR);
-    const baseRepayment = targetReturn / actualInstallments;
-    
-    // Distribute repayments across installment weeks
-    let installmentIndex = 0;
-    for (let i = investmentIndex + 1; i < totalWeeks && installmentIndex < actualInstallments; i++) {
-      const weeksFromInvestment = i - investmentIndex;
-      if (weeksFromInvestment % Math.max(1, weeksBetweenInstallments) === 0 || i === totalWeeks - 1) {
-        suggestedArray[i] = baseRepayment;
-        installmentIndex++;
+    // Continue adding repayments until outstanding is fully covered
+    while (outstanding > 0.01) { // Use small threshold to handle floating point precision
+      // Ensure we have enough weeks in the schedule
+      if (currentWeekIndex >= extendedWeeks.length) {
+        addWeekToSchedule();
       }
+      
+      // Calculate payment amount (either full installment or remaining outstanding)
+      const payment = Math.min(suggestedInstallmentAmount, outstanding);
+      
+      repayments.push({
+        weekIndex: currentWeekIndex,
+        amount: payment,
+        date: extendedWeekStartDates[currentWeekIndex] || new Date(2025, 0, 1 + currentWeekIndex * 7)
+      });
+      
+      outstanding -= payment;
+      currentWeekIndex++;
     }
+    
+    // Create the suggested array covering all weeks (original + extended if needed)
+    const totalExtendedWeeks = Math.max(extendedWeeks.length, currentWeekIndex);
+    const suggestedArray = new Array(totalExtendedWeeks).fill(0);
+    
+    // Fill in the repayments
+    repayments.forEach(repayment => {
+      if (repayment.weekIndex < suggestedArray.length) {
+        suggestedArray[repayment.weekIndex] = repayment.amount;
+      }
+    });
     
     // Validate bank balance constraint only if there's meaningful cashflow data
+    let finalSuggestedArray = suggestedArray;
     if (cashflow && cashflow.income && cashflow.expenditure && 
         (cashflow.income.some(i => i > 0) || cashflow.expenditure.some(e => e > 0))) {
-      const validatedRepayments = validateBankBalanceConstraint(suggestedArray, cashflow, openingBalance, filteredWeeks, investmentIndex);
+      const validatedRepayments = validateBankBalanceConstraint(suggestedArray, cashflow, openingBalance, extendedWeeks, startIndex - 1);
       if (validatedRepayments) {
-        // Calculate achieved IRR for validated repayments using XIRR with actual dates
-        const cashflows = [-investment, ...validatedRepayments.slice(investmentIndex + 1)];
-        const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
-        
-        // Build dates for cash flows from investment week onwards
-        for (let i = 1; i < cashflows.length; i++) {
-          let weekIdx = investmentWeekIndex + i;
-          cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
-        }
-        
-        const achievedIRR = calculateIRR(cashflows, cashflowDates);
-        
-        return {
-          suggestedRepayments: validatedRepayments,
-          achievedIRR: achievedIRR
-        };
+        finalSuggestedArray = validatedRepayments;
       }
     }
     
-    // Calculate achieved IRR for the suggested repayments using XIRR with actual dates  
-    const cashflows = [-investment, ...suggestedArray.slice(investmentIndex + 1)];
-    const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+    // Calculate achieved IRR using XIRR with actual dates for accurate annualized return
+    const cashflows = [-investment];
+    const cashflowDates = [extendedWeekStartDates[investmentWeekIndex] || new Date(2025, 0, 1)];
     
-    // Build dates for cash flows from investment week onwards
-    for (let i = 1; i < cashflows.length; i++) {
-      let weekIdx = investmentWeekIndex + i;
-      cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+    // Add repayment cashflows starting from the investment week
+    for (let i = startIndex; i < finalSuggestedArray.length; i++) {
+      if (finalSuggestedArray[i] > 0) {
+        cashflows.push(finalSuggestedArray[i]);
+        cashflowDates.push(extendedWeekStartDates[i] || new Date(2025, 0, 1 + i * 7));
+      }
     }
     
     const achievedIRR = calculateIRR(cashflows, cashflowDates);
     
+    // Trim the suggested array to only include weeks up to the last repayment
+    const lastRepaymentIndex = finalSuggestedArray.findLastIndex(amount => amount > 0);
+    const trimmedArray = lastRepaymentIndex >= 0 ? finalSuggestedArray.slice(0, lastRepaymentIndex + 1) : finalSuggestedArray;
+    
     return {
-      suggestedRepayments: suggestedArray,
-      achievedIRR: achievedIRR
+      suggestedRepayments: trimmedArray,
+      achievedIRR: achievedIRR,
+      extendedWeeks: extendedWeeks.slice(0, trimmedArray.length),
+      extendedWeekStartDates: extendedWeekStartDates.slice(0, trimmedArray.length)
     };
   }
   
@@ -1230,6 +1222,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     suggestedRepayments = result.suggestedRepayments;
     achievedSuggestedIRR = result.achievedIRR;
+    
+    // Store extended weeks and dates for rendering if schedule was extended
+    if (result.extendedWeeks && result.extendedWeekStartDates) {
+      // Update global variables to include extended weeks for rendering
+      window.extendedWeekLabels = result.extendedWeeks.map((_, i) => 
+        i < weekLabels.length ? weekLabels[i] : `Extended Week ${i + 1}`
+      );
+      window.extendedWeekStartDates = result.extendedWeekStartDates;
+    }
     
     // Re-render the ROI section to show updated suggestions
     renderRoiSection();
@@ -1371,6 +1372,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function renderRoiPaybackTable({actualRepayments, suggestedRepayments, filteredWeeks, weekLabels, weekStartDates, investmentWeekIndex}) {
     if (!weekLabels) return '';
     
+    // Use extended week data if available (for suggestions that go beyond original schedule)
+    const effectiveWeekLabels = window.extendedWeekLabels || weekLabels;
+    const effectiveWeekStartDates = window.extendedWeekStartDates || weekStartDates;
+    
     // Ensure we have some repayments to show - either actual or suggested
     const hasActualRepayments = actualRepayments && actualRepayments.length > 0 && actualRepayments.some(r => r > 0);
     const hasSuggestedRepayments = suggestedRepayments && suggestedRepayments.length > 0 && suggestedRepayments.some(r => r > 0);
@@ -1378,10 +1383,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!hasActualRepayments && !hasSuggestedRepayments) {
       return '<p>No repayments to display. Please add repayments or generate suggestions.</p>';
     }
-    
-    // Use suggested repayments length if actual repayments are empty
-    const repaymentLength = hasActualRepayments ? actualRepayments.length : 
-                            (hasSuggestedRepayments ? suggestedRepayments.length : 0);
     
     const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
     
@@ -1393,7 +1394,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>Date</th>
             <th>Actual Repayment</th>
             ${suggestedRepayments ? '<th>Suggested Repayment</th>' : ''}
-            <th>Cumulative</th>
+            <th>Cumulative Actual</th>
+            ${suggestedRepayments ? '<th>Cumulative Suggested</th>' : ''}
             <th>Discounted Cumulative</th>
           </tr>
         </thead>
@@ -1403,9 +1405,20 @@ document.addEventListener('DOMContentLoaded', function() {
     let cum = 0, discCum = 0;
     let sugCum = 0, sugDiscCum = 0;
     
-    for (let i = 0; i < repaymentLength; i++) {
+    // Determine the maximum range to display
+    const maxWeeks = Math.max(
+      hasActualRepayments ? actualRepayments.length : 0,
+      hasSuggestedRepayments ? suggestedRepayments.length : 0,
+      effectiveWeekLabels.length
+    );
+    
+    for (let i = 0; i < maxWeeks; i++) {
+      const weekIndex = investmentWeekIndex + i + 1;
       const actualRepayment = (actualRepayments && actualRepayments[i]) || 0;
-      const suggestedRepayment = (suggestedRepayments && suggestedRepayments[investmentWeekIndex + i + 1]) || 0;
+      const suggestedRepayment = (suggestedRepayments && suggestedRepayments[weekIndex]) || 0;
+      
+      // Skip weeks with no repayments unless it's a suggestion
+      if (actualRepayment === 0 && suggestedRepayment === 0) continue;
       
       cum += actualRepayment;
       if (actualRepayment > 0) {
@@ -1419,23 +1432,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      const weekIndex = investmentWeekIndex + i + 1;
-      const weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
-      const weekDate = weekStartDates[weekIndex] ? weekStartDates[weekIndex].toLocaleDateString('en-GB') : '-';
+      const weekLabel = effectiveWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
+      const weekDate = effectiveWeekStartDates[weekIndex] ? effectiveWeekStartDates[weekIndex].toLocaleDateString('en-GB') : '-';
       
-      // Only show rows that have either actual or suggested repayments
-      if (actualRepayment > 0 || suggestedRepayment > 0) {
-        tableHtml += `
-          <tr ${suggestedRepayments ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : ''}>
-            <td>${weekLabel}</td>
-            <td>${weekDate}</td>
-            <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-            ${suggestedRepayments ? `<td style="color: #2196f3; font-weight: bold;">€${suggestedRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
-            <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-            <td>€${discCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-          </tr>
-        `;
-      }
+      tableHtml += `
+        <tr ${suggestedRepayments && suggestedRepayment > 0 ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : ''}>
+          <td>${weekLabel}</td>
+          <td>${weekDate}</td>
+          <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          ${suggestedRepayments ? `<td style="color: #2196f3; font-weight: bold;">€${suggestedRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+          <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          ${suggestedRepayments ? `<td style="color: #2196f3;">€${sugCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+          <td>€${discCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+        </tr>
+      `;
     }
     
     tableHtml += `</tbody></table>`;
@@ -1446,6 +1456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="margin-top: 10px; padding: 10px; background-color: rgba(33, 150, 243, 0.1); border-radius: 4px;">
           <strong>Suggested Repayments Summary:</strong><br>
           Total Suggested: €${sugCum.toLocaleString(undefined, {maximumFractionDigits: 2})}<br>
+          Suggested Discounted Total: €${sugDiscCum.toLocaleString(undefined, {maximumFractionDigits: 2})}<br>
           Achieved IRR: ${isFinite(achievedSuggestedIRR) && !isNaN(achievedSuggestedIRR) ? (achievedSuggestedIRR * 100).toFixed(2) + '%' : 'n/a'}
         </div>
       `;
