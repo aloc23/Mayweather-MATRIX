@@ -22,6 +22,16 @@ document.addEventListener('DOMContentLoaded', function() {
   let weekStartDates = [];
   let investmentWeekIndex = 0;
 
+  // --- ROI SUGGESTION STATE ---
+  let showSuggestions = false;
+  let suggestedRepayments = null;
+  let achievedSuggestedIRR = null;
+  
+  // --- TARGET IRR/NPV SETTINGS ---
+  let targetIRR = 0.20; // Default 20%
+  let installmentCount = 12; // Default 12 installments
+  let liveUpdateEnabled = true;
+
   // --- Chart.js chart instances for destroy ---
   let mainChart = null;
   let roiPieChart = null;
@@ -70,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   setupTabs();
+  setupTargetIrrModal();
 
   // -------------------- Spreadsheet Upload & Mapping --------------------
   function setupSpreadsheetUpload() {
@@ -367,7 +378,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function getFilteredWeekIndices() {
-    return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
+    if (weekCheckboxStates && weekCheckboxStates.length > 0) {
+      return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
+    } else {
+      // When no mapping is configured, return all week indices up to 52 weeks
+      return Array.from({length: 52}, (_, i) => i);
+    }
   }
 
   // -------------------- Calculation Helpers --------------------
@@ -406,11 +422,13 @@ document.addEventListener('DOMContentLoaded', function() {
     return arr;
   }
   function getRepaymentArr() {
-    if (!mappingConfigured || !weekLabels.length) return [];
-    let arr = Array(weekLabels.length).fill(0);
+    // If no mapping is configured, use default week labels for repayment calculations
+    let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+    let arr = Array(actualWeekLabels.length).fill(0);
+    
     repaymentRows.forEach(r => {
       if (r.type === "week") {
-        let weekIdx = weekLabels.indexOf(r.week);
+        let weekIdx = actualWeekLabels.indexOf(r.week);
         if (weekIdx === -1) weekIdx = 0;
         arr[weekIdx] += r.amount;
       } else {
@@ -429,7 +447,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (r.frequency === "one-off") { arr[0] += r.amount; }
       }
     });
-    return getFilteredWeekIndices().map(idx => arr[idx]);
+    
+    // If mapping is configured, return filtered results. Otherwise, return all results.
+    if (mappingConfigured && weekLabels.length > 0) {
+      return getFilteredWeekIndices().map(idx => arr[idx]);
+    } else {
+      // Return all weeks when no mapping is configured
+      return arr;
+    }
   }
   function getNetProfitArr(incomeArr, expenditureArr, repaymentArr) {
     return incomeArr.map((inc, i) => (inc || 0) - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
@@ -915,16 +940,535 @@ document.addEventListener('DOMContentLoaded', function() {
     renderTornadoChart();
   }
 
+  // -------------------- TARGET IRR/NPV MODAL CONTROLS --------------------
+  function setupTargetIrrModal() {
+    const modal = document.getElementById('targetIrrModal');
+    const editBtn = document.getElementById('editTargetIrrBtn');
+    const closeBtn = document.getElementById('closeIrrModal');
+    const applyBtn = document.getElementById('applyIrrSettings');
+    const cancelBtn = document.getElementById('cancelIrrSettings');
+    const slider = document.getElementById('targetIrrSlider');
+    const sliderValue = document.getElementById('targetIrrValue');
+    const installmentInput = document.getElementById('installmentCountInput');
+    const liveUpdateCheckbox = document.getElementById('liveUpdateCheckbox');
+    const suggestionDisplay = document.getElementById('suggestedIrrDisplay');
+    const npvDisplay = document.getElementById('equivalentNpvDisplay');
+    
+    if (!modal || !editBtn) return;
+    
+    // Calculate NPV for given IRR
+    function calculateNPVForIRR(irrRate) {
+      const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
+      if (investment <= 0) return 0;
+      
+      // Get current repayments or use default installment calculation
+      const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
+      const repayments = repaymentsFull.slice(investmentWeekIndex);
+      
+      // If no repayments exist, calculate equivalent repayments for target IRR
+      if (repayments.length === 0 || repayments.every(r => r === 0)) {
+        // Calculate what total repayments would be needed for this IRR
+        const targetReturn = investment * (1 + irrRate);
+        return targetReturn - investment; // This is the NPV equivalent
+      }
+      
+      // Use actual repayments with date-based discounting
+      const cashflows = [-investment, ...repayments];
+      const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+      
+      for (let i = 1; i < cashflows.length; i++) {
+        let idx = investmentWeekIndex + i;
+        cashflowDates[i] = weekStartDates[idx] || new Date();
+      }
+      
+      // Use the global npv_date function if available, otherwise simple calculation
+      if (typeof npv_date === 'function') {
+        return npv_date(irrRate, cashflows, cashflowDates);
+      } else {
+        // Simple NPV calculation without dates
+        return cashflows.reduce((acc, val, i) => acc + val / Math.pow(1 + irrRate, i), 0);
+      }
+    }
+    
+    // Update NPV display
+    function updateNPVDisplay() {
+      if (!npvDisplay) return;
+      const irrRate = parseFloat(slider.value) / 100;
+      const npvValue = calculateNPVForIRR(irrRate);
+      npvDisplay.textContent = `€${npvValue.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+    }
+    
+    // Update display
+    function updateDisplay() {
+      if (suggestionDisplay) {
+        suggestionDisplay.textContent = `Target IRR: ${Math.round(targetIRR * 100)}%`;
+      }
+      updateNPVDisplay();
+    }
+    
+    // Open modal
+    editBtn.addEventListener('click', function() {
+      slider.value = Math.round(targetIRR * 100);
+      sliderValue.textContent = Math.round(targetIRR * 100) + '%';
+      installmentInput.value = installmentCount;
+      liveUpdateCheckbox.checked = liveUpdateEnabled;
+      updateNPVDisplay(); // Initialize NPV display
+      modal.style.display = 'flex';
+    });
+    
+    // Close modal
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+    
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Click outside modal to close
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeModal();
+    });
+    
+    // Slider input
+    slider.addEventListener('input', function() {
+      const value = this.value;
+      sliderValue.textContent = value + '%';
+      updateNPVDisplay(); // Update NPV live as slider changes
+      if (liveUpdateCheckbox.checked) {
+        targetIRR = parseFloat(value) / 100;
+        updateDisplay();
+        if (showSuggestions) {
+          generateAndUpdateSuggestions();
+        }
+      }
+    });
+    
+    // Installment count input
+    installmentInput.addEventListener('input', function() {
+      if (liveUpdateCheckbox.checked) {
+        installmentCount = parseInt(this.value) || 12;
+        if (showSuggestions) {
+          generateAndUpdateSuggestions();
+        }
+      }
+    });
+    
+    // Apply settings
+    applyBtn.addEventListener('click', function() {
+      targetIRR = parseFloat(slider.value) / 100;
+      installmentCount = parseInt(installmentInput.value) || 12;
+      liveUpdateEnabled = liveUpdateCheckbox.checked;
+      updateDisplay();
+      if (showSuggestions) {
+        generateAndUpdateSuggestions();
+      }
+      closeModal();
+    });
+    
+    // Initialize display
+    updateDisplay();
+  }
+
+  // -------------------- ENHANCED SUGGESTION ALGORITHM --------------------
+  function computeEnhancedSuggestedRepayments({investment, targetIRR, installmentCount, filteredWeeks, investmentWeekIndex, openingBalance, cashflow, weekStartDates}) {
+    if (!filteredWeeks || !filteredWeeks.length || targetIRR <= 0 || installmentCount <= 0) {
+      return { suggestedRepayments: [], achievedIRR: null };
+    }
+
+    const totalWeeks = filteredWeeks.length;
+    const suggestedArray = new Array(totalWeeks).fill(0);
+    
+    // Find investment index in filtered weeks
+    const investmentIndex = filteredWeeks.indexOf(investmentWeekIndex);
+    
+    if (investmentIndex === -1) {
+      // If investment week not found, start from week 0
+      const remainingWeeks = totalWeeks - 1;
+      if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
+      
+      // Calculate repayment schedule based on installment count
+      const actualInstallments = Math.min(installmentCount, remainingWeeks);
+      const targetReturn = investment * (1 + targetIRR);
+      const baseRepayment = targetReturn / actualInstallments;
+      
+      // Distribute repayments evenly across the timeline
+      const weeksBetweenInstallments = Math.floor(remainingWeeks / actualInstallments);
+      
+      for (let i = 0; i < actualInstallments; i++) {
+        const weekIndex = Math.min(1 + i * weeksBetweenInstallments, totalWeeks - 1);
+        suggestedArray[weekIndex] = baseRepayment;
+      }
+      
+      // Calculate achieved IRR using XIRR with actual dates for accurate annualized return
+      const cashflows = [-investment, ...suggestedArray.slice(1)];
+      const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+      
+      // Build dates for cash flows from investment week onwards
+      for (let i = 1; i < cashflows.length; i++) {
+        let weekIdx = investmentWeekIndex + i;
+        cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+      }
+      
+      const achievedIRR = calculateIRR(cashflows, cashflowDates);
+      
+      return {
+        suggestedRepayments: suggestedArray,
+        achievedIRR: achievedIRR
+      };
+    }
+    
+    const remainingWeeks = totalWeeks - investmentIndex - 1;
+    if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
+    
+    // Calculate repayment schedule based on installment count
+    const actualInstallments = Math.min(installmentCount, remainingWeeks);
+    const weeksBetweenInstallments = Math.floor(remainingWeeks / actualInstallments);
+    
+    // Calculate base repayment amount to achieve target IRR
+    // Using compound interest: FV = PV * (1 + r)^n
+    const targetReturn = investment * (1 + targetIRR);
+    const baseRepayment = targetReturn / actualInstallments;
+    
+    // Distribute repayments across installment weeks
+    let installmentIndex = 0;
+    for (let i = investmentIndex + 1; i < totalWeeks && installmentIndex < actualInstallments; i++) {
+      const weeksFromInvestment = i - investmentIndex;
+      if (weeksFromInvestment % Math.max(1, weeksBetweenInstallments) === 0 || i === totalWeeks - 1) {
+        suggestedArray[i] = baseRepayment;
+        installmentIndex++;
+      }
+    }
+    
+    // Validate bank balance constraint only if there's meaningful cashflow data
+    if (cashflow && cashflow.income && cashflow.expenditure && 
+        (cashflow.income.some(i => i > 0) || cashflow.expenditure.some(e => e > 0))) {
+      const validatedRepayments = validateBankBalanceConstraint(suggestedArray, cashflow, openingBalance, filteredWeeks, investmentIndex);
+      if (validatedRepayments) {
+        // Calculate achieved IRR for validated repayments using XIRR with actual dates
+        const cashflows = [-investment, ...validatedRepayments.slice(investmentIndex + 1)];
+        const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+        
+        // Build dates for cash flows from investment week onwards
+        for (let i = 1; i < cashflows.length; i++) {
+          let weekIdx = investmentWeekIndex + i;
+          cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+        }
+        
+        const achievedIRR = calculateIRR(cashflows, cashflowDates);
+        
+        return {
+          suggestedRepayments: validatedRepayments,
+          achievedIRR: achievedIRR
+        };
+      }
+    }
+    
+    // Calculate achieved IRR for the suggested repayments using XIRR with actual dates  
+    const cashflows = [-investment, ...suggestedArray.slice(investmentIndex + 1)];
+    const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+    
+    // Build dates for cash flows from investment week onwards
+    for (let i = 1; i < cashflows.length; i++) {
+      let weekIdx = investmentWeekIndex + i;
+      cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+    }
+    
+    const achievedIRR = calculateIRR(cashflows, cashflowDates);
+    
+    return {
+      suggestedRepayments: suggestedArray,
+      achievedIRR: achievedIRR
+    };
+  }
+  
+  function validateBankBalanceConstraint(suggestedRepayments, cashflow, openingBalance, filteredWeeks, investmentIndex) {
+    const validatedRepayments = [...suggestedRepayments];
+    let rolling = openingBalance;
+    
+    for (let i = 0; i < filteredWeeks.length; i++) {
+      const weekIndex = filteredWeeks[i];
+      const income = cashflow.income[weekIndex] || 0;
+      const expenditure = cashflow.expenditure[weekIndex] || 0;
+      const suggestedRepayment = i > investmentIndex ? validatedRepayments[i] : 0;
+      
+      const projectedBalance = rolling + income - expenditure - suggestedRepayment;
+      
+      // If balance would go negative, reduce the repayment
+      if (projectedBalance < 0 && suggestedRepayment > 0) {
+        const maxRepayment = rolling + income - expenditure;
+        validatedRepayments[i] = Math.max(0, maxRepayment);
+      }
+      
+      // Update rolling balance
+      rolling = rolling + income - expenditure - (i > investmentIndex ? validatedRepayments[i] : 0);
+    }
+    
+    return validatedRepayments;
+  }
+  
+  function generateAndUpdateSuggestions() {
+    const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
+    const filteredWeeks = getFilteredWeekIndices ? getFilteredWeekIndices() : Array.from({length: 52}, (_, i) => i);
+    
+    // If no filtered weeks (no data loaded), use default 52-week timeline
+    const actualFilteredWeeks = filteredWeeks.length > 0 ? filteredWeeks : Array.from({length: 52}, (_, i) => i);
+    
+    const incomeArr = getIncomeArr ? getIncomeArr() : Array(52).fill(0);
+    const expenditureArr = getExpenditureArr ? getExpenditureArr() : Array(52).fill(0);
+    const cashflow = {income: incomeArr, expenditure: expenditureArr};
+    
+    const result = computeEnhancedSuggestedRepayments({
+      investment,
+      targetIRR,
+      installmentCount,
+      filteredWeeks: actualFilteredWeeks,
+      investmentWeekIndex,
+      openingBalance,
+      cashflow,
+      weekStartDates
+    });
+    
+    suggestedRepayments = result.suggestedRepayments;
+    achievedSuggestedIRR = result.achievedIRR;
+    
+    // Re-render the ROI section to show updated suggestions
+    renderRoiSection();
+  }
+  function computeSuggestedRepayments({investment, targetIRR, filteredWeeks, investmentWeekIndex, openingBalance, cashflow, weekStartDates}) {
+    if (!filteredWeeks || !filteredWeeks.length || targetIRR <= 0) {
+      return { suggestedRepayments: [], achievedIRR: null };
+    }
+
+    // Create array for suggested repayments covering all filtered weeks from investment point
+    const totalWeeks = filteredWeeks.length;
+    const suggestedArray = new Array(totalWeeks).fill(0);
+    
+    // Simple suggestion algorithm: distribute repayments to achieve target IRR
+    // Start from the investment week and spread repayments across remaining weeks
+    const investmentIndex = filteredWeeks.indexOf(investmentWeekIndex);
+    if (investmentIndex === -1) return { suggestedRepayments: suggestedArray, achievedIRR: null };
+    
+    const remainingWeeks = totalWeeks - investmentIndex - 1;
+    if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
+    
+    // Calculate equal repayments to achieve target IRR
+    // Using simple approximation: Total return = investment * (1 + targetIRR)
+    const targetReturn = investment * (1 + targetIRR);
+    const weeklyRepayment = targetReturn / remainingWeeks;
+    
+    // Fill suggested repayments from investment week onwards
+    for (let i = investmentIndex + 1; i < totalWeeks; i++) {
+      suggestedArray[i] = weeklyRepayment;
+    }
+    
+    // Calculate achieved IRR for the suggested repayments using XIRR with actual dates
+    const cashflows = [-investment, ...suggestedArray.slice(investmentIndex + 1)];
+    const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+    
+    // Build dates for cash flows from investment week onwards
+    for (let i = 1; i < cashflows.length; i++) {
+      let weekIdx = investmentWeekIndex + i;
+      cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+    }
+    
+    const achievedIRR = calculateIRR(cashflows, cashflowDates);
+    
+    return {
+      suggestedRepayments: suggestedArray,
+      achievedIRR: achievedIRR
+    };
+  }
+
+  /**
+   * XIRR - Extended Internal Rate of Return calculation for irregular cash flow dates
+   * This function calculates annualized IRR based on actual cash flow dates rather than 
+   * assuming evenly spaced periods. Essential for accurate ROI calculations with irregular
+   * repayment schedules.
+   * 
+   * @param {Array} cashflows - Array of cash flow values (negative for outflows, positive for inflows)
+   * @param {Array} dates - Array of Date objects corresponding to each cash flow
+   * @param {number} guess - Initial guess for the rate (default: 0.1 or 10%)
+   * @returns {number} Annualized IRR or NaN if calculation fails
+   */
+  function xirr(cashflows, dates, guess = 0.1) {
+    if (!cashflows || !dates || cashflows.length !== dates.length || cashflows.length < 2) {
+      return NaN;
+    }
+    
+    // Helper function to calculate NPV using actual dates
+    function xnpv(rate, cashflows, dates) {
+      const msPerDay = 24 * 3600 * 1000;
+      const baseDate = dates[0];
+      return cashflows.reduce((acc, val, i) => {
+        if (!dates[i]) return acc;
+        let days = (dates[i] - baseDate) / msPerDay;
+        let years = days / 365.25; // Use 365.25 for more accurate annualization
+        return acc + val / Math.pow(1 + rate, years);
+      }, 0);
+    }
+    
+    // Newton-Raphson method to find the rate where XNPV = 0
+    let rate = guess;
+    const epsilon = 1e-6;
+    const maxIter = 100;
+    
+    for (let iter = 0; iter < maxIter; iter++) {
+      let npv0 = xnpv(rate, cashflows, dates);
+      let npv1 = xnpv(rate + epsilon, cashflows, dates);
+      let derivative = (npv1 - npv0) / epsilon;
+      
+      if (Math.abs(derivative) < 1e-10) break; // Avoid division by very small numbers
+      
+      let newRate = rate - npv0 / derivative;
+      
+      if (!isFinite(newRate)) break;
+      if (Math.abs(newRate - rate) < 1e-7) return newRate; // Convergence achieved
+      
+      rate = newRate;
+    }
+    
+    return NaN; // Failed to converge
+  }
+
+  /**
+   * Calculate IRR using XIRR logic for irregular cash flow schedules
+   * This function replaces the previous calculateIRR to ensure accurate 
+   * annualized returns based on actual cash flow dates.
+   * 
+   * @param {Array} cashflows - Array of cash flow values
+   * @param {Array} dates - Optional array of dates for XIRR calculation
+   * @returns {number} Annualized IRR or NaN if calculation fails
+   */
+  function calculateIRR(cashflows, dates = null) {
+    if (!cashflows || cashflows.length < 2) return NaN;
+    
+    // If dates are provided, use XIRR for accurate date-based calculation
+    if (dates && dates.length === cashflows.length) {
+      return xirr(cashflows, dates);
+    }
+    
+    // Fallback to standard IRR for evenly spaced periods (legacy compatibility)
+    function npv(rate, cashflows) {
+      if (!cashflows.length) return 0;
+      return cashflows.reduce((acc, val, i) => acc + val/Math.pow(1+rate, i), 0);
+    }
+    
+    let rate = 0.1, epsilon = 1e-6, maxIter = 100;
+    for (let iter=0; iter<maxIter; iter++) {
+      let npv0 = npv(rate, cashflows);
+      let npv1 = npv(rate+epsilon, cashflows);
+      let deriv = (npv1-npv0)/epsilon;
+      if (Math.abs(deriv) < 1e-10) break;
+      let newRate = rate - npv0/deriv;
+      if (!isFinite(newRate)) break;
+      if (Math.abs(newRate-rate) < 1e-7) return newRate;
+      rate = newRate;
+    }
+    return NaN;
+  }
+
+  // --- ROI TABLE RENDERING (SINGLE TABLE, OVERLAY SUGGESTIONS) ---
+  function renderRoiPaybackTable({actualRepayments, suggestedRepayments, filteredWeeks, weekLabels, weekStartDates, investmentWeekIndex}) {
+    if (!weekLabels) return '';
+    
+    // Ensure we have some repayments to show - either actual or suggested
+    const hasActualRepayments = actualRepayments && actualRepayments.length > 0 && actualRepayments.some(r => r > 0);
+    const hasSuggestedRepayments = suggestedRepayments && suggestedRepayments.length > 0 && suggestedRepayments.some(r => r > 0);
+    
+    if (!hasActualRepayments && !hasSuggestedRepayments) {
+      return '<p>No repayments to display. Please add repayments or generate suggestions.</p>';
+    }
+    
+    // Use suggested repayments length if actual repayments are empty
+    const repaymentLength = hasActualRepayments ? actualRepayments.length : 
+                            (hasSuggestedRepayments ? suggestedRepayments.length : 0);
+    
+    const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
+    
+    let tableHtml = `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Date</th>
+            <th>Actual Repayment</th>
+            ${suggestedRepayments ? '<th>Suggested Repayment</th>' : ''}
+            <th>Cumulative</th>
+            <th>Discounted Cumulative</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    let cum = 0, discCum = 0;
+    let sugCum = 0, sugDiscCum = 0;
+    
+    for (let i = 0; i < repaymentLength; i++) {
+      const actualRepayment = (actualRepayments && actualRepayments[i]) || 0;
+      const suggestedRepayment = (suggestedRepayments && suggestedRepayments[investmentWeekIndex + i + 1]) || 0;
+      
+      cum += actualRepayment;
+      if (actualRepayment > 0) {
+        discCum += actualRepayment / Math.pow(1 + discountRate / 100, i + 1);
+      }
+      
+      if (suggestedRepayments) {
+        sugCum += suggestedRepayment;
+        if (suggestedRepayment > 0) {
+          sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, i + 1);
+        }
+      }
+      
+      const weekIndex = investmentWeekIndex + i + 1;
+      const weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
+      const weekDate = weekStartDates[weekIndex] ? weekStartDates[weekIndex].toLocaleDateString('en-GB') : '-';
+      
+      // Only show rows that have either actual or suggested repayments
+      if (actualRepayment > 0 || suggestedRepayment > 0) {
+        tableHtml += `
+          <tr ${suggestedRepayments ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : ''}>
+            <td>${weekLabel}</td>
+            <td>${weekDate}</td>
+            <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            ${suggestedRepayments ? `<td style="color: #2196f3; font-weight: bold;">€${suggestedRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+            <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            <td>€${discCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      }
+    }
+    
+    tableHtml += `</tbody></table>`;
+    
+    // Add suggested summary if suggestions are shown
+    if (suggestedRepayments && achievedSuggestedIRR !== null) {
+      tableHtml += `
+        <div style="margin-top: 10px; padding: 10px; background-color: rgba(33, 150, 243, 0.1); border-radius: 4px;">
+          <strong>Suggested Repayments Summary:</strong><br>
+          Total Suggested: €${sugCum.toLocaleString(undefined, {maximumFractionDigits: 2})}<br>
+          Achieved IRR: ${isFinite(achievedSuggestedIRR) && !isNaN(achievedSuggestedIRR) ? (achievedSuggestedIRR * 100).toFixed(2) + '%' : 'n/a'}
+        </div>
+      `;
+    }
+    
+    return tableHtml;
+  }
+
   // -------------------- ROI/Payback Section --------------------
 function renderRoiSection() {
   const dropdown = document.getElementById('investmentWeek');
-  if (!dropdown || !weekStartDates.length) return;
+  if (!dropdown) return;
+  
   investmentWeekIndex = parseInt(dropdown.value, 10) || 0;
   const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
   const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
   const investmentWeek = investmentWeekIndex;
   const investmentDate = weekStartDates[investmentWeek] || null;
 
+  // Handle case when no week mapping is available - use default weeks
+  let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+  let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  
   const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
   const repayments = repaymentsFull.slice(investmentWeek);
 
@@ -933,13 +1477,15 @@ function renderRoiSection() {
   let cashflowDates = [investmentDate];
   for (let i = 1; i < cashflows.length; i++) {
     let idx = investmentWeek + i;
-    cashflowDates[i] = weekStartDates[idx] || null;
+    cashflowDates[i] = actualWeekStartDates[idx] || null;
   }
 
   function npv(rate, cashflows) {
     if (!cashflows.length) return 0;
     return cashflows.reduce((acc, val, i) => acc + val/Math.pow(1+rate, i), 0);
   }
+  
+  // Legacy IRR function - kept for compatibility but replaced by XIRR for irregular schedules
   function irr(cashflows, guess=0.1) {
     let rate = guess, epsilon = 1e-6, maxIter = 100;
     for (let iter=0; iter<maxIter; iter++) {
@@ -953,20 +1499,26 @@ function renderRoiSection() {
     }
     return NaN;
   }
+
   function npv_date(rate, cashflows, dateArr) {
     const msPerDay = 24 * 3600 * 1000;
     const baseDate = dateArr[0];
     return cashflows.reduce((acc, val, i) => {
       if (!dateArr[i]) return acc;
       let days = (dateArr[i] - baseDate) / msPerDay;
-      let years = days / 365.25;
+      let years = days / 365;
       return acc + val / Math.pow(1 + rate, years);
     }, 0);
   }
 
   let npvVal = (discountRate && cashflows.length > 1 && cashflowDates[0]) ?
     npv_date(discountRate / 100, cashflows, cashflowDates) : null;
-  let irrVal = (cashflows.length > 1) ? irr(cashflows) : NaN;
+  
+  // Use XIRR for accurate annualized IRR calculation with actual cash flow dates
+  // XIRR replaces standard IRR to handle irregular repayment schedules properly.
+  // This ensures accurate annualized returns regardless of payment timing irregularities.
+  let irrVal = (cashflows.length > 1 && cashflowDates.length > 1 && cashflowDates[0]) ? 
+    xirr(cashflows, cashflowDates) : NaN;
 
   let discCum = 0, payback = null;
   for (let i = 1; i < cashflows.length; i++) {
@@ -975,37 +1527,16 @@ function renderRoiSection() {
     if (payback === null && discCum >= investment) payback = i;
   }
 
-  let tableHtml = `
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          <th>Period</th>
-          <th>Date</th>
-          <th>Repayment</th>
-          <th>Cumulative</th>
-          <th>Discounted Cumulative</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  let cum = 0, discCum2 = 0;
-  for (let i = 0; i < repayments.length; i++) {
-    cum += repayments[i];
-    // Discounted cumulative only increases if repayment > 0
-    if (repayments[i] > 0) {
-      discCum2 += repayments[i] / Math.pow(1 + discountRate / 100, i + 1);
-    }
-    tableHtml += `
-      <tr>
-        <td>${weekLabels[investmentWeek + i] || (i + 1)}</td>
-        <td>${weekStartDates[investmentWeek + i] ? weekStartDates[investmentWeek + i].toLocaleDateString('en-GB') : '-'}</td>
-        <td>€${repayments[i].toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        <td>€${discCum2.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-      </tr>
-    `;
-  }
-  tableHtml += `</tbody></table>`;
+  // Instead of inline table generation, use renderRoiPaybackTable
+  const filteredWeeks = getFilteredWeekIndices ? getFilteredWeekIndices() : Array.from({length: actualWeekLabels.length}, (_, i) => i);
+  const tableHtml = renderRoiPaybackTable({
+    actualRepayments: repayments,
+    suggestedRepayments: showSuggestions ? suggestedRepayments : null,
+    filteredWeeks,
+    weekLabels: actualWeekLabels,
+    weekStartDates: actualWeekStartDates,
+    investmentWeekIndex: investmentWeek
+  });
 
   let summary = `<b>Total Investment:</b> €${investment.toLocaleString()}<br>
     <b>Total Repayments:</b> €${repayments.reduce((a, b) => a + b, 0).toLocaleString()}<br>
@@ -1013,13 +1544,24 @@ function renderRoiSection() {
     <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal * 100).toFixed(2) + '%' : 'n/a'}<br>
     <b>Discounted Payback (periods):</b> ${payback ?? 'n/a'}`;
 
+  // Show achievedSuggestedIRR if present
+  if (showSuggestions && achievedSuggestedIRR !== null && isFinite(achievedSuggestedIRR)) {
+    summary += `<br><b>Suggested IRR:</b> ${(achievedSuggestedIRR * 100).toFixed(2)}%`;
+  }
+
   let badge = '';
-  if (irrVal > 0.15) badge = '<span class="badge badge-success">Attractive ROI</span>';
-  else if (irrVal > 0.08) badge = '<span class="badge badge-warning">Moderate ROI</span>';
-  else if (!isNaN(irrVal)) badge = '<span class="badge badge-danger">Low ROI</span>';
+  if (irrVal > 0.15) badge = '<div class="alert alert-success" style="margin-bottom: 1em;"><strong>Attractive ROI</strong> - This investment shows excellent returns</div>';
+  else if (irrVal > 0.08) badge = '<div class="alert alert-warning" style="margin-bottom: 1em;"><strong>Moderate ROI</strong> - This investment shows reasonable returns</div>';
+  else if (!isNaN(irrVal)) badge = '<div class="alert alert-danger" style="margin-bottom: 1em;"><strong>Low ROI</strong> - This investment shows poor returns</div>';
   else badge = '';
 
-  document.getElementById('roiSummary').innerHTML = summary + badge;
+  // Update the prominent warning display
+  const warningElement = document.getElementById('roiWarningAlert');
+  if (warningElement) {
+    warningElement.innerHTML = badge;
+  }
+
+  document.getElementById('roiSummary').innerHTML = summary;
   document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
 
   // Charts
@@ -1124,13 +1666,110 @@ function renderRoiCharts(investment, repayments) {
 }
 
 // --- ROI input events ---
-document.getElementById('roiInvestmentInput').addEventListener('input', renderRoiSection);
-document.getElementById('roiInterestInput').addEventListener('input', renderRoiSection);
-document.getElementById('refreshRoiBtn').addEventListener('click', renderRoiSection);
-document.getElementById('investmentWeek').addEventListener('change', renderRoiSection);
+document.getElementById('roiInvestmentInput').addEventListener('input', function() {
+  clearRoiSuggestions();
+  renderRoiSection();
+  // Update NPV display in modal if open
+  const modal = document.getElementById('targetIrrModal');
+  const npvDisplay = document.getElementById('equivalentNpvDisplay');
+  if (modal && modal.style.display !== 'none' && npvDisplay) {
+    const slider = document.getElementById('targetIrrSlider');
+    if (slider) {
+      const irrRate = parseFloat(slider.value) / 100;
+      const investment = parseFloat(this.value) || 0;
+      if (investment <= 0) {
+        npvDisplay.textContent = '€0';
+      } else {
+        // Update NPV display
+        updateNPVDisplayInModal();
+      }
+    }
+  }
+});
+document.getElementById('roiInterestInput').addEventListener('input', function() {
+  clearRoiSuggestions();
+  renderRoiSection();
+  // Update NPV display in modal if open
+  updateNPVDisplayInModal();
+});
+document.getElementById('refreshRoiBtn').addEventListener('click', function() {
+  clearRoiSuggestions();
+  renderRoiSection();
+  updateNPVDisplayInModal();
+});
+document.getElementById('investmentWeek').addEventListener('change', function() {
+  clearRoiSuggestions();
+  renderRoiSection();
+  updateNPVDisplayInModal();
+});
+
+// Helper function to update NPV display when modal is open
+function updateNPVDisplayInModal() {
+  const modal = document.getElementById('targetIrrModal');
+  const npvDisplay = document.getElementById('equivalentNpvDisplay');
+  const slider = document.getElementById('targetIrrSlider');
+  
+  if (modal && modal.style.display !== 'none' && npvDisplay && slider) {
+    const irrRate = parseFloat(slider.value) / 100;
+    const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
+    
+    if (investment <= 0) {
+      npvDisplay.textContent = '€0';
+      return;
+    }
+    
+    // Calculate NPV for current IRR
+    const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
+    const repayments = repaymentsFull.slice(investmentWeekIndex);
+    
+    if (repayments.length === 0 || repayments.every(r => r === 0)) {
+      // Calculate what total repayments would be needed for this IRR
+      const targetReturn = investment * (1 + irrRate);
+      const npvValue = targetReturn - investment;
+      npvDisplay.textContent = `€${npvValue.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+    } else {
+      // Use actual repayments with date-based discounting
+      const cashflows = [-investment, ...repayments];
+      const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+      
+      for (let i = 1; i < cashflows.length; i++) {
+        let idx = investmentWeekIndex + i;
+        cashflowDates[i] = weekStartDates[idx] || new Date();
+      }
+      
+      const npvValue = npv_date(irrRate, cashflows, cashflowDates);
+      npvDisplay.textContent = `€${npvValue.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+    }
+  }
+}
+
+// --- SUGGESTION BUTTON EVENT ---
+document.getElementById('showSuggestedRepaymentsBtn').addEventListener('click', function() {
+  if (!showSuggestions) {
+    // Generate suggestions using current target IRR and installment count
+    showSuggestions = true;
+    this.textContent = 'Hide Suggested Repayments';
+    generateAndUpdateSuggestions();
+  } else {
+    // Hide suggestions
+    clearRoiSuggestions();
+    this.textContent = 'Show Suggested Repayments';
+    renderRoiSection();
+  }
+});
+
+// --- CLEAR SUGGESTIONS WHEN DATA CHANGES ---
+function clearRoiSuggestions() {
+  showSuggestions = false;
+  suggestedRepayments = null;
+  achievedSuggestedIRR = null;
+  const btn = document.getElementById('showSuggestedRepaymentsBtn');
+  if (btn) btn.textContent = 'Show Suggested Repayments';
+}
 
   // -------------------- Update All Tabs --------------------
   function updateAllTabs() {
+    clearRoiSuggestions(); // Clear suggestions when data changes
     renderRepaymentRows();
     updateLoanSummary();
     updateChartAndSummary();
@@ -1138,6 +1777,9 @@ document.getElementById('investmentWeek').addEventListener('change', renderRoiSe
     renderSummaryTab();
     renderRoiSection();
     renderTornadoChart();
+    
+    // Update NPV display in modal if open
+    updateNPVDisplayInModal();
   }
   updateAllTabs();
 });
