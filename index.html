@@ -164,6 +164,7 @@
           <span id="suggestedIrrDisplay" style="font-weight:bold; color:#1976d2; margin-right:8px;">Target IRR: 20%</span>
           <button id="editTargetIrrBtn" style="background:#ff9800; color:white; border:none; padding:6px 14px; border-radius:4px;">Edit Target IRR/NPV</button>
           <button id="showSuggestedRepaymentsBtn" style="background:#2196f3; color:white; border:none; padding:6px 14px; border-radius:4px;">Show Suggested Repayments</button>
+          <button id="exportToExcelBtn" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px;">Export to Excel</button>
         </div>
       </div>
       <div id="roiWarningAlert" style="margin-bottom: 1em;"></div>
@@ -203,6 +204,12 @@
           <div class="form-group">
             <label for="installmentCountInput"><b>Number of Installments:</b></label>
             <input type="number" id="installmentCountInput" min="1" max="52" value="12" style="width:80px;">
+          </div>
+          <div class="form-group">
+            <label for="firstRepaymentWeekSelect"><b>First Repayment Week:</b></label>
+            <select id="firstRepaymentWeekSelect" style="width:200px;">
+              <option value="">Select week...</option>
+            </select>
           </div>
           <div class="form-group">
             <input type="checkbox" id="liveUpdateCheckbox" checked>
