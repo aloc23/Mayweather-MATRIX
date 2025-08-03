@@ -953,8 +953,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const liveUpdateCheckbox = document.getElementById('liveUpdateCheckbox');
     const suggestionDisplay = document.getElementById('suggestedIrrDisplay');
     const npvDisplay = document.getElementById('equivalentNpvDisplay');
+    const firstRepaymentWeekSelect = document.getElementById('firstRepaymentWeekSelect');
     
     if (!modal || !editBtn) return;
+    
+    // Function to populate first repayment week dropdown
+    function populateFirstRepaymentWeekDropdown() {
+      if (!firstRepaymentWeekSelect) return;
+      
+      // Clear existing options except the first one
+      firstRepaymentWeekSelect.innerHTML = '<option value="">Select week...</option>';
+      
+      // Use mapped week labels if available, otherwise generate default weeks
+      const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
+        Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+      
+      // Populate dropdown with weeks after investment week
+      for (let i = investmentWeekIndex + 1; i < availableWeekLabels.length; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = availableWeekLabels[i] || `Week ${i + 1}`;
+        firstRepaymentWeekSelect.appendChild(option);
+      }
+    }
     
     // Calculate NPV for given IRR
     function calculateNPVForIRR(irrRate) {
@@ -1012,6 +1033,7 @@ document.addEventListener('DOMContentLoaded', function() {
       sliderValue.textContent = Math.round(targetIRR * 100) + '%';
       installmentInput.value = installmentCount;
       liveUpdateCheckbox.checked = liveUpdateEnabled;
+      populateFirstRepaymentWeekDropdown();
       updateNPVDisplay(); // Initialize NPV display
       modal.style.display = 'flex';
     });
@@ -1085,12 +1107,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const investmentIndex = filteredWeeks.indexOf(investmentWeekIndex);
     const startIndex = investmentIndex === -1 ? 0 : investmentIndex + 1;
     
+    // Get first repayment week if specified
+    const firstRepaymentWeekSelect = document.getElementById('firstRepaymentWeekSelect');
+    let firstRepaymentWeek = startIndex;
+    if (firstRepaymentWeekSelect && firstRepaymentWeekSelect.value) {
+      firstRepaymentWeek = parseInt(firstRepaymentWeekSelect.value);
+    }
+    
     // Initialize variables for the new logic
     let outstanding = targetReturn;
     let repayments = [];
-    let currentWeekIndex = startIndex;
+    let currentWeekIndex = Math.max(startIndex, firstRepaymentWeek);
     let extendedWeeks = [...filteredWeeks];
     let extendedWeekStartDates = [...weekStartDates];
+    
+    // Helper function to check if a week has sufficient bank balance for a repayment
+    function hasValidBankBalance(weekIndex, repaymentAmount) {
+      if (!cashflow || !cashflow.income || !cashflow.expenditure) {
+        return true; // No cashflow data, assume sufficient
+      }
+      
+      // Calculate rolling balance up to this week
+      let rolling = openingBalance;
+      for (let i = 0; i <= weekIndex; i++) {
+        const income = cashflow.income[i] || 0;
+        const expenditure = cashflow.expenditure[i] || 0;
+        rolling = rolling + income - expenditure;
+        
+        // If this is the week we're checking, subtract the proposed repayment
+        if (i === weekIndex) {
+          rolling -= repaymentAmount;
+        }
+      }
+      
+      return rolling >= 0; // Bank balance should not go negative
+    }
     
     // Helper function to add a week with proper date calculation
     function addWeekToSchedule() {
@@ -1114,7 +1165,26 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Calculate payment amount (either full installment or remaining outstanding)
-      const payment = Math.min(suggestedInstallmentAmount, outstanding);
+      let payment = Math.min(suggestedInstallmentAmount, outstanding);
+      
+      // Check if bank balance is sufficient for this payment
+      if (!hasValidBankBalance(currentWeekIndex, payment)) {
+        // Try smaller payment amounts or skip this week
+        let maxAffordablePayment = 0;
+        for (let testPayment = payment * 0.1; testPayment <= payment; testPayment += payment * 0.1) {
+          if (hasValidBankBalance(currentWeekIndex, testPayment)) {
+            maxAffordablePayment = testPayment;
+          }
+        }
+        
+        if (maxAffordablePayment > 0.01) {
+          payment = maxAffordablePayment;
+        } else {
+          // Skip this week if no affordable payment found
+          currentWeekIndex++;
+          continue;
+        }
+      }
       
       repayments.push({
         weekIndex: currentWeekIndex,
@@ -1376,12 +1446,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const effectiveWeekLabels = window.extendedWeekLabels || weekLabels;
     const effectiveWeekStartDates = window.extendedWeekStartDates || weekStartDates;
     
-    // Ensure we have some repayments to show - either actual or suggested
-    const hasActualRepayments = actualRepayments && actualRepayments.length > 0 && actualRepayments.some(r => r > 0);
+    // Always show the table - actual repayments are always displayed even if zero
+    const hasActualRepayments = actualRepayments && actualRepayments.length > 0;
     const hasSuggestedRepayments = suggestedRepayments && suggestedRepayments.length > 0 && suggestedRepayments.some(r => r > 0);
     
-    if (!hasActualRepayments && !hasSuggestedRepayments) {
-      return '<p>No repayments to display. Please add repayments or generate suggestions.</p>';
+    // Initialize actual repayments array if not provided
+    if (!hasActualRepayments) {
+      actualRepayments = Array(effectiveWeekLabels.length).fill(0);
     }
     
     const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
@@ -1407,36 +1478,64 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Determine the maximum range to display
     const maxWeeks = Math.max(
-      hasActualRepayments ? actualRepayments.length : 0,
+      actualRepayments.length,
       hasSuggestedRepayments ? suggestedRepayments.length : 0,
       effectiveWeekLabels.length
     );
     
-    for (let i = 0; i < maxWeeks; i++) {
-      const weekIndex = investmentWeekIndex + i + 1;
-      const actualRepayment = (actualRepayments && actualRepayments[i]) || 0;
+    // Create a combined index set of all weeks that need to be shown
+    const weeksToShow = new Set();
+    
+    // Add all weeks with actual repayments (even if zero) from investment week onwards
+    for (let i = investmentWeekIndex + 1; i < actualRepayments.length; i++) {
+      weeksToShow.add(i);
+    }
+    
+    // Add weeks with suggested repayments
+    if (hasSuggestedRepayments) {
+      for (let i = 0; i < suggestedRepayments.length; i++) {
+        if (suggestedRepayments[i] > 0) {
+          weeksToShow.add(i);
+        }
+      }
+    }
+    
+    // Convert to sorted array and ensure we include at least some weeks for display
+    const sortedWeeks = Array.from(weeksToShow).sort((a, b) => a - b);
+    
+    // If no weeks to show, show at least a few weeks from investment onwards for context
+    if (sortedWeeks.length === 0) {
+      for (let i = investmentWeekIndex + 1; i < Math.min(investmentWeekIndex + 5, effectiveWeekLabels.length); i++) {
+        sortedWeeks.push(i);
+      }
+    }
+    
+    for (const weekIndex of sortedWeeks) {
+      const actualRepayment = (actualRepayments && actualRepayments[weekIndex]) || 0;
       const suggestedRepayment = (suggestedRepayments && suggestedRepayments[weekIndex]) || 0;
-      
-      // Skip weeks with no repayments unless it's a suggestion
-      if (actualRepayment === 0 && suggestedRepayment === 0) continue;
       
       cum += actualRepayment;
       if (actualRepayment > 0) {
-        discCum += actualRepayment / Math.pow(1 + discountRate / 100, i + 1);
+        const periodIndex = weekIndex - investmentWeekIndex;
+        discCum += actualRepayment / Math.pow(1 + discountRate / 100, periodIndex);
       }
       
       if (suggestedRepayments) {
         sugCum += suggestedRepayment;
         if (suggestedRepayment > 0) {
-          sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, i + 1);
+          const periodIndex = weekIndex - investmentWeekIndex;
+          sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, periodIndex);
         }
       }
       
       const weekLabel = effectiveWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
       const weekDate = effectiveWeekStartDates[weekIndex] ? effectiveWeekStartDates[weekIndex].toLocaleDateString('en-GB') : '-';
       
+      // Highlight rows with suggested repayments
+      const rowStyle = suggestedRepayments && suggestedRepayment > 0 ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : '';
+      
       tableHtml += `
-        <tr ${suggestedRepayments && suggestedRepayment > 0 ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : ''}>
+        <tr ${rowStyle}>
           <td>${weekLabel}</td>
           <td>${weekDate}</td>
           <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
@@ -1777,6 +1876,122 @@ function clearRoiSuggestions() {
   const btn = document.getElementById('showSuggestedRepaymentsBtn');
   if (btn) btn.textContent = 'Show Suggested Repayments';
 }
+
+// -------------------- EXCEL EXPORT FUNCTIONALITY --------------------
+function setupExcelExport() {
+  const exportBtn = document.getElementById('exportToExcelBtn');
+  if (!exportBtn) return;
+  
+  exportBtn.addEventListener('click', function() {
+    try {
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      
+      // Get current repayments data
+      const actualRepayments = getRepaymentArr ? getRepaymentArr() : [];
+      const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
+      const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
+      
+      // Use mapped week labels if available
+      const actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
+        Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+      const actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
+        Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+      
+      // Sheet 1: Repayments Inputted (Actual)
+      const actualData = [];
+      actualData.push(['Week', 'Date', 'Repayment Amount', 'Cumulative Total', 'Discounted Cumulative']);
+      
+      let cumulative = 0;
+      let discountedCumulative = 0;
+      
+      for (let i = investmentWeekIndex + 1; i < actualRepayments.length; i++) {
+        const repayment = actualRepayments[i] || 0;
+        if (repayment > 0) {
+          cumulative += repayment;
+          const periodIndex = i - investmentWeekIndex;
+          discountedCumulative += repayment / Math.pow(1 + discountRate / 100, periodIndex);
+          
+          actualData.push([
+            actualWeekLabels[i] || `Week ${i + 1}`,
+            actualWeekStartDates[i] ? actualWeekStartDates[i].toLocaleDateString('en-GB') : '-',
+            repayment,
+            cumulative,
+            discountedCumulative
+          ]);
+        }
+      }
+      
+      // Add summary row for actual repayments
+      if (actualData.length > 1) {
+        actualData.push(['', '', '', '', '']);
+        actualData.push(['SUMMARY', '', '', '', '']);
+        actualData.push(['Total Investment', '', investment, '', '']);
+        actualData.push(['Total Repayments', '', cumulative, '', '']);
+        actualData.push(['Net Return', '', cumulative - investment, '', '']);
+      }
+      
+      const actualSheet = XLSX.utils.aoa_to_sheet(actualData);
+      XLSX.utils.book_append_sheet(workbook, actualSheet, 'Repayments Inputted');
+      
+      // Sheet 2: Adjusted IRR Suggestions (if available)
+      if (showSuggestions && suggestedRepayments) {
+        const suggestedData = [];
+        suggestedData.push(['Week', 'Date', 'Suggested Amount', 'Cumulative Total', 'Discounted Cumulative']);
+        
+        let sugCumulative = 0;
+        let sugDiscountedCumulative = 0;
+        
+        // Use extended week data if available
+        const effectiveWeekLabels = window.extendedWeekLabels || actualWeekLabels;
+        const effectiveWeekStartDates = window.extendedWeekStartDates || actualWeekStartDates;
+        
+        for (let i = 0; i < suggestedRepayments.length; i++) {
+          const suggestedAmount = suggestedRepayments[i] || 0;
+          if (suggestedAmount > 0) {
+            sugCumulative += suggestedAmount;
+            const periodIndex = i - investmentWeekIndex;
+            sugDiscountedCumulative += suggestedAmount / Math.pow(1 + discountRate / 100, periodIndex);
+            
+            suggestedData.push([
+              effectiveWeekLabels[i] || `Week ${i + 1}`,
+              effectiveWeekStartDates[i] ? effectiveWeekStartDates[i].toLocaleDateString('en-GB') : '-',
+              suggestedAmount,
+              sugCumulative,
+              sugDiscountedCumulative
+            ]);
+          }
+        }
+        
+        // Add summary row for suggested repayments
+        if (suggestedData.length > 1) {
+          suggestedData.push(['', '', '', '', '']);
+          suggestedData.push(['SUMMARY', '', '', '', '']);
+          suggestedData.push(['Total Investment', '', investment, '', '']);
+          suggestedData.push(['Total Suggested Repayments', '', sugCumulative, '', '']);
+          suggestedData.push(['Net Return', '', sugCumulative - investment, '', '']);
+          if (achievedSuggestedIRR !== null && isFinite(achievedSuggestedIRR)) {
+            suggestedData.push(['Achieved IRR', '', (achievedSuggestedIRR * 100).toFixed(2) + '%', '', '']);
+          }
+        }
+        
+        const suggestedSheet = XLSX.utils.aoa_to_sheet(suggestedData);
+        XLSX.utils.book_append_sheet(workbook, suggestedSheet, 'Adjusted IRR Suggestions');
+      }
+      
+      // Generate and download the file
+      const fileName = `MATRIX_Repayments_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Error exporting to Excel. Please ensure you have a modern browser that supports file downloads.');
+    }
+  });
+}
+
+// Initialize Excel export functionality
+setupExcelExport();
 
   // -------------------- Update All Tabs --------------------
   function updateAllTabs() {
