@@ -31,6 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
   let targetIRR = 0.20; // Default 20%
   let installmentCount = 12; // Default 12 installments
   let liveUpdateEnabled = true;
+  
+  // --- BUFFER/GAP SETTINGS ---
+  let bufferSettings = {
+    type: 'none', // none, 2weeks, 1month, 2months, quarter, custom
+    customWeeks: 1
+  };
 
   // --- Chart.js chart instances for destroy ---
   let mainChart = null;
@@ -81,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   setupTabs();
   setupTargetIrrModal();
+  setupBufferModal();
 
   // -------------------- Spreadsheet Upload & Mapping --------------------
   function setupSpreadsheetUpload() {
@@ -1091,12 +1098,146 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDisplay();
   }
 
+  // -------------------- BUFFER SELECTION MODAL CONTROLS --------------------
+  function setupBufferModal() {
+    const modal = document.getElementById('bufferModal');
+    const bufferBtn = document.getElementById('bufferSelectionBtn');
+    const closeBtn = document.getElementById('closeBufferModal');
+    const applyBtn = document.getElementById('applyBufferSettings');
+    const cancelBtn = document.getElementById('cancelBufferSettings');
+    const bufferDisplay = document.getElementById('bufferSelectionDisplay');
+    const customBufferSettings = document.getElementById('customBufferSettings');
+    const customBufferWeeks = document.getElementById('customBufferWeeks');
+    
+    if (!modal || !bufferBtn) return;
+    
+    // Function to update buffer display
+    function updateBufferDisplay() {
+      if (!bufferDisplay) return;
+      
+      let displayText = '';
+      switch (bufferSettings.type) {
+        case 'none':
+          displayText = 'None (fastest schedule)';
+          break;
+        case '2weeks':
+          displayText = '2 weeks gap';
+          break;
+        case '1month':
+          displayText = '1 month gap';
+          break;
+        case '2months':
+          displayText = '2 months gap';
+          break;
+        case 'quarter':
+          displayText = 'Quarter (3 months) gap';
+          break;
+        case 'custom':
+          displayText = `Custom: ${bufferSettings.customWeeks} weeks gap`;
+          break;
+        default:
+          displayText = 'None selected';
+      }
+      bufferDisplay.textContent = displayText;
+    }
+    
+    // Function to get buffer weeks based on settings
+    function getBufferWeeks() {
+      switch (bufferSettings.type) {
+        case 'none':
+          return 0;
+        case '2weeks':
+          return 2;
+        case '1month':
+          return 4; // Approximate 4 weeks per month
+        case '2months':
+          return 8;
+        case 'quarter':
+          return 12; // Approximate 12 weeks per quarter
+        case 'custom':
+          return bufferSettings.customWeeks;
+        default:
+          return 0;
+      }
+    }
+    
+    // Make getBufferWeeks available globally for suggestion algorithm
+    window.getBufferWeeks = getBufferWeeks;
+    
+    // Open modal
+    bufferBtn.addEventListener('click', function() {
+      // Set current selection
+      const radioButtons = modal.querySelectorAll('input[name="bufferOption"]');
+      radioButtons.forEach(radio => {
+        radio.checked = radio.value === bufferSettings.type;
+      });
+      
+      if (customBufferWeeks) {
+        customBufferWeeks.value = bufferSettings.customWeeks;
+      }
+      
+      // Show/hide custom settings
+      if (customBufferSettings) {
+        customBufferSettings.style.display = bufferSettings.type === 'custom' ? 'block' : 'none';
+      }
+      
+      modal.style.display = 'flex';
+    });
+    
+    // Close modal
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+    
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    // Click outside modal to close
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeModal();
+    });
+    
+    // Handle radio button changes
+    modal.addEventListener('change', function(e) {
+      if (e.target.name === 'bufferOption') {
+        if (customBufferSettings) {
+          customBufferSettings.style.display = e.target.value === 'custom' ? 'block' : 'none';
+        }
+      }
+    });
+    
+    // Apply settings
+    applyBtn.addEventListener('click', function() {
+      const selectedRadio = modal.querySelector('input[name="bufferOption"]:checked');
+      if (selectedRadio) {
+        bufferSettings.type = selectedRadio.value;
+        
+        if (bufferSettings.type === 'custom' && customBufferWeeks) {
+          bufferSettings.customWeeks = parseInt(customBufferWeeks.value) || 1;
+        }
+        
+        updateBufferDisplay();
+        
+        // If suggestions are currently shown, regenerate them with new buffer
+        if (showSuggestions) {
+          generateAndUpdateSuggestions();
+        }
+      }
+      closeModal();
+    });
+    
+    // Initialize display
+    updateBufferDisplay();
+  }
+
   // -------------------- ENHANCED SUGGESTION ALGORITHM --------------------
   function computeEnhancedSuggestedRepayments({investment, targetIRR, installmentCount, filteredWeeks, investmentWeekIndex, openingBalance, cashflow, weekStartDates}) {
     if (!filteredWeeks || !filteredWeeks.length || targetIRR <= 0 || installmentCount <= 0) {
-      return { suggestedRepayments: [], achievedIRR: null };
+      return { suggestedRepayments: [], achievedIRR: null, warnings: [] };
     }
 
+    let warnings = [];
+    
     // Calculate total amount that needs to be recouped (investment + target return)
     const targetReturn = investment * (1 + targetIRR);
     
@@ -1114,12 +1255,16 @@ document.addEventListener('DOMContentLoaded', function() {
       firstRepaymentWeek = parseInt(firstRepaymentWeekSelect.value);
     }
     
+    // Get buffer settings
+    const bufferWeeks = window.getBufferWeeks ? window.getBufferWeeks() : 0;
+    
     // Initialize variables for the new logic
     let outstanding = targetReturn;
     let repayments = [];
     let currentWeekIndex = Math.max(startIndex, firstRepaymentWeek);
     let extendedWeeks = [...filteredWeeks];
     let extendedWeekStartDates = [...weekStartDates];
+    let lastRepaymentWeek = -1; // Track last repayment for buffer logic
     
     // Helper function to check if a week has sufficient bank balance for a repayment
     function hasValidBankBalance(weekIndex, repaymentAmount) {
@@ -1129,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Calculate rolling balance up to this week
       let rolling = openingBalance;
-      for (let i = 0; i <= weekIndex; i++) {
+      for (let i = 0; i <= weekIndex && i < Math.max(cashflow.income.length, cashflow.expenditure.length); i++) {
         const income = cashflow.income[i] || 0;
         const expenditure = cashflow.expenditure[i] || 0;
         rolling = rolling + income - expenditure;
@@ -1157,11 +1302,28 @@ document.addEventListener('DOMContentLoaded', function() {
       return newWeekIndex;
     }
     
+    // Helper function to check if buffer requirement is met
+    function isBufferSatisfied(weekIndex) {
+      if (bufferWeeks === 0 || lastRepaymentWeek === -1) return true;
+      return (weekIndex - lastRepaymentWeek) >= bufferWeeks;
+    }
+    
+    let maxAttempts = 500; // Prevent infinite loops
+    let attempts = 0;
+    
     // Continue adding repayments until outstanding is fully covered
-    while (outstanding > 0.01) { // Use small threshold to handle floating point precision
+    while (outstanding > 0.01 && attempts < maxAttempts) { // Use small threshold to handle floating point precision
+      attempts++;
+      
       // Ensure we have enough weeks in the schedule
       if (currentWeekIndex >= extendedWeeks.length) {
         addWeekToSchedule();
+      }
+      
+      // Check if buffer requirement is satisfied
+      if (!isBufferSatisfied(currentWeekIndex)) {
+        currentWeekIndex++;
+        continue;
       }
       
       // Calculate payment amount (either full installment or remaining outstanding)
@@ -1169,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Check if bank balance is sufficient for this payment
       if (!hasValidBankBalance(currentWeekIndex, payment)) {
-        // Try smaller payment amounts or skip this week
+        // Try smaller payment amounts
         let maxAffordablePayment = 0;
         for (let testPayment = payment * 0.1; testPayment <= payment; testPayment += payment * 0.1) {
           if (hasValidBankBalance(currentWeekIndex, testPayment)) {
@@ -1193,7 +1355,19 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       
       outstanding -= payment;
-      currentWeekIndex++;
+      lastRepaymentWeek = currentWeekIndex;
+      currentWeekIndex += (bufferWeeks + 1); // Move to next allowed week based on buffer
+    }
+    
+    // Check if plan is achievable
+    if (outstanding > 0.01) {
+      warnings.push(`Unable to achieve target IRR with current settings. Remaining amount: €${outstanding.toLocaleString(undefined, {maximumFractionDigits: 2})}. Consider reducing buffer, increasing installment count, or extending the schedule.`);
+    }
+    
+    // Ensure the last payment covers any remaining amount due to rounding
+    if (repayments.length > 0 && outstanding > 0.01) {
+      repayments[repayments.length - 1].amount += outstanding;
+      outstanding = 0;
     }
     
     // Create the suggested array covering all weeks (original + extended if needed)
@@ -1207,13 +1381,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
-    // Validate bank balance constraint only if there's meaningful cashflow data
-    let finalSuggestedArray = suggestedArray;
-    if (cashflow && cashflow.income && cashflow.expenditure && 
-        (cashflow.income.some(i => i > 0) || cashflow.expenditure.some(e => e > 0))) {
-      const validatedRepayments = validateBankBalanceConstraint(suggestedArray, cashflow, openingBalance, extendedWeeks, startIndex - 1);
-      if (validatedRepayments) {
-        finalSuggestedArray = validatedRepayments;
+    // Validate that total repayments equal target return (within small margin)
+    const totalRepayments = suggestedArray.reduce((sum, amount) => sum + amount, 0);
+    const shortfall = targetReturn - totalRepayments;
+    
+    if (Math.abs(shortfall) > 0.01) {
+      if (shortfall > 0 && repayments.length > 0) {
+        // Add shortfall to last payment
+        const lastRepaymentIndex = repayments[repayments.length - 1].weekIndex;
+        if (lastRepaymentIndex < suggestedArray.length) {
+          suggestedArray[lastRepaymentIndex] += shortfall;
+        }
       }
     }
     
@@ -1222,24 +1400,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const cashflowDates = [extendedWeekStartDates[investmentWeekIndex] || new Date(2025, 0, 1)];
     
     // Add repayment cashflows starting from the investment week
-    for (let i = startIndex; i < finalSuggestedArray.length; i++) {
-      if (finalSuggestedArray[i] > 0) {
-        cashflows.push(finalSuggestedArray[i]);
+    for (let i = startIndex; i < suggestedArray.length; i++) {
+      if (suggestedArray[i] > 0) {
+        cashflows.push(suggestedArray[i]);
         cashflowDates.push(extendedWeekStartDates[i] || new Date(2025, 0, 1 + i * 7));
       }
     }
     
     const achievedIRR = calculateIRR(cashflows, cashflowDates);
     
+    // Check if achieved IRR is significantly different from target
+    if (isFinite(achievedIRR) && Math.abs(achievedIRR - targetIRR) > 0.01) {
+      warnings.push(`Achieved IRR (${(achievedIRR * 100).toFixed(2)}%) differs from target IRR (${(targetIRR * 100).toFixed(2)}%). Consider adjusting settings.`);
+    }
+    
     // Trim the suggested array to only include weeks up to the last repayment
-    const lastRepaymentIndex = finalSuggestedArray.findLastIndex(amount => amount > 0);
-    const trimmedArray = lastRepaymentIndex >= 0 ? finalSuggestedArray.slice(0, lastRepaymentIndex + 1) : finalSuggestedArray;
+    const lastRepaymentIndex = suggestedArray.findLastIndex(amount => amount > 0);
+    const trimmedArray = lastRepaymentIndex >= 0 ? suggestedArray.slice(0, lastRepaymentIndex + 1) : suggestedArray;
     
     return {
       suggestedRepayments: trimmedArray,
       achievedIRR: achievedIRR,
       extendedWeeks: extendedWeeks.slice(0, trimmedArray.length),
-      extendedWeekStartDates: extendedWeekStartDates.slice(0, trimmedArray.length)
+      extendedWeekStartDates: extendedWeekStartDates.slice(0, trimmedArray.length),
+      warnings: warnings
     };
   }
   
@@ -1293,6 +1477,13 @@ document.addEventListener('DOMContentLoaded', function() {
     suggestedRepayments = result.suggestedRepayments;
     achievedSuggestedIRR = result.achievedIRR;
     
+    // Display warnings if any
+    if (result.warnings && result.warnings.length > 0) {
+      displaySuggestionWarnings(result.warnings);
+    } else {
+      clearSuggestionWarnings();
+    }
+    
     // Store extended weeks and dates for rendering if schedule was extended
     if (result.extendedWeeks && result.extendedWeekStartDates) {
       // Update global variables to include extended weeks for rendering
@@ -1304,6 +1495,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Re-render the ROI section to show updated suggestions
     renderRoiSection();
+  }
+  
+  // -------------------- WARNING DISPLAY FUNCTIONS --------------------
+  function displaySuggestionWarnings(warnings) {
+    const warningElement = document.getElementById('roiWarningAlert');
+    if (!warningElement || !warnings || warnings.length === 0) return;
+    
+    let warningHtml = '<div class="alert alert-warning" style="margin-bottom: 1em;">';
+    warningHtml += '<strong>Planning Warnings:</strong><br>';
+    warnings.forEach(warning => {
+      warningHtml += `• ${warning}<br>`;
+    });
+    warningHtml += '</div>';
+    
+    warningElement.innerHTML = warningHtml;
+  }
+  
+  function clearSuggestionWarnings() {
+    const warningElement = document.getElementById('roiWarningAlert');
+    if (warningElement) {
+      warningElement.innerHTML = '';
+    }
   }
   function computeSuggestedRepayments({investment, targetIRR, filteredWeeks, investmentWeekIndex, openingBalance, cashflow, weekStartDates}) {
     if (!filteredWeeks || !filteredWeeks.length || targetIRR <= 0) {
@@ -1873,6 +2086,7 @@ function clearRoiSuggestions() {
   showSuggestions = false;
   suggestedRepayments = null;
   achievedSuggestedIRR = null;
+  clearSuggestionWarnings();
   const btn = document.getElementById('showSuggestedRepaymentsBtn');
   if (btn) btn.textContent = 'Show Suggested Repayments';
 }
