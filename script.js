@@ -431,14 +431,25 @@ document.addEventListener('DOMContentLoaded', function() {
   function getRepaymentArr() {
     // If no mapping is configured, use default week labels for repayment calculations
     let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
     let arr = Array(actualWeekLabels.length).fill(0);
+    
+    // Store explicit date repayments separately to handle back-dating
+    let explicitDateRepayments = [];
     
     repaymentRows.forEach(r => {
       if (r.type === "week") {
         let weekIdx = actualWeekLabels.indexOf(r.week);
         if (weekIdx === -1) weekIdx = 0;
         arr[weekIdx] += r.amount;
+      } else if (r.type === "date" && r.explicitDate) {
+        // Store explicit date repayments for later processing
+        explicitDateRepayments.push({
+          date: new Date(r.explicitDate),
+          amount: r.amount
+        });
       } else {
+        // Handle frequency-based repayments
         if (r.frequency === "monthly") {
           let perMonth = Math.ceil(arr.length/12);
           for (let m=0; m<12; m++) {
@@ -455,6 +466,26 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
+    // Process explicit date repayments
+    if (explicitDateRepayments.length > 0) {
+      explicitDateRepayments.forEach(explicitRepayment => {
+        // Find the closest week to this explicit date
+        let closestWeekIdx = 0;
+        let closestDiff = Math.abs(actualWeekStartDates[0] - explicitRepayment.date);
+        
+        for (let i = 1; i < actualWeekStartDates.length; i++) {
+          let diff = Math.abs(actualWeekStartDates[i] - explicitRepayment.date);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestWeekIdx = i;
+          }
+        }
+        
+        // Add the repayment to the closest week
+        arr[closestWeekIdx] += explicitRepayment.amount;
+      });
+    }
+    
     // If mapping is configured, return filtered results. Otherwise, return all results.
     if (mappingConfigured && weekLabels.length > 0) {
       return getFilteredWeekIndices().map(idx => arr[idx]);
@@ -462,6 +493,55 @@ document.addEventListener('DOMContentLoaded', function() {
       // Return all weeks when no mapping is configured
       return arr;
     }
+  }
+  
+  // New function to get explicit repayment dates and amounts for NPV/IRR calculations
+  function getExplicitRepaymentSchedule() {
+    let schedule = [];
+    let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    
+    repaymentRows.forEach(r => {
+      if (r.type === "week") {
+        let weekIdx = actualWeekLabels.indexOf(r.week);
+        if (weekIdx === -1) weekIdx = 0;
+        let date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+        schedule.push({ date, amount: r.amount });
+      } else if (r.type === "date" && r.explicitDate) {
+        schedule.push({ date: new Date(r.explicitDate), amount: r.amount });
+      } else {
+        // Handle frequency-based repayments with calculated dates
+        if (r.frequency === "monthly") {
+          let perMonth = Math.ceil(actualWeekLabels.length/12);
+          for (let m=0; m<12; m++) {
+            let weekIdx = m * perMonth;
+            if (weekIdx < actualWeekStartDates.length) {
+              let date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+              schedule.push({ date, amount: r.amount });
+            }
+          }
+        }
+        if (r.frequency === "quarterly") {
+          let perQuarter = Math.ceil(actualWeekLabels.length/4);
+          for (let q=0;q<4;q++) {
+            let weekIdx = q * perQuarter;
+            if (weekIdx < actualWeekStartDates.length) {
+              let date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+              schedule.push({ date, amount: r.amount });
+            }
+          }
+        }
+        if (r.frequency === "one-off") { 
+          let date = actualWeekStartDates[0] || new Date(2025, 0, 1);
+          schedule.push({ date, amount: r.amount });
+        }
+      }
+    });
+    
+    // Sort by date to handle back-dating properly
+    schedule.sort((a, b) => a.date - b.date);
+    
+    return schedule;
   }
   function getNetProfitArr(incomeArr, expenditureArr, repaymentArr) {
     return incomeArr.map((inc, i) => (inc || 0) - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
@@ -509,14 +589,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function setupRepaymentForm() {
     if (!weekSelect || !repaymentFrequency) return;
+    const repaymentDateInput = document.getElementById('repaymentDate');
+    
     document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
       radio.addEventListener('change', function() {
         if (this.value === "week") {
           weekSelect.disabled = false;
           repaymentFrequency.disabled = true;
+          if (repaymentDateInput) repaymentDateInput.disabled = true;
+        } else if (this.value === "date") {
+          weekSelect.disabled = true;
+          repaymentFrequency.disabled = true;
+          if (repaymentDateInput) repaymentDateInput.disabled = false;
         } else {
           weekSelect.disabled = true;
           repaymentFrequency.disabled = false;
+          if (repaymentDateInput) repaymentDateInput.disabled = true;
         }
       });
     });
@@ -526,23 +614,38 @@ document.addEventListener('DOMContentLoaded', function() {
       addRepaymentForm.onsubmit = function(e) {
         e.preventDefault();
         const type = document.querySelector('input[name="repaymentType"]:checked').value;
-        let week = null, frequency = null;
+        let week = null, frequency = null, explicitDate = null;
         if (type === "week") {
           week = weekSelect.value;
+        } else if (type === "date") {
+          explicitDate = repaymentDateInput ? repaymentDateInput.value : null;
+          if (!explicitDate) {
+            alert('Please select a date for the repayment.');
+            return;
+          }
         } else {
           frequency = repaymentFrequency.value;
         }
         const amount = document.getElementById('repaymentAmount').value;
         if (!amount) return;
-        repaymentRows.push({ type, week, frequency, amount: parseFloat(amount), editing: false });
+        repaymentRows.push({ 
+          type, 
+          week, 
+          frequency, 
+          explicitDate, 
+          amount: parseFloat(amount), 
+          editing: false 
+        });
         renderRepaymentRows();
         this.reset();
         populateWeekDropdown(weekLabels);
         document.getElementById('weekSelect').selectedIndex = 0;
         document.getElementById('repaymentFrequency').selectedIndex = 0;
+        if (repaymentDateInput) repaymentDateInput.value = '';
         document.querySelector('input[name="repaymentType"][value="week"]').checked = true;
         weekSelect.disabled = false;
         repaymentFrequency.disabled = true;
+        if (repaymentDateInput) repaymentDateInput.disabled = true;
         updateAllTabs();
       };
     }
@@ -556,6 +659,8 @@ document.addEventListener('DOMContentLoaded', function() {
     repaymentRows.forEach((row, i) => {
       const div = document.createElement('div');
       div.className = 'repayment-row';
+      
+      // Week selector
       const weekSelectElem = document.createElement('select');
       (weekLabels.length ? weekLabels : Array.from({length:52}, (_,i)=>`Week ${i+1}`)).forEach(label => {
         const opt = document.createElement('option');
@@ -566,6 +671,14 @@ document.addEventListener('DOMContentLoaded', function() {
       weekSelectElem.value = row.week || "";
       weekSelectElem.disabled = !row.editing || row.type !== "week";
 
+      // Date selector
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = row.explicitDate || "";
+      dateInput.disabled = !row.editing || row.type !== "date";
+      dateInput.style.width = '140px';
+
+      // Frequency selector
       const freqSelect = document.createElement('select');
       ["monthly", "quarterly", "one-off"].forEach(f => {
         const opt = document.createElement('option');
@@ -576,18 +689,22 @@ document.addEventListener('DOMContentLoaded', function() {
       freqSelect.value = row.frequency || "monthly";
       freqSelect.disabled = !row.editing || row.type !== "frequency";
 
+      // Amount input
       const amountInput = document.createElement('input');
       amountInput.type = 'number';
       amountInput.value = row.amount;
       amountInput.placeholder = 'Repayment €';
       amountInput.disabled = !row.editing;
 
+      // Edit button
       const editBtn = document.createElement('button');
       editBtn.textContent = row.editing ? 'Save' : 'Edit';
       editBtn.onclick = function() {
         if (row.editing) {
           if (row.type === "week") {
             row.week = weekSelectElem.value;
+          } else if (row.type === "date") {
+            row.explicitDate = dateInput.value;
           } else {
             row.frequency = freqSelect.value;
           }
@@ -598,6 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAllTabs();
       };
 
+      // Remove button
       const removeBtn = document.createElement('button');
       removeBtn.textContent = 'Remove';
       removeBtn.onclick = function() {
@@ -606,17 +724,24 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAllTabs();
       };
 
+      // Mode label and appropriate control
       const modeLabel = document.createElement('span');
       modeLabel.style.marginRight = "10px";
-      modeLabel.textContent = row.type === "week" ? "Week" : "Frequency";
-
+      
       if (row.type === "week") {
+        modeLabel.textContent = "Week";
         div.appendChild(modeLabel);
         div.appendChild(weekSelectElem);
+      } else if (row.type === "date") {
+        modeLabel.textContent = "Date";
+        div.appendChild(modeLabel);
+        div.appendChild(dateInput);
       } else {
+        modeLabel.textContent = "Frequency";
         div.appendChild(modeLabel);
         div.appendChild(freqSelect);
       }
+      
       div.appendChild(amountInput);
       div.appendChild(editBtn);
       div.appendChild(removeBtn);
@@ -1653,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // --- ROI TABLE RENDERING (SINGLE TABLE, OVERLAY SUGGESTIONS) ---
-  function renderRoiPaybackTable({actualRepayments, suggestedRepayments, filteredWeeks, weekLabels, weekStartDates, investmentWeekIndex}) {
+  function renderRoiPaybackTable({actualRepayments, suggestedRepayments, filteredWeeks, weekLabels, weekStartDates, investmentWeekIndex, explicitSchedule}) {
     if (!weekLabels) return '';
     
     // Use extended week data if available (for suggestions that go beyond original schedule)
@@ -1663,6 +1788,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Always show the table - actual repayments are always displayed even if zero
     const hasActualRepayments = actualRepayments && actualRepayments.length > 0;
     const hasSuggestedRepayments = suggestedRepayments && suggestedRepayments.length > 0 && suggestedRepayments.some(r => r > 0);
+    const hasExplicitDates = explicitSchedule && explicitSchedule.length > 0;
     
     // Initialize actual repayments array if not provided
     if (!hasActualRepayments) {
@@ -1724,61 +1850,112 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    for (const weekIndex of sortedWeeks) {
-      const actualRepayment = (actualRepayments && actualRepayments[weekIndex]) || 0;
-      const suggestedRepayment = (suggestedRepayments && suggestedRepayments[weekIndex]) || 0;
-      
-      cum += actualRepayment;
-      if (actualRepayment > 0) {
-        // Use actual days from investment date for accurate discounting
-        const investmentDate = effectiveWeekStartDates[investmentWeekIndex];
-        const repaymentDate = effectiveWeekStartDates[weekIndex];
-        if (investmentDate && repaymentDate) {
+    // Handle explicit dates vs week-based display
+    if (hasExplicitDates) {
+      // For explicit dates, show entries sorted by date
+      explicitSchedule.forEach((scheduleItem, index) => {
+        const actualRepayment = scheduleItem.amount;
+        const suggestedRepayment = (suggestedRepayments && suggestedRepayments[index]) || 0;
+        
+        cum += actualRepayment;
+        if (actualRepayment > 0) {
+          // Use actual days from investment date for accurate discounting
+          const investmentDate = effectiveWeekStartDates[investmentWeekIndex] || new Date(2025, 0, 1);
+          const repaymentDate = scheduleItem.date;
+          
           const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
           const years = days / 365.25; // Use 365.25 for consistency with XIRR
           discCum += actualRepayment / Math.pow(1 + discountRate / 100, years);
-        } else {
-          // Fallback to period-based calculation if dates unavailable
-          const periodIndex = weekIndex - investmentWeekIndex;
-          discCum += actualRepayment / Math.pow(1 + discountRate / 100, periodIndex);
         }
-      }
-      
-      if (suggestedRepayments) {
-        sugCum += suggestedRepayment;
-        if (suggestedRepayment > 0) {
-          // Use actual days from investment date for accurate discounting  
+        
+        if (suggestedRepayments) {
+          sugCum += suggestedRepayment;
+          if (suggestedRepayment > 0) {
+            const investmentDate = effectiveWeekStartDates[investmentWeekIndex] || new Date(2025, 0, 1);
+            const repaymentDate = scheduleItem.date;
+            const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
+            const years = days / 365.25;
+            sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, years);
+          }
+        }
+        
+        // Show explicit date and a generated label
+        const weekLabel = `Repayment ${index + 1}`;
+        const weekDate = scheduleItem.date.toLocaleDateString('en-GB');
+        
+        // Highlight rows with suggested repayments
+        const rowStyle = suggestedRepayments && suggestedRepayment > 0 ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : '';
+        
+        tableHtml += `
+          <tr ${rowStyle}>
+            <td>${weekLabel}</td>
+            <td style="font-weight: bold; color: #1976d2;">${weekDate}</td>
+            <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            ${suggestedRepayments ? `<td style="color: #2196f3; font-weight: bold;">€${suggestedRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+            <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            ${suggestedRepayments ? `<td style="color: #2196f3;">€${sugCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+            <td>€${discCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      });
+    } else {
+      // Use traditional week-based display
+      for (const weekIndex of sortedWeeks) {
+        const actualRepayment = (actualRepayments && actualRepayments[weekIndex]) || 0;
+        const suggestedRepayment = (suggestedRepayments && suggestedRepayments[weekIndex]) || 0;
+        
+        cum += actualRepayment;
+        if (actualRepayment > 0) {
+          // Use actual days from investment date for accurate discounting
           const investmentDate = effectiveWeekStartDates[investmentWeekIndex];
           const repaymentDate = effectiveWeekStartDates[weekIndex];
           if (investmentDate && repaymentDate) {
             const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
             const years = days / 365.25; // Use 365.25 for consistency with XIRR
-            sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, years);
+            discCum += actualRepayment / Math.pow(1 + discountRate / 100, years);
           } else {
             // Fallback to period-based calculation if dates unavailable
             const periodIndex = weekIndex - investmentWeekIndex;
-            sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, periodIndex);
+            discCum += actualRepayment / Math.pow(1 + discountRate / 100, periodIndex);
           }
         }
+        
+        if (suggestedRepayments) {
+          sugCum += suggestedRepayment;
+          if (suggestedRepayment > 0) {
+            // Use actual days from investment date for accurate discounting  
+            const investmentDate = effectiveWeekStartDates[investmentWeekIndex];
+            const repaymentDate = effectiveWeekStartDates[weekIndex];
+            if (investmentDate && repaymentDate) {
+              const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
+              const years = days / 365.25; // Use 365.25 for consistency with XIRR
+              sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, years);
+            } else {
+              // Fallback to period-based calculation if dates unavailable
+              const periodIndex = weekIndex - investmentWeekIndex;
+              sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, periodIndex);
+            }
+          }
+        }
+        
+        const weekLabel = effectiveWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
+        const weekDate = effectiveWeekStartDates[weekIndex] ? effectiveWeekStartDates[weekIndex].toLocaleDateString('en-GB') : '-';
+        
+        // Highlight rows with suggested repayments
+        const rowStyle = suggestedRepayments && suggestedRepayment > 0 ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : '';
+        
+        tableHtml += `
+          <tr ${rowStyle}>
+            <td>${weekLabel}</td>
+            <td>${weekDate}</td>
+            <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            ${suggestedRepayments ? `<td style="color: #2196f3; font-weight: bold;">€${suggestedRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+            <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            ${suggestedRepayments ? `<td style="color: #2196f3;">€${sugCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
+            <td>€${discCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+          </tr>
+        `;
       }
-      
-      const weekLabel = effectiveWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
-      const weekDate = effectiveWeekStartDates[weekIndex] ? effectiveWeekStartDates[weekIndex].toLocaleDateString('en-GB') : '-';
-      
-      // Highlight rows with suggested repayments
-      const rowStyle = suggestedRepayments && suggestedRepayment > 0 ? 'style="background-color: rgba(33, 150, 243, 0.05);"' : '';
-      
-      tableHtml += `
-        <tr ${rowStyle}>
-          <td>${weekLabel}</td>
-          <td>${weekDate}</td>
-          <td>€${actualRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-          ${suggestedRepayments ? `<td style="color: #2196f3; font-weight: bold;">€${suggestedRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
-          <td>€${cum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-          ${suggestedRepayments ? `<td style="color: #2196f3;">€${sugCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>` : ''}
-          <td>€${discCum.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
-        </tr>
-      `;
     }
     
     tableHtml += `</tbody></table>`;
@@ -1813,15 +1990,36 @@ function renderRoiSection() {
   let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
   let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
   
-  const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
-  const repayments = repaymentsFull.slice(investmentWeek);
-
-  const cashflows = [-investment, ...repayments];
-
-  let cashflowDates = [investmentDate];
-  for (let i = 1; i < cashflows.length; i++) {
-    let idx = investmentWeek + i;
-    cashflowDates[i] = actualWeekStartDates[idx] || null;
+  // Get explicit repayment schedule for accurate date-based calculations
+  const explicitSchedule = getExplicitRepaymentSchedule();
+  
+  // Check if we have any explicit date repayments
+  const hasExplicitDates = explicitSchedule.some(item => 
+    repaymentRows.some(r => r.type === "date" && r.explicitDate)
+  );
+  
+  let cashflows, cashflowDates;
+  
+  if (hasExplicitDates && explicitSchedule.length > 0) {
+    // Use explicit repayment schedule for NPV/IRR calculations
+    const investmentScheduleDate = investmentDate || actualWeekStartDates[investmentWeek] || new Date(2025, 0, 1);
+    
+    // Filter schedule to only include repayments after investment date
+    const futureRepayments = explicitSchedule.filter(item => item.date >= investmentScheduleDate);
+    
+    cashflows = [-investment, ...futureRepayments.map(item => item.amount)];
+    cashflowDates = [investmentScheduleDate, ...futureRepayments.map(item => item.date)];
+  } else {
+    // Fall back to traditional week-based approach
+    const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
+    const repayments = repaymentsFull.slice(investmentWeek);
+    
+    cashflows = [-investment, ...repayments];
+    cashflowDates = [investmentDate];
+    for (let i = 1; i < cashflows.length; i++) {
+      let idx = investmentWeek + i;
+      cashflowDates[i] = actualWeekStartDates[idx] || null;
+    }
   }
 
   function npv(rate, cashflows) {
@@ -1866,42 +2064,77 @@ function renderRoiSection() {
   let irrVal = (cashflows.length > 1 && cashflowDates.length > 1 && cashflowDates[0]) ? 
     xirr(cashflows, cashflowDates) : NaN;
 
+  // Calculate discounted payback using actual repayment dates
   let discCum = 0, payback = null;
   for (let i = 1; i < cashflows.length; i++) {
-    // Use actual days from investment date for accurate discounting
-    const investmentDate = actualWeekStartDates[investmentWeek];
-    const repaymentDate = actualWeekStartDates[investmentWeek + i];
     let discounted;
     
-    if (investmentDate && repaymentDate) {
-      const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
+    if (cashflowDates[0] && cashflowDates[i]) {
+      const days = (cashflowDates[i] - cashflowDates[0]) / (24 * 3600 * 1000);
       const years = days / 365.25; // Use 365.25 for consistency with XIRR
-      discounted = repayments[i - 1] / Math.pow(1 + discountRate / 100, years);
+      discounted = cashflows[i] / Math.pow(1 + discountRate / 100, years);
     } else {
       // Fallback to period-based calculation if dates unavailable
-      discounted = repayments[i - 1] / Math.pow(1 + discountRate / 100, i);
+      discounted = cashflows[i] / Math.pow(1 + discountRate / 100, i);
     }
     
     discCum += discounted;
     if (payback === null && discCum >= investment) payback = i;
   }
 
+  // Prepare data for table rendering
+  let tableRepayments;
+  if (hasExplicitDates && explicitSchedule.length > 0) {
+    // For explicit dates, create a combined schedule for display
+    tableRepayments = [];
+    const totalScheduleItems = Math.max(explicitSchedule.length, actualWeekLabels.length);
+    
+    // Create expanded table data that includes both week-based and explicit date repayments
+    for (let i = 0; i < totalScheduleItems; i++) {
+      const explicitItem = explicitSchedule[i];
+      const weekRepayment = i < getRepaymentArr().length ? getRepaymentArr()[i] : 0;
+      
+      if (explicitItem) {
+        tableRepayments.push(explicitItem.amount);
+      } else {
+        tableRepayments.push(weekRepayment);
+      }
+    }
+  } else {
+    // Use traditional week-based repayments
+    const repaymentsFull = getRepaymentArr ? getRepaymentArr() : [];
+    tableRepayments = repaymentsFull.slice(investmentWeek);
+  }
+
   // Instead of inline table generation, use renderRoiPaybackTable
   const filteredWeeks = getFilteredWeekIndices ? getFilteredWeekIndices() : Array.from({length: actualWeekLabels.length}, (_, i) => i);
   const tableHtml = renderRoiPaybackTable({
-    actualRepayments: repayments,
+    actualRepayments: tableRepayments,
     suggestedRepayments: showSuggestions ? suggestedRepayments : null,
     filteredWeeks,
     weekLabels: actualWeekLabels,
     weekStartDates: actualWeekStartDates,
-    investmentWeekIndex: investmentWeek
+    investmentWeekIndex: investmentWeek,
+    explicitSchedule: hasExplicitDates ? explicitSchedule : null
   });
 
+  // Calculate total repayments for summary
+  const totalRepayments = hasExplicitDates && explicitSchedule.length > 0 
+    ? explicitSchedule.reduce((sum, item) => sum + item.amount, 0)
+    : (tableRepayments ? tableRepayments.reduce((a, b) => a + b, 0) : 0);
+
   let summary = `<b>Total Investment:</b> €${investment.toLocaleString()}<br>
-    <b>Total Repayments:</b> €${repayments.reduce((a, b) => a + b, 0).toLocaleString()}<br>
+    <b>Total Repayments:</b> €${totalRepayments.toLocaleString()}<br>
     <b>NPV (${discountRate}%):</b> ${typeof npvVal === "number" ? "€" + npvVal.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "n/a"}<br>
     <b>IRR:</b> ${isFinite(irrVal) && !isNaN(irrVal) ? (irrVal * 100).toFixed(2) + '%' : 'n/a'}<br>
     <b>Discounted Payback (periods):</b> ${payback ?? 'n/a'}`;
+
+  // Add note about explicit dates if used
+  if (hasExplicitDates) {
+    summary += `<br><div style="margin-top:8px; padding:4px; background-color:#e3f2fd; border-radius:4px; font-size:0.9em;">
+      <strong>Note:</strong> Calculations use explicit dates provided for repayments.
+    </div>`;
+  }
 
   // Show achievedSuggestedIRR if present
   if (showSuggestions && achievedSuggestedIRR !== null && isFinite(achievedSuggestedIRR)) {
