@@ -543,6 +543,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     return schedule;
   }
+  
+  // Make function globally accessible for ROI calculations
+  window.getExplicitRepaymentSchedule = getExplicitRepaymentSchedule;
   function getNetProfitArr(incomeArr, expenditureArr, repaymentArr) {
     return incomeArr.map((inc, i) => (inc || 0) - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
   }
@@ -1991,7 +1994,7 @@ function renderRoiSection() {
   let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
   
   // Get explicit repayment schedule for accurate date-based calculations
-  const explicitSchedule = getExplicitRepaymentSchedule();
+  const explicitSchedule = window.getExplicitRepaymentSchedule ? window.getExplicitRepaymentSchedule() : getExplicitRepaymentSchedule();
   
   // Check if we have any explicit date repayments
   const hasExplicitDates = explicitSchedule.some(item => 
