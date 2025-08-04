@@ -1009,11 +1009,12 @@ document.addEventListener('DOMContentLoaded', function() {
         cashflowDates[i] = weekStartDates[idx] || new Date();
       }
       
-      // Use the global npv_date function if available, otherwise simple calculation
+      // Use the global npv_date function for consistent calculation
+      // This implements: NPV = sum(CF_i / (1 + r)^(t_i/365.25)) - Investment
       if (typeof npv_date === 'function') {
         return npv_date(irrRate, cashflows, cashflowDates);
       } else {
-        // Simple NPV calculation without dates
+        // Simple NPV calculation without dates (fallback)
         return cashflows.reduce((acc, val, i) => acc + val / Math.pow(1 + irrRate, i), 0);
       }
     }
@@ -1729,15 +1730,35 @@ document.addEventListener('DOMContentLoaded', function() {
       
       cum += actualRepayment;
       if (actualRepayment > 0) {
-        const periodIndex = weekIndex - investmentWeekIndex;
-        discCum += actualRepayment / Math.pow(1 + discountRate / 100, periodIndex);
+        // Use actual days from investment date for accurate discounting
+        const investmentDate = effectiveWeekStartDates[investmentWeekIndex];
+        const repaymentDate = effectiveWeekStartDates[weekIndex];
+        if (investmentDate && repaymentDate) {
+          const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
+          const years = days / 365.25; // Use 365.25 for consistency with XIRR
+          discCum += actualRepayment / Math.pow(1 + discountRate / 100, years);
+        } else {
+          // Fallback to period-based calculation if dates unavailable
+          const periodIndex = weekIndex - investmentWeekIndex;
+          discCum += actualRepayment / Math.pow(1 + discountRate / 100, periodIndex);
+        }
       }
       
       if (suggestedRepayments) {
         sugCum += suggestedRepayment;
         if (suggestedRepayment > 0) {
-          const periodIndex = weekIndex - investmentWeekIndex;
-          sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, periodIndex);
+          // Use actual days from investment date for accurate discounting  
+          const investmentDate = effectiveWeekStartDates[investmentWeekIndex];
+          const repaymentDate = effectiveWeekStartDates[weekIndex];
+          if (investmentDate && repaymentDate) {
+            const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
+            const years = days / 365.25; // Use 365.25 for consistency with XIRR
+            sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, years);
+          } else {
+            // Fallback to period-based calculation if dates unavailable
+            const periodIndex = weekIndex - investmentWeekIndex;
+            sugDiscCum += suggestedRepayment / Math.pow(1 + discountRate / 100, periodIndex);
+          }
         }
       }
       
@@ -1829,11 +1850,13 @@ function renderRoiSection() {
     return cashflows.reduce((acc, val, i) => {
       if (!dateArr[i]) return acc;
       let days = (dateArr[i] - baseDate) / msPerDay;
-      let years = days / 365;
+      let years = days / 365.25; // Use 365.25 for consistency with XIRR and more accurate annualization
       return acc + val / Math.pow(1 + rate, years);
     }, 0);
   }
 
+  // Calculate NPV using correct date-based formula: NPV = sum(CF_i / (1 + r)^(t_i/365.25)) - Investment
+  // where r = annual discount rate from ROI input, t_i = days since investment
   let npvVal = (discountRate && cashflows.length > 1 && cashflowDates[0]) ?
     npv_date(discountRate / 100, cashflows, cashflowDates) : null;
   
@@ -1845,7 +1868,20 @@ function renderRoiSection() {
 
   let discCum = 0, payback = null;
   for (let i = 1; i < cashflows.length; i++) {
-    let discounted = repayments[i - 1] / Math.pow(1 + discountRate / 100, i);
+    // Use actual days from investment date for accurate discounting
+    const investmentDate = actualWeekStartDates[investmentWeek];
+    const repaymentDate = actualWeekStartDates[investmentWeek + i];
+    let discounted;
+    
+    if (investmentDate && repaymentDate) {
+      const days = (repaymentDate - investmentDate) / (24 * 3600 * 1000);
+      const years = days / 365.25; // Use 365.25 for consistency with XIRR
+      discounted = repayments[i - 1] / Math.pow(1 + discountRate / 100, years);
+    } else {
+      // Fallback to period-based calculation if dates unavailable
+      discounted = repayments[i - 1] / Math.pow(1 + discountRate / 100, i);
+    }
+    
     discCum += discounted;
     if (payback === null && discCum >= investment) payback = i;
   }
@@ -2060,6 +2096,8 @@ function updateNPVDisplayInModal() {
         cashflowDates[i] = weekStartDates[idx] || new Date();
       }
       
+      // Use date-based NPV calculation with correct formula: 
+      // NPV = sum(CF_i / (1 + r)^(t_i/365.25)) - Investment
       const npvValue = npv_date(irrRate, cashflows, cashflowDates);
       npvDisplay.textContent = `€${npvValue.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
     }
