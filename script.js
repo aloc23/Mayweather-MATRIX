@@ -1,4 +1,162 @@
 document.addEventListener('DOMContentLoaded', function() {
+  // -------------------- Date/Week Utilities --------------------
+  
+  /**
+   * Parse date from column header text
+   * Supports formats like "Sat 28/06/2025", "28/06/2025", "28 Jun 2025", etc.
+   */
+  function parseColumnDate(headerText) {
+    if (!headerText || typeof headerText !== 'string') return null;
+    
+    const text = headerText.toString().trim();
+    
+    // Pattern 1: DD/MM/YYYY or DD/MM/YY
+    let match = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (match) {
+      let [, day, month, year] = match;
+      if (year.length === 2) year = '20' + year;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Pattern 2: DD-MM-YYYY or DD-MM-YY  
+    match = text.match(/(\d{1,2})-(\d{1,2})-(\d{2,4})/);
+    if (match) {
+      let [, day, month, year] = match;
+      if (year.length === 2) year = '20' + year;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Pattern 3: DD MMM YYYY (e.g., "28 Jun 2025")
+    const months = {
+      jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+      apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+      aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+      nov: 10, november: 10, dec: 11, december: 11
+    };
+    
+    match = text.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/i);
+    if (match) {
+      const [, day, monthStr, year] = match;
+      const monthIndex = months[monthStr.toLowerCase()];
+      if (monthIndex !== undefined) {
+        return new Date(parseInt(year), monthIndex, parseInt(day));
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Parse week number from column header text
+   * Supports formats like "Week 26", "Wk 26", "W26", etc.
+   */
+  function parseColumnWeekNumber(headerText) {
+    if (!headerText || typeof headerText !== 'string') return null;
+    
+    const text = headerText.toString().trim();
+    
+    // Pattern: Week N, Wk N, W N, WN
+    const match = text.match(/(?:week|wk|w)\s*(\d{1,2})/i);
+    if (match) {
+      const weekNum = parseInt(match[1]);
+      return weekNum >= 1 && weekNum <= 53 ? weekNum : null;
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Calculate ISO week number and year for a given date
+   */
+  function getISOWeek(date) {
+    if (!date || !(date instanceof Date) || isNaN(date)) return null;
+    
+    // Copy date to avoid mutation
+    const d = new Date(date.getTime());
+    
+    // Set to nearest Thursday: current date + 4 - current day number
+    // Make Sunday = 7
+    const dayOfWeek = d.getDay() === 0 ? 7 : d.getDay();
+    d.setDate(d.getDate() + 4 - dayOfWeek);
+    
+    // Get first day of year
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    
+    // Calculate full weeks to nearest Thursday
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    
+    return {
+      year: d.getFullYear(),
+      week: weekNo
+    };
+  }
+  
+  /**
+   * Create a week key for grouping (year-week)
+   */
+  function createWeekKey(year, week) {
+    return `${year}-W${week.toString().padStart(2, '0')}`;
+  }
+  
+  /**
+   * Group column mappings by calendar week
+   */
+  function groupColumnsByWeek(columnHeaders, baseYear = 2025) {
+    const groups = new Map();
+    const ungrouped = [];
+    
+    columnHeaders.forEach((header, index) => {
+      let weekKey = null;
+      let parsedDate = null;
+      let weekNumber = null;
+      
+      // Try to parse as date first
+      parsedDate = parseColumnDate(header);
+      if (parsedDate) {
+        const isoWeek = getISOWeek(parsedDate);
+        if (isoWeek) {
+          weekKey = createWeekKey(isoWeek.year, isoWeek.week);
+        }
+      }
+      
+      // Try to parse as week number if date parsing failed
+      if (!weekKey) {
+        weekNumber = parseColumnWeekNumber(header);
+        if (weekNumber) {
+          weekKey = createWeekKey(baseYear, weekNumber);
+        }
+      }
+      
+      const columnInfo = {
+        index,
+        header,
+        parsedDate,
+        weekNumber,
+        weekKey
+      };
+      
+      if (weekKey) {
+        if (!groups.has(weekKey)) {
+          groups.set(weekKey, {
+            weekKey,
+            year: weekKey.split('-')[0],
+            week: parseInt(weekKey.split('-W')[1]),
+            columns: [],
+            primaryHeader: header // Use first header as primary
+          });
+        }
+        groups.get(weekKey).columns.push(columnInfo);
+      } else {
+        ungrouped.push(columnInfo);
+      }
+    });
+    
+    return {
+      groups: Array.from(groups.values()),
+      ungrouped
+    };
+  }
+
   // -------------------- State --------------------
   let rawData = [];
   let mappedData = [];
@@ -17,6 +175,12 @@ document.addEventListener('DOMContentLoaded', function() {
   let loanOutstanding = 0;
   let roiInvestment = 120000;
   let roiInterest = 0.0;
+
+  // Week grouping state
+  let weekGroups = [];
+  let ungroupedColumns = [];
+  let groupingEnabled = true;
+  let userGroupingOverrides = new Map(); // Store user modifications to groupings
 
   // ROI week/date mapping
   let weekStartDates = [];
@@ -202,7 +366,99 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 0);
     }
 
-    // Reset button for mapping
+    // Week Grouping Controls
+    if (weekLabels.length > 0) {
+      const groupingDiv = document.createElement('div');
+      groupingDiv.style.marginTop = '15px';
+      groupingDiv.style.padding = '12px';
+      groupingDiv.style.border = '1px solid #e0e7ef';
+      groupingDiv.style.borderRadius = '6px';
+      groupingDiv.style.backgroundColor = '#f9fbfc';
+      
+      const groupingHeader = document.createElement('h4');
+      groupingHeader.textContent = 'Calendar Week Grouping';
+      groupingHeader.style.margin = '0 0 10px 0';
+      groupingHeader.style.color = '#1976d2';
+      groupingDiv.appendChild(groupingHeader);
+      
+      const groupingCheckbox = document.createElement('input');
+      groupingCheckbox.type = 'checkbox';
+      groupingCheckbox.id = 'enableGrouping';
+      groupingCheckbox.checked = groupingEnabled;
+      groupingCheckbox.onchange = function() {
+        groupingEnabled = this.checked;
+        updateWeekLabels();
+        renderMappingPanel(allRows);
+        updateAllTabs();
+      };
+      
+      const groupingLabel = document.createElement('label');
+      groupingLabel.htmlFor = 'enableGrouping';
+      groupingLabel.textContent = ' Enable automatic grouping of columns by calendar week';
+      groupingLabel.style.marginLeft = '5px';
+      
+      groupingDiv.appendChild(groupingCheckbox);
+      groupingDiv.appendChild(groupingLabel);
+      
+      if (groupingEnabled && (weekGroups.length > 0 || ungroupedColumns.length > 0)) {
+        const previewDiv = document.createElement('div');
+        previewDiv.style.marginTop = '10px';
+        
+        const previewHeader = document.createElement('h5');
+        previewHeader.textContent = 'Grouping Preview:';
+        previewHeader.style.margin = '0 0 8px 0';
+        previewDiv.appendChild(previewHeader);
+        
+        // Show grouped weeks
+        if (weekGroups.length > 0) {
+          const groupedTitle = document.createElement('div');
+          groupedTitle.textContent = 'Grouped by Calendar Week:';
+          groupedTitle.style.fontWeight = 'bold';
+          groupedTitle.style.marginBottom = '5px';
+          previewDiv.appendChild(groupedTitle);
+          
+          weekGroups.forEach(group => {
+            const groupItem = document.createElement('div');
+            groupItem.style.marginBottom = '4px';
+            groupItem.style.padding = '4px 8px';
+            groupItem.style.backgroundColor = '#e3f2fd';
+            groupItem.style.borderRadius = '4px';
+            groupItem.style.fontSize = '0.9em';
+            
+            const weekInfo = `${group.year}-W${group.week.toString().padStart(2, '0')}`;
+            const columnsList = group.columns.map(col => `"${col.header}"`).join(', ');
+            groupItem.textContent = `${weekInfo}: ${columnsList}`;
+            
+            previewDiv.appendChild(groupItem);
+          });
+        }
+        
+        // Show ungrouped columns
+        if (ungroupedColumns.length > 0) {
+          const ungroupedTitle = document.createElement('div');
+          ungroupedTitle.textContent = 'Individual Columns (not grouped):';
+          ungroupedTitle.style.fontWeight = 'bold';
+          ungroupedTitle.style.marginTop = '8px';
+          ungroupedTitle.style.marginBottom = '5px';
+          previewDiv.appendChild(ungroupedTitle);
+          
+          ungroupedColumns.forEach(col => {
+            const colItem = document.createElement('div');
+            colItem.style.marginBottom = '2px';
+            colItem.style.padding = '2px 8px';
+            colItem.style.backgroundColor = '#fff3e0';
+            colItem.style.borderRadius = '4px';
+            colItem.style.fontSize = '0.9em';
+            colItem.textContent = `"${col.header}"`;
+            previewDiv.appendChild(colItem);
+          });
+        }
+        
+        groupingDiv.appendChild(previewDiv);
+      }
+      
+      panel.appendChild(groupingDiv);
+    }
     const resetBtn = document.createElement('button');
     resetBtn.textContent = "Reset Mapping";
     resetBtn.style.marginLeft = '10px';
@@ -210,6 +466,8 @@ document.addEventListener('DOMContentLoaded', function() {
       autoDetectMapping(allRows);
       weekCheckboxStates = weekLabels.map(()=>true);
       openingBalance = 0;
+      groupingEnabled = true;
+      userGroupingOverrides.clear();
       
       // Reset first week date to today
       window.firstWeekDate = new Date();
@@ -425,7 +683,69 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function updateWeekLabels() {
     let weekRow = mappedData[config.weekLabelRow] || [];
-    weekLabels = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+    let rawHeaders = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+    
+    if (groupingEnabled && rawHeaders.length > 0) {
+      // Group columns by calendar week
+      const groupingResult = groupColumnsByWeek(rawHeaders);
+      weekGroups = groupingResult.groups;
+      ungroupedColumns = groupingResult.ungrouped;
+      
+      // Apply user overrides
+      applyUserGroupingOverrides();
+      
+      // Create consolidated week labels from groups
+      weekLabels = [];
+      const allGroups = [...weekGroups];
+      
+      // Add ungrouped columns as individual "groups"
+      ungroupedColumns.forEach(col => {
+        allGroups.push({
+          weekKey: `ungrouped-${col.index}`,
+          year: null,
+          week: null,
+          columns: [col],
+          primaryHeader: col.header
+        });
+      });
+      
+      // Sort groups by week/date order
+      allGroups.sort((a, b) => {
+        if (a.year && b.year && a.week && b.week) {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.week - b.week;
+        }
+        // Put grouped items first, then ungrouped
+        if (a.year && !b.year) return -1;
+        if (!a.year && b.year) return 1;
+        // For ungrouped items, sort by original column order
+        const aFirstIndex = a.columns[0]?.index || 0;
+        const bFirstIndex = b.columns[0]?.index || 0;
+        return aFirstIndex - bFirstIndex;
+      });
+      
+      // Generate consolidated labels
+      weekLabels = allGroups.map(group => {
+        if (group.columns.length > 1) {
+          // Multiple columns grouped together
+          return `${group.year}-W${group.week.toString().padStart(2, '0')} (${group.columns.length} cols)`;
+        } else {
+          // Single column (grouped or ungrouped)
+          return group.primaryHeader;
+        }
+      });
+      
+      // Store the group mapping for data extraction
+      window.weekGroupMapping = allGroups;
+      
+    } else {
+      // Grouping disabled - use original logic
+      weekLabels = rawHeaders;
+      weekGroups = [];
+      ungroupedColumns = [];
+      window.weekGroupMapping = null;
+    }
+    
     window.weekLabels = weekLabels; // make global for charts
     if (!weekCheckboxStates || weekCheckboxStates.length !== weekLabels.length) {
       weekCheckboxStates = weekLabels.map(() => true);
@@ -441,6 +761,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     populateInvestmentWeekDropdown();
   }
+  
+  function applyUserGroupingOverrides() {
+    // Apply any user-defined grouping modifications
+    userGroupingOverrides.forEach((override, key) => {
+      // Implementation for user overrides can be added here
+      // For now, we'll use the auto-detected groupings
+    });
+  }
 
   function getFilteredWeekIndices() {
     if (weekCheckboxStates && weekCheckboxStates.length > 0) {
@@ -454,35 +782,90 @@ document.addEventListener('DOMContentLoaded', function() {
   // -------------------- Calculation Helpers --------------------
   function getIncomeArr() {
     if (!mappedData || !mappingConfigured) return [];
+    
     let arr = [];
-    for (let w = 0; w < weekLabels.length; w++) {
-      if (!weekCheckboxStates[w]) continue;
-      let absCol = config.weekColStart + w;
-      let sum = 0;
-      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
-        let val = mappedData[r][absCol];
-        if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
-        let num = parseFloat(val);
-        if (!isNaN(num) && num > 0) sum += num;
+    const groupMapping = window.weekGroupMapping;
+    
+    if (groupMapping && groupingEnabled) {
+      // Use grouped columns
+      for (let g = 0; g < groupMapping.length; g++) {
+        if (!weekCheckboxStates[g]) continue;
+        
+        const group = groupMapping[g];
+        let groupSum = 0;
+        
+        // Aggregate values from all columns in this group
+        group.columns.forEach(col => {
+          const absCol = config.weekColStart + col.index;
+          for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+            let val = mappedData[r][absCol];
+            if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+            let num = parseFloat(val);
+            if (!isNaN(num) && num > 0) groupSum += num;
+          }
+        });
+        
+        arr[g] = groupSum;
       }
-      arr[w] = sum;
+    } else {
+      // Use original logic for individual columns
+      for (let w = 0; w < weekLabels.length; w++) {
+        if (!weekCheckboxStates[w]) continue;
+        let absCol = config.weekColStart + w;
+        let sum = 0;
+        for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+          let val = mappedData[r][absCol];
+          if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+          let num = parseFloat(val);
+          if (!isNaN(num) && num > 0) sum += num;
+        }
+        arr[w] = sum;
+      }
     }
     return arr;
   }
+  
   function getExpenditureArr() {
     if (!mappedData || !mappingConfigured) return [];
+    
     let arr = [];
-    for (let w = 0; w < weekLabels.length; w++) {
-      if (!weekCheckboxStates[w]) continue;
-      let absCol = config.weekColStart + w;
-      let sum = 0;
-      for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
-        let val = mappedData[r][absCol];
-        if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
-        let num = parseFloat(val);
-        if (!isNaN(num) && num < 0) sum += Math.abs(num);
+    const groupMapping = window.weekGroupMapping;
+    
+    if (groupMapping && groupingEnabled) {
+      // Use grouped columns
+      for (let g = 0; g < groupMapping.length; g++) {
+        if (!weekCheckboxStates[g]) continue;
+        
+        const group = groupMapping[g];
+        let groupSum = 0;
+        
+        // Aggregate values from all columns in this group
+        group.columns.forEach(col => {
+          const absCol = config.weekColStart + col.index;
+          for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+            let val = mappedData[r][absCol];
+            if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+            let num = parseFloat(val);
+            if (!isNaN(num) && num < 0) groupSum += Math.abs(num);
+          }
+        });
+        
+        arr[g] = groupSum;
       }
-      arr[w] = sum;
+    } else {
+      // Use original logic for individual columns
+      for (let w = 0; w < weekLabels.length; w++) {
+        if (!weekCheckboxStates[w]) continue;
+        let absCol = config.weekColStart + w;
+        let sum = 0;
+        for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
+          let val = mappedData[r][absCol];
+          if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
+          let num = parseFloat(val);
+          if (!isNaN(num) && num < 0) sum += Math.abs(num);
+        }
+        arr[w] = sum;
+      }
     }
     return arr;
   }
