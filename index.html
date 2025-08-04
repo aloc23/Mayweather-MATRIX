@@ -40,9 +40,11 @@
           <div id="remainingBox">Remaining: €0</div>
         </div>
         <h3>Repayment Sensitivity Analysis</h3>
-        <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;">
+        <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
           <select id="weekSelect"></select>
+          <label><input type="radio" name="repaymentType" value="date"> Explicit Date</label>
+          <input type="date" id="repaymentDate" disabled style="width:140px;">
           <label><input type="radio" name="repaymentType" value="frequency"> Frequency</label>
           <select id="repaymentFrequency" disabled>
             <option value="monthly">Monthly</option>
