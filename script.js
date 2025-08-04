@@ -1233,197 +1233,87 @@ document.addEventListener('DOMContentLoaded', function() {
   // -------------------- ENHANCED SUGGESTION ALGORITHM --------------------
   function computeEnhancedSuggestedRepayments({investment, targetIRR, installmentCount, filteredWeeks, investmentWeekIndex, openingBalance, cashflow, weekStartDates}) {
     if (!filteredWeeks || !filteredWeeks.length || targetIRR <= 0 || installmentCount <= 0) {
-      return { suggestedRepayments: [], achievedIRR: null, warnings: [] };
+      return { suggestedRepayments: [], achievedIRR: null };
     }
 
-    let warnings = [];
-    
-    // Calculate total amount that needs to be recouped (investment + target return)
-    const targetReturn = investment * (1 + targetIRR);
-    
-    // Calculate suggested installment amount based on target installment count
-    const suggestedInstallmentAmount = targetReturn / installmentCount;
+    const totalWeeks = filteredWeeks.length;
+    const suggestedArray = new Array(totalWeeks).fill(0);
     
     // Find investment index in filtered weeks
     const investmentIndex = filteredWeeks.indexOf(investmentWeekIndex);
-    const startIndex = investmentIndex === -1 ? 0 : investmentIndex + 1;
     
-    // Get first repayment week if specified
-    const firstRepaymentWeekSelect = document.getElementById('firstRepaymentWeekSelect');
-    let firstRepaymentWeek = startIndex;
-    if (firstRepaymentWeekSelect && firstRepaymentWeekSelect.value) {
-      firstRepaymentWeek = parseInt(firstRepaymentWeekSelect.value);
-    }
-    
-    // Get buffer settings
-    const bufferWeeks = window.getBufferWeeks ? window.getBufferWeeks() : 0;
-    
-    // Initialize variables for the new logic
-    let outstanding = targetReturn;
-    let repayments = [];
-    let currentWeekIndex = Math.max(startIndex, firstRepaymentWeek);
-    let extendedWeeks = [...filteredWeeks];
-    let extendedWeekStartDates = [...weekStartDates];
-    let lastRepaymentWeek = -1; // Track last repayment for buffer logic
-    
-    // Helper function to check if a week has sufficient bank balance for a repayment
-    function hasValidBankBalance(weekIndex, repaymentAmount) {
-      if (!cashflow || !cashflow.income || !cashflow.expenditure) {
-        return true; // No cashflow data, assume sufficient
+    if (investmentIndex === -1) {
+      // If investment week not found, start from week 0
+      const remainingWeeks = totalWeeks - 1;
+      if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
+      
+      // Calculate repayment schedule based on installment count
+      const actualInstallments = Math.min(installmentCount, remainingWeeks);
+      const targetReturn = investment * (1 + targetIRR);
+      const baseRepayment = targetReturn / actualInstallments;
+      
+      // Distribute repayments evenly across the timeline
+      const weeksBetweenInstallments = Math.floor(remainingWeeks / actualInstallments);
+      
+      for (let i = 0; i < actualInstallments; i++) {
+        const weekIndex = Math.min(1 + i * weeksBetweenInstallments, totalWeeks - 1);
+        suggestedArray[weekIndex] = baseRepayment;
       }
       
-      // Calculate rolling balance up to this week
-      let rolling = openingBalance;
-      for (let i = 0; i <= weekIndex && i < Math.max(cashflow.income.length, cashflow.expenditure.length); i++) {
-        const income = cashflow.income[i] || 0;
-        const expenditure = cashflow.expenditure[i] || 0;
-        rolling = rolling + income - expenditure;
-        
-        // If this is the week we're checking, subtract the proposed repayment
-        if (i === weekIndex) {
-          rolling -= repaymentAmount;
-        }
+      // Calculate achieved IRR using XIRR with actual dates for accurate annualized return
+      const cashflows = [-investment, ...suggestedArray.slice(1)];
+      const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
+      
+      // Build dates for cash flows from investment week onwards
+      for (let i = 1; i < cashflows.length; i++) {
+        let weekIdx = investmentWeekIndex + i;
+        cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
       }
       
-      return rolling >= 0; // Bank balance should not go negative
+      const achievedIRR = calculateIRR(cashflows, cashflowDates);
+      
+      return {
+        suggestedRepayments: suggestedArray,
+        achievedIRR: achievedIRR
+      };
     }
     
-    // Helper function to add a week with proper date calculation
-    function addWeekToSchedule() {
-      const newWeekIndex = extendedWeeks.length;
-      extendedWeeks.push(newWeekIndex);
-      
-      // Calculate date for the new week (7 days after the last week)
-      const lastDate = extendedWeekStartDates[extendedWeekStartDates.length - 1] || new Date(2025, 0, 1);
-      const newDate = new Date(lastDate);
-      newDate.setDate(lastDate.getDate() + 7);
-      extendedWeekStartDates.push(newDate);
-      
-      return newWeekIndex;
-    }
+    const remainingWeeks = totalWeeks - investmentIndex - 1;
+    if (remainingWeeks <= 0) return { suggestedRepayments: suggestedArray, achievedIRR: null };
     
-    // Helper function to check if buffer requirement is met
-    function isBufferSatisfied(weekIndex) {
-      if (bufferWeeks === 0 || lastRepaymentWeek === -1) return true;
-      return (weekIndex - lastRepaymentWeek) >= bufferWeeks;
-    }
+    // Calculate repayment schedule based on installment count
+    const actualInstallments = Math.min(installmentCount, remainingWeeks);
+    const weeksBetweenInstallments = Math.floor(remainingWeeks / actualInstallments);
     
-    let maxAttempts = 500; // Prevent infinite loops
-    let attempts = 0;
+    // Calculate base repayment amount to achieve target IRR
+    const targetReturn = investment * (1 + targetIRR);
+    const baseRepayment = targetReturn / actualInstallments;
     
-    // Continue adding repayments until outstanding is fully covered
-    while (outstanding > 0.01 && attempts < maxAttempts) { // Use small threshold to handle floating point precision
-      attempts++;
-      
-      // Ensure we have enough weeks in the schedule
-      if (currentWeekIndex >= extendedWeeks.length) {
-        addWeekToSchedule();
-      }
-      
-      // Check if buffer requirement is satisfied
-      if (!isBufferSatisfied(currentWeekIndex)) {
-        currentWeekIndex++;
-        continue;
-      }
-      
-      // Calculate payment amount (either full installment or remaining outstanding)
-      let payment = Math.min(suggestedInstallmentAmount, outstanding);
-      
-      // Check if bank balance is sufficient for this payment
-      if (!hasValidBankBalance(currentWeekIndex, payment)) {
-        // Try smaller payment amounts
-        let maxAffordablePayment = 0;
-        for (let testPayment = payment * 0.1; testPayment <= payment; testPayment += payment * 0.1) {
-          if (hasValidBankBalance(currentWeekIndex, testPayment)) {
-            maxAffordablePayment = testPayment;
-          }
-        }
-        
-        if (maxAffordablePayment > 0.01) {
-          payment = maxAffordablePayment;
-        } else {
-          // Skip this week if no affordable payment found
-          currentWeekIndex++;
-          continue;
-        }
-      }
-      
-      repayments.push({
-        weekIndex: currentWeekIndex,
-        amount: payment,
-        date: extendedWeekStartDates[currentWeekIndex] || new Date(2025, 0, 1 + currentWeekIndex * 7)
-      });
-      
-      outstanding -= payment;
-      lastRepaymentWeek = currentWeekIndex;
-      currentWeekIndex += (bufferWeeks + 1); // Move to next allowed week based on buffer
-    }
-    
-    // Check if plan is achievable
-    if (outstanding > 0.01) {
-      warnings.push(`Unable to achieve target IRR with current settings. Remaining amount: €${outstanding.toLocaleString(undefined, {maximumFractionDigits: 2})}. Consider reducing buffer, increasing installment count, or extending the schedule.`);
-    }
-    
-    // Ensure the last payment covers any remaining amount due to rounding
-    if (repayments.length > 0 && outstanding > 0.01) {
-      repayments[repayments.length - 1].amount += outstanding;
-      outstanding = 0;
-    }
-    
-    // Create the suggested array covering all weeks (original + extended if needed)
-    const totalExtendedWeeks = Math.max(extendedWeeks.length, currentWeekIndex);
-    const suggestedArray = new Array(totalExtendedWeeks).fill(0);
-    
-    // Fill in the repayments
-    repayments.forEach(repayment => {
-      if (repayment.weekIndex < suggestedArray.length) {
-        suggestedArray[repayment.weekIndex] = repayment.amount;
-      }
-    });
-    
-    // Validate that total repayments equal target return (within small margin)
-    const totalRepayments = suggestedArray.reduce((sum, amount) => sum + amount, 0);
-    const shortfall = targetReturn - totalRepayments;
-    
-    if (Math.abs(shortfall) > 0.01) {
-      if (shortfall > 0 && repayments.length > 0) {
-        // Add shortfall to last payment
-        const lastRepaymentIndex = repayments[repayments.length - 1].weekIndex;
-        if (lastRepaymentIndex < suggestedArray.length) {
-          suggestedArray[lastRepaymentIndex] += shortfall;
-        }
+    // Distribute repayments across installment weeks with even spacing
+    let installmentIndex = 0;
+    for (let i = investmentIndex + 1; i < totalWeeks && installmentIndex < actualInstallments; i++) {
+      const weeksFromInvestment = i - investmentIndex;
+      if (weeksFromInvestment % Math.max(1, weeksBetweenInstallments) === 0 || i === totalWeeks - 1) {
+        suggestedArray[i] = baseRepayment;
+        installmentIndex++;
       }
     }
     
-    // Calculate achieved IRR using XIRR with actual dates for accurate annualized return
-    const cashflows = [-investment];
-    const cashflowDates = [extendedWeekStartDates[investmentWeekIndex] || new Date(2025, 0, 1)];
+    // Calculate achieved IRR for the suggested repayments using XIRR with actual dates  
+    const cashflows = [-investment, ...suggestedArray.slice(investmentIndex + 1)];
+    const cashflowDates = [weekStartDates[investmentWeekIndex] || new Date()];
     
-    // Add repayment cashflows starting from the investment week
-    for (let i = startIndex; i < suggestedArray.length; i++) {
-      if (suggestedArray[i] > 0) {
-        cashflows.push(suggestedArray[i]);
-        cashflowDates.push(extendedWeekStartDates[i] || new Date(2025, 0, 1 + i * 7));
-      }
+    // Build dates for cash flows from investment week onwards
+    for (let i = 1; i < cashflows.length; i++) {
+      let weekIdx = investmentWeekIndex + i;
+      cashflowDates[i] = weekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
     }
     
     const achievedIRR = calculateIRR(cashflows, cashflowDates);
     
-    // Check if achieved IRR is significantly different from target
-    if (isFinite(achievedIRR) && Math.abs(achievedIRR - targetIRR) > 0.01) {
-      warnings.push(`Achieved IRR (${(achievedIRR * 100).toFixed(2)}%) differs from target IRR (${(targetIRR * 100).toFixed(2)}%). Consider adjusting settings.`);
-    }
-    
-    // Trim the suggested array to only include weeks up to the last repayment
-    const lastRepaymentIndex = suggestedArray.findLastIndex(amount => amount > 0);
-    const trimmedArray = lastRepaymentIndex >= 0 ? suggestedArray.slice(0, lastRepaymentIndex + 1) : suggestedArray;
-    
     return {
-      suggestedRepayments: trimmedArray,
-      achievedIRR: achievedIRR,
-      extendedWeeks: extendedWeeks.slice(0, trimmedArray.length),
-      extendedWeekStartDates: extendedWeekStartDates.slice(0, trimmedArray.length),
-      warnings: warnings
+      suggestedRepayments: suggestedArray,
+      achievedIRR: achievedIRR
     };
   }
   
@@ -1808,20 +1698,7 @@ function renderRoiSection() {
     return cashflows.reduce((acc, val, i) => acc + val/Math.pow(1+rate, i), 0);
   }
   
-  // Legacy IRR function - kept for compatibility but replaced by XIRR for irregular schedules
-  function irr(cashflows, guess=0.1) {
-    let rate = guess, epsilon = 1e-6, maxIter = 100;
-    for (let iter=0; iter<maxIter; iter++) {
-      let npv0 = npv(rate, cashflows);
-      let npv1 = npv(rate+epsilon, cashflows);
-      let deriv = (npv1-npv0)/epsilon;
-      let newRate = rate - npv0/deriv;
-      if (!isFinite(newRate)) break;
-      if (Math.abs(newRate-rate) < 1e-7) return newRate;
-      rate = newRate;
-    }
-    return NaN;
-  }
+
 
   function npv_date(rate, cashflows, dateArr) {
     const msPerDay = 24 * 3600 * 1000;
@@ -1829,7 +1706,7 @@ function renderRoiSection() {
     return cashflows.reduce((acc, val, i) => {
       if (!dateArr[i]) return acc;
       let days = (dateArr[i] - baseDate) / msPerDay;
-      let years = days / 365;
+      let years = days / 365.25; // Use 365.25 for consistency with XIRR calculation
       return acc + val / Math.pow(1 + rate, years);
     }, 0);
   }
