@@ -252,6 +252,42 @@ document.addEventListener('DOMContentLoaded', function() {
   setupTabs();
   setupTargetIrrModal();
   setupBufferModal();
+  setupHelpModal();
+
+  // -------------------- Help Modal Setup --------------------
+  function setupHelpModal() {
+    const helpBtn = document.getElementById('helpBtn');
+    const helpModal = document.getElementById('helpModal');
+    const closeHelpModal = document.getElementById('closeHelpModal');
+    const closeHelpModalBtn = document.getElementById('closeHelpModalBtn');
+    
+    if (!helpBtn || !helpModal) return;
+    
+    // Open help modal
+    helpBtn.addEventListener('click', function() {
+      helpModal.style.display = 'flex';
+    });
+    
+    // Close help modal
+    function closeModal() {
+      helpModal.style.display = 'none';
+    }
+    
+    if (closeHelpModal) closeHelpModal.addEventListener('click', closeModal);
+    if (closeHelpModalBtn) closeHelpModalBtn.addEventListener('click', closeModal);
+    
+    // Click outside modal to close
+    helpModal.addEventListener('click', function(e) {
+      if (e.target === helpModal) closeModal();
+    });
+    
+    // ESC key to close
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && helpModal.style.display === 'flex') {
+        closeModal();
+      }
+    });
+  }
 
   // -------------------- Spreadsheet Upload & Mapping --------------------
   function setupSpreadsheetUpload() {
@@ -1009,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const weekInfo = group.year && group.week ? `${group.year}-W${group.week.toString().padStart(2, '0')}` : 'Unknown';
         const columnsList = group.columns.map(col => `"${col.header}"`).join(', ');
         previewHtml += `
-          <div style="margin-bottom: 6px; padding: 6px 10px; background: #e3f2fd; border-radius: 4px; border-left: 3px solid #1976d2;">
+          <div class="grouping-item" style="margin-bottom: 6px; padding: 6px 10px; background: #e3f2fd; border-radius: 4px; border-left: 3px solid #1976d2;">
             <strong>${weekInfo}:</strong> ${columnsList}
           </div>
         `;
@@ -1023,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
       ungroupedWeeks.forEach(group => {
         const col = group.columns[0];
         previewHtml += `
-          <div style="margin-bottom: 4px; padding: 4px 10px; background: #fff3e0; border-radius: 4px; border-left: 3px solid #ff9800;">
+          <div class="grouping-item" style="margin-bottom: 4px; padding: 4px 10px; background: #fff3e0; border-radius: 4px; border-left: 3px solid #ff9800;">
             "${col.header}"
           </div>
         `;
