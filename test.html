@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Date Mapping Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .test-section { border: 1px solid #ccc; padding: 15px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>ROI Week-to-Date Mapping Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Week Labels with Parseable Dates</h2>
+        <p>Start Date: January 1, 2025</p>
+        <p>Week Labels: ['1 Jan', '8 Jan', '15 Jan', '22 Jan', '29 Jan', '5 Feb']</p>
+        <div id="test1-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Sequential 7-Day Increments</h2>
+        <p>Start Date: January 1, 2025</p>
+        <p>Week Labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6']</p>
+        <div id="test2-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Mixed Labels with Year Spillage Prevention</h2>
+        <p>Start Date: December 1, 2025</p>
+        <p>End Date: December 31, 2025</p>
+        <p>Week Labels: ['Week 1', '8 Dec', 'Week 3', 'Week 4', 'Week 5']</p>
+        <div id="test3-result"></div>
+    </div>
+
+    <script>
+    // Copy the required functions here for testing
+    function parseWeekLabelAsDate(weekLabel, referenceYear) {
+        if (!weekLabel || typeof weekLabel !== 'string') return null;
+        
+        const text = weekLabel.toString().trim();
+        
+        // Common month abbreviations
+        const months = {
+            jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+            apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+            aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+            nov: 10, november: 10, dec: 11, december: 11
+        };
+        
+        // Pattern 1: "1 Jan", "8 Jan", "15 Jan"
+        let match = text.match(/^(\d{1,2})\s+([a-z]+)$/i);
+        if (match) {
+            const [, day, monthStr] = match;
+            const monthIndex = months[monthStr.toLowerCase()];
+            if (monthIndex !== undefined) {
+                return new Date(referenceYear, monthIndex, parseInt(day));
+            }
+        }
+        
+        // Pattern 2: "Jan 1", "Jan 8", "Jan 15" 
+        match = text.match(/^([a-z]+)\s+(\d{1,2})$/i);
+        if (match) {
+            const [, monthStr, day] = match;
+            const monthIndex = months[monthStr.toLowerCase()];
+            if (monthIndex !== undefined) {
+                return new Date(referenceYear, monthIndex, parseInt(day));
+            }
+        }
+        
+        // Pattern 3: "1/1", "8/1", "15/1" (day/month)
+        match = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (match) {
+            const [, day, month] = match;
+            return new Date(referenceYear, parseInt(month) - 1, parseInt(day));
+        }
+        
+        return null;
+    }
+
+    function calculateSequentialDates(startDate, endDate, weekLabels) {
+        if (!startDate || !weekLabels || weekLabels.length === 0) {
+            return [];
+        }
+        
+        const dates = [];
+        const referenceYear = startDate.getFullYear();
+        
+        for (let i = 0; i < weekLabels.length; i++) {
+            let mappedDate = null;
+            
+            // Try to parse the week label as a real date first
+            if (weekLabels[i]) {
+                mappedDate = parseWeekLabelAsDate(weekLabels[i], referenceYear);
+                
+                // If we parsed a date, check if it would spill into next year
+                if (mappedDate && mappedDate.getFullYear() > referenceYear) {
+                    // If it spills into next year and we have an end date constraint, 
+                    // check if sequential dating would be better
+                    if (endDate && mappedDate > endDate) {
+                        mappedDate = null; // Fall back to sequential dating
+                    }
+                }
+            }
+            
+            // If we couldn't parse the label as a date, use sequential 7-day increments
+            if (!mappedDate) {
+                mappedDate = new Date(startDate);
+                mappedDate.setDate(startDate.getDate() + (i * 7));
+                
+                // If we have an end date and sequential dating would exceed it,
+                // and this isn't the first week, try to prevent year spillage
+                if (endDate && mappedDate > endDate && i > 0) {
+                    const prevDate = dates[i - 1];
+                    const daysUntilEndDate = Math.floor((endDate - prevDate) / (24 * 60 * 60 * 1000));
+                    
+                    // If we can fit the remaining weeks within the end date with smaller intervals
+                    const remainingWeeks = weekLabels.length - i;
+                    if (remainingWeeks > 0 && daysUntilEndDate > 0) {
+                        const adjustedInterval = Math.max(1, Math.floor(daysUntilEndDate / remainingWeeks));
+                        mappedDate = new Date(prevDate);
+                        mappedDate.setDate(prevDate.getDate() + adjustedInterval);
+                    }
+                }
+            }
+            
+            dates.push(mappedDate);
+        }
+        
+        return dates;
+    }
+
+    function createTable(weekLabels, dates, startDate) {
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Week Label</th>
+                    <th>Mapped Date</th>
+                    <th>Days from Start</th>
+                    <th>Mapping Method</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+        
+        const tbody = table.querySelector('tbody');
+        weekLabels.forEach((label, index) => {
+            const date = dates[index];
+            const daysFromStart = date && startDate 
+                ? Math.round((date - startDate) / (24 * 60 * 60 * 1000))
+                : 0;
+            
+            // Check if this week label was parsed as a date
+            const referenceYear = startDate ? startDate.getFullYear() : new Date().getFullYear();
+            const parsedDate = parseWeekLabelAsDate(label, referenceYear);
+            const mappingMethod = parsedDate && date && Math.abs(date - parsedDate) < 24 * 60 * 60 * 1000 
+                ? 'Parsed from label' 
+                : 'Sequential (+7 days)';
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${label}</td>
+                <td>${date ? date.toLocaleDateString('en-GB') : 'N/A'}</td>
+                <td>${daysFromStart}</td>
+                <td style="font-size: 0.9em; color: #666;">${mappingMethod}</td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        return table;
+    }
+
+    // Test 1: Week labels with parseable dates
+    const test1WeekLabels = ['1 Jan', '8 Jan', '15 Jan', '22 Jan', '29 Jan', '5 Feb'];
+    const test1StartDate = new Date(2025, 0, 1); // January 1, 2025
+    const test1Dates = calculateSequentialDates(test1StartDate, null, test1WeekLabels);
+    document.getElementById('test1-result').appendChild(createTable(test1WeekLabels, test1Dates, test1StartDate));
+
+    // Test 2: Sequential 7-day increments
+    const test2WeekLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'];
+    const test2StartDate = new Date(2025, 0, 1); // January 1, 2025
+    const test2Dates = calculateSequentialDates(test2StartDate, null, test2WeekLabels);
+    document.getElementById('test2-result').appendChild(createTable(test2WeekLabels, test2Dates, test2StartDate));
+
+    // Test 3: Mixed labels with year spillage prevention
+    const test3WeekLabels = ['Week 1', '8 Dec', 'Week 3', 'Week 4', 'Week 5'];
+    const test3StartDate = new Date(2025, 11, 1); // December 1, 2025
+    const test3EndDate = new Date(2025, 11, 31); // December 31, 2025
+    const test3Dates = calculateSequentialDates(test3StartDate, test3EndDate, test3WeekLabels);
+    document.getElementById('test3-result').appendChild(createTable(test3WeekLabels, test3Dates, test3StartDate));
+    </script>
+</body>
+</html>

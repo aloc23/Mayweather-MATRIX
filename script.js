@@ -97,6 +97,53 @@ document.addEventListener('DOMContentLoaded', function() {
   function createWeekKey(year, week) {
     return `${year}-W${week.toString().padStart(2, '0')}`;
   }
+
+  /**
+   * Parse week label as a real date (e.g., '1 Jan', '8 Jan', '15 Jan')
+   * Returns a Date object with the year from referenceYear if parsing is successful
+   */
+  function parseWeekLabelAsDate(weekLabel, referenceYear) {
+    if (!weekLabel || typeof weekLabel !== 'string') return null;
+    
+    const text = weekLabel.toString().trim();
+    
+    // Common month abbreviations
+    const months = {
+      jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+      apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+      aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+      nov: 10, november: 10, dec: 11, december: 11
+    };
+    
+    // Pattern 1: "1 Jan", "8 Jan", "15 Jan"
+    let match = text.match(/^(\d{1,2})\s+([a-z]+)$/i);
+    if (match) {
+      const [, day, monthStr] = match;
+      const monthIndex = months[monthStr.toLowerCase()];
+      if (monthIndex !== undefined) {
+        return new Date(referenceYear, monthIndex, parseInt(day));
+      }
+    }
+    
+    // Pattern 2: "Jan 1", "Jan 8", "Jan 15" 
+    match = text.match(/^([a-z]+)\s+(\d{1,2})$/i);
+    if (match) {
+      const [, monthStr, day] = match;
+      const monthIndex = months[monthStr.toLowerCase()];
+      if (monthIndex !== undefined) {
+        return new Date(referenceYear, monthIndex, parseInt(day));
+      }
+    }
+    
+    // Pattern 3: "1/1", "8/1", "15/1" (day/month)
+    match = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (match) {
+      const [, day, month] = match;
+      return new Date(referenceYear, parseInt(month) - 1, parseInt(day));
+    }
+    
+    return null;
+  }
   
   /**
    * Group column mappings by calendar week
@@ -639,6 +686,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // For user display, always use the original raw headers (no grouping UI)
       weekLabels = rawHeaders;
+      
+      // Make weekLabels globally accessible for ROI calculations
+      window.weekLabels = weekLabels;
       
       // Store the group mapping for ROI calculations only
       const allGroups = [...weekGroups];
@@ -2979,18 +3029,56 @@ setupExcelExport();
    * @returns {Array} Array of Date objects
    */
   function calculateEvenlySpacedDates(startDate, endDate, weekCount) {
-    if (!startDate || !endDate || weekCount <= 0) {
+    if (!startDate || weekCount <= 0) {
       return [];
     }
     
+    // Get the week labels to check if any can be parsed as dates
+    const effectiveWeekLabels = (typeof weekLabels !== 'undefined' && weekLabels && weekLabels.length > 0) ? weekLabels : 
+                               (window.weekLabels && window.weekLabels.length > 0) ? window.weekLabels : [];
+    
     const dates = [];
-    const totalDays = (endDate - startDate) / (24 * 60 * 60 * 1000);
-    const daysBetweenWeeks = weekCount > 1 ? totalDays / (weekCount - 1) : 0;
+    const referenceYear = startDate.getFullYear();
     
     for (let i = 0; i < weekCount; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + Math.round(i * daysBetweenWeeks));
-      dates.push(date);
+      let mappedDate = null;
+      
+      // Try to parse the week label as a real date first
+      if (effectiveWeekLabels[i]) {
+        mappedDate = parseWeekLabelAsDate(effectiveWeekLabels[i], referenceYear);
+        
+        // If we parsed a date, check if it would spill into next year
+        if (mappedDate && mappedDate.getFullYear() > referenceYear) {
+          // If it spills into next year and we have an end date constraint, 
+          // check if sequential dating would be better
+          if (endDate && mappedDate > endDate) {
+            mappedDate = null; // Fall back to sequential dating
+          }
+        }
+      }
+      
+      // If we couldn't parse the label as a date, use sequential 7-day increments
+      if (!mappedDate) {
+        mappedDate = new Date(startDate);
+        mappedDate.setDate(startDate.getDate() + (i * 7));
+        
+        // If we have an end date and sequential dating would exceed it,
+        // and this isn't the first week, try to prevent year spillage
+        if (endDate && mappedDate > endDate && i > 0) {
+          const prevDate = dates[i - 1];
+          const daysUntilEndDate = Math.floor((endDate - prevDate) / (24 * 60 * 60 * 1000));
+          
+          // If we can fit the remaining weeks within the end date with smaller intervals
+          const remainingWeeks = weekCount - i;
+          if (remainingWeeks > 0 && daysUntilEndDate > 0) {
+            const adjustedInterval = Math.max(1, Math.floor(daysUntilEndDate / remainingWeeks));
+            mappedDate = new Date(prevDate);
+            mappedDate.setDate(prevDate.getDate() + adjustedInterval);
+          }
+        }
+      }
+      
+      dates.push(mappedDate);
     }
     
     return dates;
@@ -3006,17 +3094,17 @@ setupExcelExport();
     const startDateInput = document.getElementById('roiStartDate');
     const endDateInput = document.getElementById('roiEndDate');
     
-    if (!startDateInput || !endDateInput) return;
+    if (!startDateInput) return;
     
     const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
-    const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+    const endDate = endDateInput && endDateInput.value ? new Date(endDateInput.value) : null;
     
-    if (!startDate || !endDate) {
-      alert('Please select both start and end dates.');
+    if (!startDate) {
+      alert('Please select an investment start date.');
       return;
     }
     
-    if (startDate >= endDate) {
+    if (endDate && startDate >= endDate) {
       alert('End date must be after start date.');
       return;
     }
@@ -3028,9 +3116,9 @@ setupExcelExport();
       isActive: true
     };
     
-    // Calculate evenly spaced dates for the weeks
-    const weekCount = (typeof weekLabels !== 'undefined' && weekLabels) ? weekLabels.length : 
-                     (window.weekLabels ? window.weekLabels.length : 0);
+    // Calculate sequential dates based on start date and week labels
+    const weekCount = (typeof weekLabels !== 'undefined' && weekLabels && weekLabels.length > 0) ? weekLabels.length : 
+                     (window.weekLabels && window.weekLabels.length > 0) ? window.weekLabels.length : 0;
     if (weekCount > 0) {
       const mappedDates = calculateEvenlySpacedDates(startDate, endDate, weekCount);
       
@@ -3049,9 +3137,9 @@ setupExcelExport();
       // Refresh only ROI calculations with new dates (don't affect other tabs)
       renderRoiSection();
       
-      console.log('ROI date mapping applied (isolated to ROI tab only):', {
+      console.log('ROI date mapping applied (sequential 7-day increments):', {
         startDate: startDate.toLocaleDateString(),
-        endDate: endDate.toLocaleDateString(), 
+        endDate: endDate ? endDate.toLocaleDateString() : 'Not specified', 
         weekCount: weekCount,
         mappedDates: mappedDates.map(d => d.toLocaleDateString())
       });
@@ -3089,14 +3177,30 @@ setupExcelExport();
           ? Math.round((date - roiDateMapping.startDate) / (24 * 60 * 60 * 1000))
           : 0;
         
+        // Check if this week label was parsed as a date
+        const referenceYear = roiDateMapping.startDate ? roiDateMapping.startDate.getFullYear() : new Date().getFullYear();
+        const parsedDate = parseWeekLabelAsDate(label, referenceYear);
+        const mappingMethod = parsedDate && date && Math.abs(date - parsedDate) < 24 * 60 * 60 * 1000 
+          ? 'Parsed from label' 
+          : 'Sequential (+7 days)';
+        
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${label}</td>
           <td>${date ? date.toLocaleDateString('en-GB') : 'N/A'}</td>
           <td>${daysFromStart}</td>
+          <td style="font-size: 0.9em; color: #666;">${mappingMethod}</td>
         `;
         tableBody.appendChild(row);
       });
+      
+      // Update table header to include mapping method
+      const tableHeader = document.querySelector('#dateMappingTable thead tr');
+      if (tableHeader && tableHeader.children.length === 3) {
+        const methodHeader = document.createElement('th');
+        methodHeader.textContent = 'Mapping Method';
+        tableHeader.appendChild(methodHeader);
+      }
     } else {
       previewSection.style.display = 'none';
     }
@@ -3146,12 +3250,12 @@ setupExcelExport();
       applyBtn.addEventListener('click', applyRoiDateMapping);
     }
     
-    // Auto-apply when both dates are selected
+    // Auto-apply when start date is selected (end date is optional)
     function handleDateChange() {
-      if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+      if (startDateInput && startDateInput.value) {
         // Small delay to allow for user to finish selecting
         setTimeout(() => {
-          if (startDateInput.value && endDateInput.value) {
+          if (startDateInput.value) {
             applyRoiDateMapping();
           }
         }, 500);
