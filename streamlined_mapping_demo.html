@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Streamlined Mapping Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; padding: 15px; margin: 15px 0; }
+        .success { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffeaa7; }
+        .advanced { background: #f8f9fa; border: 1px solid #e9ecef; padding: 16px; margin-top: 12px; border-radius: 6px; }
+        .mapping-summary { padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Streamlined Mapping UI Test</h1>
+    
+    <div class="test-section">
+        <h2>Simulated Mapping Interface After Upload</h2>
+        
+        <!-- Step 1: Auto-detected mapping summary -->
+        <div class="success mapping-summary">
+            <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Spreadsheet Mapping Auto-Detected</h4>
+            <div style="font-size: 0.9em; margin-bottom: 6px;">
+                <strong>Week Labels Row:</strong> Row 1 | 
+                <strong>Week Columns:</strong> 2 to 6 | 
+                <strong>Data Rows:</strong> 2 to 4
+            </div>
+            <div style="font-size: 0.85em; color: #2e7d32;">
+                Auto-detection found 5 week columns. Click "Advanced Options" below to manually adjust if needed.
+            </div>
+        </div>
+
+        <!-- Step 2: Essential inputs -->
+        <div style="margin-bottom: 16px;">
+            <div style="margin-bottom: 12px;">
+                <label for="openingBalanceInput" style="font-weight: bold; margin-right: 8px;">Opening Balance:</label>
+                <input type="number" id="openingBalanceInput" value="0" 
+                       style="width:120px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                       placeholder="0">
+                <span style="margin-left: 8px; font-size: 0.9em; color: #666;">Starting bank balance</span>
+            </div>
+            
+            <!-- Base year warning and input -->
+            <div class="warning" style="padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
+                <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+                <input type="number" id="baseYearInput" value="2025" min="2023" max="2100" 
+                       style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                       placeholder="e.g. 2023">
+                <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: 2025</span>
+            </div>
+        </div>
+
+        <!-- Step 3: Live date preview -->
+        <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #1976d2;">
+            <h4 style="margin: 0 0 8px 0; color: #1976d2;">📅 Date Mapping Preview</h4>
+            <div style="font-size: 0.95em; margin-bottom: 6px;">
+                <strong>Base Year:</strong> <span style="color: #1976d2; font-weight: bold;">2025</span> 
+                (applied to week labels without explicit years)
+            </div>
+            <div style="font-size: 0.9em; color: #1565c0;">
+                All downstream calculations (ROI, IRR, NPV) will use these mapped dates.
+            </div>
+        </div>
+
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 15px;">
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Label</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Mapped Date</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Range</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Status</th>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">1 Jan</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">01/01/2025</td>
+                <td style="border: 1px solid #ddd; padding: 8px; font-size: 0.9em; color: #666;">1 - 7 Jan</td>
+                <td style="border: 1px solid #ddd; padding: 8px; color: #28a745; font-weight: 500;">✅ Mapped</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">8 Jan</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">08/01/2025</td>
+                <td style="border: 1px solid #ddd; padding: 8px; font-size: 0.9em; color: #666;">8 - 14 Jan</td>
+                <td style="border: 1px solid #ddd; padding: 8px; color: #28a745; font-weight: 500;">✅ Mapped</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">15 Jan</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">15/01/2025</td>
+                <td style="border: 1px solid #ddd; padding: 8px; font-size: 0.9em; color: #666;">15 - 21 Jan</td>
+                <td style="border: 1px solid #ddd; padding: 8px; color: #28a745; font-weight: 500;">✅ Mapped</td>
+            </tr>
+        </table>
+
+        <div style="margin-top: 10px; font-size: 0.9em;">
+            <div style="margin-bottom: 8px;"><strong>Summary:</strong> 3 successfully mapped, 0 failed to parse</div>
+        </div>
+
+        <!-- Step 4: Advanced options (collapsed by default) -->
+        <div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 16px;">
+            <button type="button" id="advancedBtn" 
+                    style="background: none; border: none; color: #1976d2; font-weight: bold; cursor: pointer; font-size: 1em; padding: 8px 0;">
+                <span style="margin-right: 6px;">▶</span>Advanced Options
+            </button>
+            
+            <div id="advancedContent" class="advanced" style="display: none;">
+                <h5 style="margin: 0 0 12px 0; color: #333;">Manual Mapping Controls</h5>
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+                    Which row contains week labels? 
+                    <select style="margin-left: 8px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option>Row 1: Description,1 Jan,8 Jan,15 Jan</option>
+                    </select>
+                </label>
+                
+                <h5 style="margin: 16px 0 8px 0; color: #333;">Week Column Filter</h5>
+                <button style="margin-right: 8px; padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;">Select All</button>
+                <button style="margin-right: 8px; padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;">Deselect All</button>
+                
+                <div style="margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                    <div><input type="checkbox" checked> <label style="margin-left: 4px; font-size: 0.9em;">1 Jan</label></div>
+                    <div><input type="checkbox" checked> <label style="margin-left: 4px; font-size: 0.9em;">8 Jan</label></div>
+                    <div><input type="checkbox" checked> <label style="margin-left: 4px; font-size: 0.9em;">15 Jan</label></div>
+                </div>
+                
+                <button style="margin-top: 16px; padding: 6px 14px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset All Mapping</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Advanced toggle functionality
+    document.getElementById('advancedBtn').addEventListener('click', function() {
+        const advancedContent = document.getElementById('advancedContent');
+        const isOpen = advancedContent.style.display !== 'none';
+        advancedContent.style.display = isOpen ? 'none' : 'block';
+        const caret = this.querySelector('span');
+        caret.textContent = isOpen ? '▶' : '▼';
+        this.innerHTML = `<span style="margin-right: 6px;">${isOpen ? '▶' : '▼'}</span>${isOpen ? 'Advanced Options' : 'Hide Advanced Options'}`;
+    });
+    </script>
+</body>
+</html>

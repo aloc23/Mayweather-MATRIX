@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Mapping Workflow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .tab-content { display: none; padding: 20px; border: 1px solid #ccc; margin: 10px 0; }
+        .tab-content.active { display: block; }
+        .tabs button { margin-right: 5px; padding: 8px 16px; }
+        .tabs button.active { background: #1976d2; color: white; }
+        .mapping-summary-banner { background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Complete Mapping Workflow Test</h1>
+    
+    <div class="tabs">
+        <button class="active" onclick="showTab('mapping')">Mapping</button>
+        <button onclick="showTab('pnl')">Profit & Loss</button>
+        <button onclick="showTab('roi')">ROI Analysis</button>
+        <button onclick="showTab('summary')">Summary</button>
+    </div>
+
+    <div id="mapping" class="tab-content active">
+        <h2>Week Label Mapping (Streamlined)</h2>
+        
+        <!-- Streamlined interface as implemented -->
+        <div style="background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;">
+            <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Spreadsheet Mapping Auto-Detected</h4>
+            <div style="font-size: 0.9em; margin-bottom: 6px;">
+                <strong>Week Labels Row:</strong> Row 1 | 
+                <strong>Week Columns:</strong> 2 to 6 | 
+                <strong>Data Rows:</strong> 2 to 4
+            </div>
+            <div style="font-size: 0.85em; color: #2e7d32;">
+                Auto-detection found 5 week columns. Click "Advanced Options" below to manually adjust if needed.
+            </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+            <label style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+            <input type="number" id="yearInput" value="2025" min="2023" max="2100" 
+                   style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                   onchange="updateMappingSummaries()">
+            <span id="yearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: 2025</span>
+        </div>
+
+        <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #1976d2;">
+            <h4 style="margin: 0 0 8px 0; color: #1976d2;">📅 Date Mapping Preview</h4>
+            <div style="font-size: 0.95em; margin-bottom: 6px;">
+                <strong>Base Year:</strong> <span id="previewYear" style="color: #1976d2; font-weight: bold;">2025</span> 
+                (applied to week labels without explicit years)
+            </div>
+            <div style="font-size: 0.9em; color: #1565c0;">
+                All downstream calculations (ROI, IRR, NPV) will use these mapped dates.
+            </div>
+        </div>
+    </div>
+
+    <div id="pnl" class="tab-content">
+        <h2>Profit & Loss Statement</h2>
+        <!-- Mapping summary banner will be inserted here -->
+        <p>P&L calculations use the mapped week dates from the spreadsheet mapping.</p>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="background: #f5f5f5;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Week</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Income</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Expenses</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Net Profit</th>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">1 Jan (Week 1)</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">€1,000</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">€500</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">€500</td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="roi" class="tab-content">
+        <h2>Investment Return & Repayments</h2>
+        <!-- Mapping summary banner will be inserted here -->
+        <p>ROI calculations are based on the actual mapped dates for precise time-based calculations.</p>
+        <div style="margin: 20px 0;">
+            <strong>Investment Date:</strong> 01/01/2025 (Week 1)<br>
+            <strong>Expected ROI:</strong> 20% annually<br>
+            <strong>Mapped Week Dates:</strong> 1 Jan 2025, 8 Jan 2025, 15 Jan 2025...
+        </div>
+    </div>
+
+    <div id="summary" class="tab-content">
+        <h2>Summary Report</h2>
+        <!-- Mapping summary banner will be inserted here -->
+        <p>Consolidated summary across all mapped weeks.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0;">
+            <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 2em; font-weight: bold; color: #4caf50;">€1,500</div>
+                <div>Total Income</div>
+            </div>
+            <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 2em; font-weight: bold; color: #ff9800;">€750</div>
+                <div>Total Expenses</div>
+            </div>
+            <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 2em; font-weight: bold; color: #1976d2;">€750</div>
+                <div>Net Profit</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function showTab(tabId) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+        
+        // Show selected tab
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function updateMappingSummaries() {
+        const year = document.getElementById('yearInput').value;
+        document.getElementById('yearDisplay').textContent = `Currently using: ${year}`;
+        document.getElementById('previewYear').textContent = year;
+        
+        // Simulate mapping summary update across tabs
+        const mappedCount = 3; // Simulated
+        const totalCount = 3;
+        
+        const summaryHTML = `
+            <div class="mapping-summary-banner">
+                <strong>📅 Current Mapping:</strong> 
+                ${mappedCount}/${totalCount} weeks mapped using base year <strong>${year}</strong> | 
+                Week range: 1 Jan to 15 Jan
+                ${mappedCount < totalCount ? 
+                    ` | <span style="color: #ff9800;">⚠️ ${totalCount - mappedCount} week(s) need attention</span>` : 
+                    ' | <span style="color: #4caf50;">✅ All weeks mapped successfully</span>'
+                }
+            </div>
+        `;
+        
+        // Update all tabs except mapping tab
+        ['pnl', 'roi', 'summary'].forEach(tabId => {
+            const tab = document.getElementById(tabId);
+            const existing = tab.querySelector('.mapping-summary-banner');
+            if (existing) existing.remove();
+            
+            const heading = tab.querySelector('h2');
+            if (heading) {
+                const div = document.createElement('div');
+                div.innerHTML = summaryHTML;
+                heading.parentNode.insertBefore(div.firstElementChild, heading.nextSibling);
+            }
+        });
+    }
+
+    // Initialize mapping summaries
+    updateMappingSummaries();
+    </script>
+</body>
+</html>

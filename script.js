@@ -498,6 +498,43 @@ document.addEventListener('DOMContentLoaded', function() {
       return isDateLike && !hasExplicitYear;
     });
   }
+
+  /**
+   * Validate base year input - must be 4-digit year between 2023-2100
+   */
+  function validateBaseYear(yearValue) {
+    const year = parseInt(yearValue);
+    if (isNaN(year)) {
+      return { valid: false, error: 'Please enter a valid year' };
+    }
+    if (year < 2023 || year > 2100) {
+      return { valid: false, error: 'Year must be between 2023 and 2100' };
+    }
+    if (yearValue.toString().length !== 4) {
+      return { valid: false, error: 'Please enter a 4-digit year' };
+    }
+    return { valid: true, year: year };
+  }
+
+  /**
+   * Show/hide year validation error message
+   */
+  function showYearValidationError(message, inputElement) {
+    // Remove existing error
+    const existingError = document.getElementById('yearValidationError');
+    if (existingError) existingError.remove();
+    
+    if (message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'yearValidationError';
+      errorDiv.style.cssText = 'color: #d32f2f; font-size: 0.9em; margin-top: 4px; margin-bottom: 8px;';
+      errorDiv.textContent = '⚠️ ' + message;
+      inputElement.parentNode.insertBefore(errorDiv, inputElement.nextSibling);
+      inputElement.style.borderColor = '#d32f2f';
+    } else {
+      inputElement.style.borderColor = '';
+    }
+  }
   
   /**
    * Create and show date preview table
@@ -510,11 +547,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     previewDiv.innerHTML = '';
     
-    const title = document.createElement('h4');
-    title.textContent = 'Date Preview (using base year ' + baseYear + ')';
-    title.style.marginTop = '20px';
-    title.style.marginBottom = '10px';
-    previewDiv.appendChild(title);
+    // Header with clear year indication
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'background: #e3f2fd; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #1976d2;';
+    headerDiv.innerHTML = `
+      <h4 style="margin: 0 0 8px 0; color: #1976d2;">📅 Date Mapping Preview</h4>
+      <div style="font-size: 0.95em; margin-bottom: 6px;">
+        <strong>Base Year:</strong> <span style="color: #1976d2; font-weight: bold;">${baseYear}</span> 
+        (applied to week labels without explicit years)
+      </div>
+      <div style="font-size: 0.9em; color: #1565c0;">
+        All downstream calculations (ROI, IRR, NPV) will use these mapped dates.
+      </div>
+    `;
+    previewDiv.appendChild(headerDiv);
     
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
@@ -522,40 +568,69 @@ document.addEventListener('DOMContentLoaded', function() {
     table.style.marginBottom = '15px';
     
     const headerRow = document.createElement('tr');
-    headerRow.innerHTML = '<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Label</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Parsed Date</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Status</th>';
+    headerRow.innerHTML = '<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Label</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Mapped Date</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Range</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Status</th>';
     table.appendChild(headerRow);
     
-    weekLabels.slice(0, 10).forEach(label => { // Show first 10 for preview
+    let successCount = 0;
+    let ambiguousCount = 0;
+    
+    weekLabels.slice(0, 10).forEach((label, index) => { // Show first 10 for preview
       const row = document.createElement('tr');
       const parsedDate = parseWeekLabelAsDate(label, baseYear);
       
       let dateStr = 'Not parsed';
+      let weekRange = '';
       let status = '❌ Failed';
       let statusColor = '#ff6b6b';
       
       if (parsedDate) {
-        dateStr = parsedDate.toLocaleDateString();
-        status = '✅ Success';
+        dateStr = parsedDate.toLocaleDateString('en-GB');
+        // Calculate week range (e.g., "3-9 Jan 2023")
+        const weekStart = new Date(parsedDate);
+        const weekEnd = new Date(parsedDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        const formatOptions = { day: 'numeric', month: 'short' };
+        weekRange = `${weekStart.toLocaleDateString('en-GB', formatOptions)} - ${weekEnd.toLocaleDateString('en-GB', formatOptions)}`;
+        
+        status = '✅ Mapped';
         statusColor = '#28a745';
+        successCount++;
+      } else {
+        ambiguousCount++;
       }
       
       row.innerHTML = `
-        <td style="border: 1px solid #ddd; padding: 8px;">${label}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">${label}</td>
         <td style="border: 1px solid #ddd; padding: 8px;">${dateStr}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor};">${status}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 0.9em; color: #666;">${weekRange}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor}; font-weight: 500;">${status}</td>
       `;
       table.appendChild(row);
     });
     
+    previewDiv.appendChild(table);
+    
+    // Summary and warnings
+    const summaryDiv = document.createElement('div');
+    summaryDiv.style.cssText = 'margin-top: 10px; font-size: 0.9em;';
+    
     if (weekLabels.length > 10) {
-      const note = document.createElement('p');
-      note.textContent = `Showing first 10 of ${weekLabels.length} week labels`;
-      note.style.fontSize = '0.9em';
-      note.style.color = '#666';
-      previewDiv.appendChild(note);
+      summaryDiv.innerHTML += `<div style="color: #666; margin-bottom: 8px;">Showing first 10 of ${weekLabels.length} week labels</div>`;
     }
     
-    previewDiv.appendChild(table);
+    summaryDiv.innerHTML += `<div style="margin-bottom: 8px;"><strong>Summary:</strong> ${successCount} successfully mapped, ${ambiguousCount} failed to parse</div>`;
+    
+    if (ambiguousCount > 0) {
+      summaryDiv.innerHTML += `
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 8px; color: #856404;">
+          <strong>⚠️ Warning:</strong> ${ambiguousCount} week label(s) could not be parsed. 
+          Please ensure labels follow supported formats (e.g., "1 Jan", "Jan 1", "8 Jan") or contain explicit years.
+        </div>
+      `;
+    }
+    
+    previewDiv.appendChild(summaryDiv);
     previewDiv.style.display = 'block';
   }
 
@@ -596,11 +671,102 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!panel) return;
     panel.innerHTML = '';
 
+    // Essential workflow: Upload -> Auto-detect -> Year input -> Live preview
+    
+    // Step 1: Auto-detected mapping summary (always visible)
+    const mappingSummaryDiv = document.createElement('div');
+    mappingSummaryDiv.style.cssText = 'background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;';
+    mappingSummaryDiv.innerHTML = `
+      <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Spreadsheet Mapping Auto-Detected</h4>
+      <div style="font-size: 0.9em; margin-bottom: 6px;">
+        <strong>Week Labels Row:</strong> Row ${config.weekLabelRow + 1} | 
+        <strong>Week Columns:</strong> ${config.weekColStart + 1} to ${config.weekColEnd + 1} | 
+        <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
+      </div>
+      <div style="font-size: 0.85em; color: #2e7d32;">
+        Auto-detection found ${weekLabels ? weekLabels.length : 0} week columns. Click "Advanced Options" below to manually adjust if needed.
+      </div>
+    `;
+    panel.appendChild(mappingSummaryDiv);
+
+    // Step 2: Essential inputs (always visible)
+    const essentialDiv = document.createElement('div');
+    essentialDiv.style.cssText = 'margin-bottom: 16px;';
+    
+    // Opening balance input
+    const obDiv = document.createElement('div');
+    obDiv.style.cssText = 'margin-bottom: 12px;';
+    obDiv.innerHTML = `
+      <label for="openingBalanceInput" style="font-weight: bold; margin-right: 8px;">Opening Balance:</label>
+      <input type="number" id="openingBalanceInput" value="${openingBalance}" 
+             style="width:120px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+             placeholder="0">
+      <span style="margin-left: 8px; font-size: 0.9em; color: #666;">Starting bank balance</span>
+    `;
+    essentialDiv.appendChild(obDiv);
+    
+    // Base year input for week label parsing
+    const currentWeekLabels = weekLabels || [];
+    const needsYear = needsBaseYear(currentWeekLabels);
+    const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
+    
+    const yearDiv = document.createElement('div');
+    yearDiv.style.cssText = 'margin-bottom: 12px;';
+    
+    if (needsYear) {
+      yearDiv.innerHTML = `
+        <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; margin-bottom: 10px;">
+          <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
+          <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
+        </div>
+        <div>
+          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                 placeholder="e.g. 2023">
+          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
+        </div>
+      `;
+    } else {
+      yearDiv.innerHTML = `
+        <div>
+          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                 placeholder="e.g. 2023">
+          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
+        </div>
+      `;
+    }
+    essentialDiv.appendChild(yearDiv);
+    panel.appendChild(essentialDiv);
+
+    // Step 3: Live date preview (always visible when available)
+    const previewDiv = document.createElement('div');
+    previewDiv.id = 'datePreviewTable';
+    panel.appendChild(previewDiv);
+
+    // Step 4: Advanced options (collapsible)
+    const advancedDiv = document.createElement('div');
+    advancedDiv.style.cssText = 'margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 16px;';
+    
+    const advancedBtn = document.createElement('button');
+    advancedBtn.type = 'button';
+    advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">▶</span>Advanced Options`;
+    advancedBtn.style.cssText = 'background: none; border: none; color: #1976d2; font-weight: bold; cursor: pointer; font-size: 1em; padding: 8px 0;';
+    
+    const advancedContent = document.createElement('div');
+    advancedContent.style.display = 'none';
+    advancedContent.style.cssText = 'margin-top: 12px; padding: 16px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;';
+
+    // Advanced mapping controls
     function drop(label, id, max, sel, onChange, items) {
       let lab = document.createElement('label');
       lab.textContent = label;
+      lab.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500;';
       let selElem = document.createElement('select');
       selElem.className = 'mapping-dropdown';
+      selElem.style.cssText = 'margin-left: 8px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;';
       for (let i = 0; i < max; i++) {
         let opt = document.createElement('option');
         opt.value = i;
@@ -611,164 +777,56 @@ document.addEventListener('DOMContentLoaded', function() {
       selElem.value = sel;
       selElem.onchange = function() { onChange(parseInt(this.value,10)); };
       lab.appendChild(selElem);
-      panel.appendChild(lab);
+      advancedContent.appendChild(lab);
     }
 
     drop('Which row contains week labels? ', 'row', Math.min(allRows.length, 30), config.weekLabelRow, v => { config.weekLabelRow = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); });
-    panel.appendChild(document.createElement('br'));
-
+    
     let weekRow = allRows[config.weekLabelRow] || [];
     drop('First week column: ', 'col', weekRow.length, config.weekColStart, v => { config.weekColStart = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
     drop('Last week column: ', 'col', weekRow.length, config.weekColEnd, v => { config.weekColEnd = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
-    panel.appendChild(document.createElement('br'));
-
+    
     drop('First data row: ', 'row', allRows.length, config.firstDataRow, v => { config.firstDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
     drop('Last data row: ', 'row', allRows.length, config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
-    panel.appendChild(document.createElement('br'));
 
-    // Opening balance input
-    let obDiv = document.createElement('div');
-    obDiv.innerHTML = `Opening Balance: <input type="number" id="openingBalanceInput" value="${openingBalance}" style="width:120px;">`;
-    panel.appendChild(obDiv);
-    setTimeout(() => {
-      let obInput = document.getElementById('openingBalanceInput');
-      if (obInput) obInput.oninput = function() {
-        openingBalance = parseFloat(obInput.value) || 0;
-        updateAllTabs();
-        renderMappingPanel(allRows);
-      };
-    }, 0);
-
-    // Base year input for week label parsing
-    let byDiv = document.createElement('div');
-    byDiv.style.marginTop = '10px';
-    const currentWeekLabels = weekLabels || [];
-    const needsYear = needsBaseYear(currentWeekLabels);
-    const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
-    
-    if (needsYear) {
-      byDiv.innerHTML = `
-        <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; margin-bottom: 10px;">
-          <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
-          <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
-        </div>
-        Base Year for Week Labels: <input type="number" id="baseYearInput" value="${defaultYear}" min="2020" max="2030" style="width:80px;">
-        <button type="button" id="updatePreviewBtn" style="margin-left: 10px; padding: 4px 8px;">Update Preview</button>
-      `;
-    } else {
-      byDiv.innerHTML = `Base Year for Week Labels: <input type="number" id="baseYearInput" value="${defaultYear}" min="2020" max="2030" style="width:80px;">
-        <button type="button" id="updatePreviewBtn" style="margin-left: 10px; padding: 4px 8px;">Update Preview</button>`;
-    }
-    
-    panel.appendChild(byDiv);
-    
-    // Date preview table container
-    const previewDiv = document.createElement('div');
-    previewDiv.id = 'datePreviewTable';
-    previewDiv.style.display = 'none';
-    panel.appendChild(previewDiv);
-    
-    setTimeout(() => {
-      const byInput = document.getElementById('baseYearInput');
-      const updateBtn = document.getElementById('updatePreviewBtn');
-      
-      if (byInput) {
-        byInput.oninput = function() {
-          const year = parseInt(byInput.value) || new Date().getFullYear();
-          userSpecifiedBaseYear = year;
-          updateAllTabs();
-        };
-      }
-      
-      if (updateBtn) {
-        updateBtn.onclick = function() {
-          const year = parseInt(byInput.value) || new Date().getFullYear();
-          userSpecifiedBaseYear = year;
-          showDatePreview(currentWeekLabels, year);
-          updateAllTabs();
-        };
-      }
-      
-      // Show initial preview if we have week labels
-      if (currentWeekLabels.length > 0) {
-        showDatePreview(currentWeekLabels, defaultYear);
-      }
-    }, 0);
-
-    // First week date input removed - dates now parsed directly from spreadsheet labels
-
-
-    const resetBtn = document.createElement('button');
-    resetBtn.textContent = "Reset Mapping";
-    resetBtn.style.marginLeft = '10px';
-    resetBtn.onclick = function() {
-      autoDetectMapping(allRows);
-      weekCheckboxStates = weekLabels.map(()=>true);
-      openingBalance = 0;
-      userGroupingOverrides.clear();
-      userSpecifiedBaseYear = null; // Reset base year
-      
-      // Reset first week date to today
-      window.firstWeekDate = new Date();
-      
-      renderMappingPanel(allRows);
-      updateWeekLabels();
-      updateAllTabs();
-    };
-    panel.appendChild(resetBtn);
-
-    // Collapsible Week filter UI
+    // Advanced week filter
     if (weekLabels.length) {
+      const weekFilterTitle = document.createElement('h5');
+      weekFilterTitle.textContent = 'Week Column Filter';
+      weekFilterTitle.style.cssText = 'margin: 16px 0 8px 0; color: #333;';
+      advancedContent.appendChild(weekFilterTitle);
+      
       const weekFilterDiv = document.createElement('div');
-      weekFilterDiv.className = "collapsible-week-filter";
-
-      // Collapsible header
-      const collapseBtn = document.createElement('button');
-      collapseBtn.type = 'button';
-      collapseBtn.className = 'collapse-toggle';
-      collapseBtn.innerHTML = `<span class="caret" style="display:inline-block;transition:transform 0.2s;margin-right:6px;">&#9654;</span>Filter week columns to include:`;
-      collapseBtn.style.marginBottom = '10px';
-      collapseBtn.style.background = 'none';
-      collapseBtn.style.color = '#1976d2';
-      collapseBtn.style.fontWeight = 'bold';
-      collapseBtn.style.fontSize = '1.06em';
-      collapseBtn.style.border = 'none';
-      collapseBtn.style.cursor = 'pointer';
-      collapseBtn.style.outline = 'none';
-      collapseBtn.style.padding = '4px 0';
-
-      // Collapsible content
-      const collapsibleContent = document.createElement('div');
-      collapsibleContent.className = "week-checkbox-collapsible-content";
-      collapsibleContent.style.display = 'none';
-      collapsibleContent.style.margin = '14px 0 4px 0';
-
-      // Buttons
+      
+      // Quick buttons
       const selectAllBtn = document.createElement('button');
       selectAllBtn.textContent = "Select All";
       selectAllBtn.type = 'button';
-      selectAllBtn.style.marginRight = '8px';
+      selectAllBtn.style.cssText = 'margin-right: 8px; padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;';
       selectAllBtn.onclick = function() {
         weekCheckboxStates = weekCheckboxStates.map(()=>true);
         updateAllTabs();
         renderMappingPanel(allRows);
       };
+      
       const deselectAllBtn = document.createElement('button');
       deselectAllBtn.textContent = "Deselect All";
       deselectAllBtn.type = 'button';
+      deselectAllBtn.style.cssText = 'margin-right: 8px; padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;';
       deselectAllBtn.onclick = function() {
         weekCheckboxStates = weekCheckboxStates.map(()=>false);
         updateAllTabs();
         renderMappingPanel(allRows);
       };
-      collapsibleContent.appendChild(selectAllBtn);
-      collapsibleContent.appendChild(deselectAllBtn);
-
+      
+      weekFilterDiv.appendChild(selectAllBtn);
+      weekFilterDiv.appendChild(deselectAllBtn);
+      
       // Checkbox group
       const groupDiv = document.createElement('div');
-      groupDiv.className = 'week-checkbox-group';
-      groupDiv.style.marginTop = '8px';
+      groupDiv.style.cssText = 'margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;';
       weekLabels.forEach((label, idx) => {
+        const checkboxDiv = document.createElement('div');
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = weekCheckboxStates[idx] !== false;
@@ -781,67 +839,103 @@ document.addEventListener('DOMContentLoaded', function() {
         const lab = document.createElement('label');
         lab.htmlFor = cb.id;
         lab.textContent = label;
-        lab.style.marginRight = '13px';
-        groupDiv.appendChild(cb);
-        groupDiv.appendChild(lab);
+        lab.style.cssText = 'margin-left: 4px; font-size: 0.9em;';
+        checkboxDiv.appendChild(cb);
+        checkboxDiv.appendChild(lab);
+        groupDiv.appendChild(checkboxDiv);
       });
-      collapsibleContent.appendChild(groupDiv);
-
-      // Collapsible logic
-      collapseBtn.addEventListener('click', function() {
-        const isOpen = collapsibleContent.style.display !== 'none';
-        collapsibleContent.style.display = isOpen ? 'none' : 'block';
-        const caret = collapseBtn.querySelector('.caret');
-        caret.style.transform = isOpen ? 'rotate(0)' : 'rotate(90deg)';
-      });
-
-      weekFilterDiv.appendChild(collapseBtn);
-      weekFilterDiv.appendChild(collapsibleContent);
-      panel.appendChild(weekFilterDiv);
+      weekFilterDiv.appendChild(groupDiv);
+      advancedContent.appendChild(weekFilterDiv);
     }
 
-    // Save Mapping Button
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = "Save Mapping";
-    saveBtn.style.margin = "10px 0";
-    saveBtn.onclick = function() {
-      mappingConfigured = true;
+    // Reset button in advanced section
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = "Reset All Mapping";
+    resetBtn.style.cssText = 'margin-top: 16px; padding: 6px 14px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;';
+    resetBtn.onclick = function() {
+      autoDetectMapping(allRows);
+      weekCheckboxStates = weekLabels.map(()=>true);
+      openingBalance = 0;
+      userGroupingOverrides.clear();
+      userSpecifiedBaseYear = null;
+      window.firstWeekDate = new Date();
+      renderMappingPanel(allRows);
       updateWeekLabels();
       updateAllTabs();
-      renderMappingPanel(allRows);
     };
-    panel.appendChild(saveBtn);
+    advancedContent.appendChild(resetBtn);
 
-    // Compact preview
-    if (weekLabels.length && mappingConfigured) {
-      const previewWrap = document.createElement('div');
-      const compactTable = document.createElement('table');
-      compactTable.className = "compact-preview-table";
-      const tr1 = document.createElement('tr');
-      tr1.appendChild(document.createElement('th'));
-      getFilteredWeekIndices().forEach(fi => {
-        const th = document.createElement('th');
-        th.textContent = weekLabels[fi];
-        tr1.appendChild(th);
-      });
-      compactTable.appendChild(tr1);
-      const tr2 = document.createElement('tr');
-      const lbl = document.createElement('td');
-      lbl.textContent = "Bank Balance (rolling)";
-      tr2.appendChild(lbl);
-      let rolling = getRollingBankBalanceArr();
-      getFilteredWeekIndices().forEach((fi, i) => {
-        let bal = rolling[i];
-        let td = document.createElement('td');
-        td.textContent = isNaN(bal) ? '' : `€${Math.round(bal)}`;
-        if (bal < 0) td.style.background = "#ffeaea";
-        tr2.appendChild(td);
-      });
-      compactTable.appendChild(tr2);
-      previewWrap.style.overflowX = "auto";
-      previewWrap.appendChild(compactTable);
-      panel.appendChild(previewWrap);
-    }
+    // Advanced toggle functionality
+    advancedBtn.addEventListener('click', function() {
+      const isOpen = advancedContent.style.display !== 'none';
+      advancedContent.style.display = isOpen ? 'none' : 'block';
+      const caret = advancedBtn.querySelector('.caret');
+      if (caret) {
+        caret.textContent = isOpen ? '▶' : '▼';
+      }
+      advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">${isOpen ? '▶' : '▼'}</span>${isOpen ? 'Advanced Options' : 'Hide Advanced Options'}`;
+    });
+
+    advancedDiv.appendChild(advancedBtn);
+    advancedDiv.appendChild(advancedContent);
+    panel.appendChild(advancedDiv);
+    
+    // Setup event listeners after DOM is ready
+    setTimeout(() => {
+      // Opening balance input handler
+      const obInput = document.getElementById('openingBalanceInput');
+      if (obInput) {
+        obInput.addEventListener('input', function() {
+          openingBalance = parseFloat(obInput.value) || 0;
+          updateAllTabs();
+        });
+      }
+      
+      // Base year input handlers
+      const byInput = document.getElementById('baseYearInput');
+      const currentYearDisplay = document.getElementById('currentYearDisplay');
+      
+      if (byInput) {
+        function updateYear() {
+          const validation = validateBaseYear(byInput.value);
+          
+          if (validation.valid) {
+            userSpecifiedBaseYear = validation.year;
+            showYearValidationError(null, byInput); // Clear any error
+            if (currentYearDisplay) {
+              currentYearDisplay.textContent = `Currently using: ${validation.year}`;
+              currentYearDisplay.style.color = '#1976d2';
+            }
+            
+            // Immediately update preview and all tabs
+            if (currentWeekLabels.length > 0) {
+              showDatePreview(currentWeekLabels, validation.year);
+            }
+            updateAllTabs();
+          } else {
+            showYearValidationError(validation.error, byInput);
+            if (currentYearDisplay) {
+              currentYearDisplay.textContent = 'Invalid year - please correct';
+              currentYearDisplay.style.color = '#d32f2f';
+            }
+          }
+        }
+        
+        // Add multiple event listeners for immediate updates
+        byInput.addEventListener('input', updateYear);
+        byInput.addEventListener('change', updateYear);
+        byInput.addEventListener('blur', updateYear);
+        
+        // Initial validation
+        updateYear();
+      }
+      
+      // Show initial preview if we have week labels
+      if (currentWeekLabels.length > 0) {
+        const initialYear = userSpecifiedBaseYear || defaultYear;
+        showDatePreview(currentWeekLabels, initialYear);
+      }
+    }, 0);
   }
 
   function autoDetectMapping(sheet) {
@@ -3343,6 +3437,55 @@ setupExcelExport();
   // Date mapping now handled directly through spreadsheet column label parsing
   // No manual date selection required
   // -------------------- Update All Tabs --------------------
+  /**
+   * Create or update mapping summary banner for all tabs
+   */
+  function updateMappingSummaryBanners() {
+    if (!weekLabels || weekLabels.length === 0) return;
+    
+    const currentYear = userSpecifiedBaseYear || new Date().getFullYear();
+    const mappedCount = weekLabels.filter(label => parseWeekLabelAsDate(label, currentYear)).length;
+    const totalCount = weekLabels.length;
+    
+    // Create summary content
+    const summaryHTML = `
+      <div style="background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em;">
+        <strong>📅 Current Mapping:</strong> 
+        ${mappedCount}/${totalCount} weeks mapped using base year <strong>${currentYear}</strong> | 
+        Week range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]}
+        ${mappedCount < totalCount ? 
+          ` | <span style="color: #ff9800;">⚠️ ${totalCount - mappedCount} week(s) need attention</span>` : 
+          ' | <span style="color: #4caf50;">✅ All weeks mapped successfully</span>'
+        }
+      </div>
+    `;
+    
+    // Target containers for each tab
+    const targetContainers = [
+      'pnl', 'roi', 'summary'  // Tab IDs where we want to show mapping summary
+    ];
+    
+    targetContainers.forEach(tabId => {
+      const tabContainer = document.getElementById(tabId);
+      if (!tabContainer) return;
+      
+      // Remove existing summary
+      const existingSummary = tabContainer.querySelector('.mapping-summary-banner');
+      if (existingSummary) {
+        existingSummary.remove();
+      }
+      
+      // Add new summary at the top (after the h2 heading)
+      const heading = tabContainer.querySelector('h2');
+      if (heading) {
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'mapping-summary-banner';
+        summaryDiv.innerHTML = summaryHTML;
+        heading.parentNode.insertBefore(summaryDiv, heading.nextSibling);
+      }
+    });
+  }
+
   function updateAllTabs() {
     clearRoiSuggestions(); // Clear suggestions when data changes
     renderRepaymentRows();
@@ -3352,6 +3495,9 @@ setupExcelExport();
     renderSummaryTab();
     renderRoiSection();
     renderTornadoChart();
+    
+    // Update mapping summary banners on all tabs
+    updateMappingSummaryBanners();
     
     // Update NPV display in modal if open
     updateNPVDisplayInModal();
