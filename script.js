@@ -671,11 +671,102 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!panel) return;
     panel.innerHTML = '';
 
+    // Essential workflow: Upload -> Auto-detect -> Year input -> Live preview
+    
+    // Step 1: Auto-detected mapping summary (always visible)
+    const mappingSummaryDiv = document.createElement('div');
+    mappingSummaryDiv.style.cssText = 'background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;';
+    mappingSummaryDiv.innerHTML = `
+      <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Spreadsheet Mapping Auto-Detected</h4>
+      <div style="font-size: 0.9em; margin-bottom: 6px;">
+        <strong>Week Labels Row:</strong> Row ${config.weekLabelRow + 1} | 
+        <strong>Week Columns:</strong> ${config.weekColStart + 1} to ${config.weekColEnd + 1} | 
+        <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
+      </div>
+      <div style="font-size: 0.85em; color: #2e7d32;">
+        Auto-detection found ${weekLabels ? weekLabels.length : 0} week columns. Click "Advanced Options" below to manually adjust if needed.
+      </div>
+    `;
+    panel.appendChild(mappingSummaryDiv);
+
+    // Step 2: Essential inputs (always visible)
+    const essentialDiv = document.createElement('div');
+    essentialDiv.style.cssText = 'margin-bottom: 16px;';
+    
+    // Opening balance input
+    const obDiv = document.createElement('div');
+    obDiv.style.cssText = 'margin-bottom: 12px;';
+    obDiv.innerHTML = `
+      <label for="openingBalanceInput" style="font-weight: bold; margin-right: 8px;">Opening Balance:</label>
+      <input type="number" id="openingBalanceInput" value="${openingBalance}" 
+             style="width:120px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+             placeholder="0">
+      <span style="margin-left: 8px; font-size: 0.9em; color: #666;">Starting bank balance</span>
+    `;
+    essentialDiv.appendChild(obDiv);
+    
+    // Base year input for week label parsing
+    const currentWeekLabels = weekLabels || [];
+    const needsYear = needsBaseYear(currentWeekLabels);
+    const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
+    
+    const yearDiv = document.createElement('div');
+    yearDiv.style.cssText = 'margin-bottom: 12px;';
+    
+    if (needsYear) {
+      yearDiv.innerHTML = `
+        <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; margin-bottom: 10px;">
+          <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
+          <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
+        </div>
+        <div>
+          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                 placeholder="e.g. 2023">
+          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
+        </div>
+      `;
+    } else {
+      yearDiv.innerHTML = `
+        <div>
+          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                 placeholder="e.g. 2023">
+          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
+        </div>
+      `;
+    }
+    essentialDiv.appendChild(yearDiv);
+    panel.appendChild(essentialDiv);
+
+    // Step 3: Live date preview (always visible when available)
+    const previewDiv = document.createElement('div');
+    previewDiv.id = 'datePreviewTable';
+    panel.appendChild(previewDiv);
+
+    // Step 4: Advanced options (collapsible)
+    const advancedDiv = document.createElement('div');
+    advancedDiv.style.cssText = 'margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 16px;';
+    
+    const advancedBtn = document.createElement('button');
+    advancedBtn.type = 'button';
+    advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">▶</span>Advanced Options`;
+    advancedBtn.style.cssText = 'background: none; border: none; color: #1976d2; font-weight: bold; cursor: pointer; font-size: 1em; padding: 8px 0;';
+    
+    const advancedContent = document.createElement('div');
+    advancedContent.style.display = 'none';
+    advancedContent.style.cssText = 'margin-top: 12px; padding: 16px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;';
+
+    // Advanced mapping controls
     function drop(label, id, max, sel, onChange, items) {
       let lab = document.createElement('label');
       lab.textContent = label;
+      lab.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500;';
       let selElem = document.createElement('select');
       selElem.className = 'mapping-dropdown';
+      selElem.style.cssText = 'margin-left: 8px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;';
       for (let i = 0; i < max; i++) {
         let opt = document.createElement('option');
         opt.value = i;
@@ -686,76 +777,121 @@ document.addEventListener('DOMContentLoaded', function() {
       selElem.value = sel;
       selElem.onchange = function() { onChange(parseInt(this.value,10)); };
       lab.appendChild(selElem);
-      panel.appendChild(lab);
+      advancedContent.appendChild(lab);
     }
 
     drop('Which row contains week labels? ', 'row', Math.min(allRows.length, 30), config.weekLabelRow, v => { config.weekLabelRow = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); });
-    panel.appendChild(document.createElement('br'));
-
+    
     let weekRow = allRows[config.weekLabelRow] || [];
     drop('First week column: ', 'col', weekRow.length, config.weekColStart, v => { config.weekColStart = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
     drop('Last week column: ', 'col', weekRow.length, config.weekColEnd, v => { config.weekColEnd = v; updateWeekLabels(); renderMappingPanel(allRows); updateAllTabs(); }, weekRow);
-    panel.appendChild(document.createElement('br'));
-
+    
     drop('First data row: ', 'row', allRows.length, config.firstDataRow, v => { config.firstDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
     drop('Last data row: ', 'row', allRows.length, config.lastDataRow, v => { config.lastDataRow = v; renderMappingPanel(allRows); updateAllTabs(); });
-    panel.appendChild(document.createElement('br'));
 
-    // Opening balance input
-    let obDiv = document.createElement('div');
-    obDiv.innerHTML = `Opening Balance: <input type="number" id="openingBalanceInput" value="${openingBalance}" style="width:120px;">`;
-    panel.appendChild(obDiv);
-    setTimeout(() => {
-      let obInput = document.getElementById('openingBalanceInput');
-      if (obInput) obInput.oninput = function() {
-        openingBalance = parseFloat(obInput.value) || 0;
+    // Advanced week filter
+    if (weekLabels.length) {
+      const weekFilterTitle = document.createElement('h5');
+      weekFilterTitle.textContent = 'Week Column Filter';
+      weekFilterTitle.style.cssText = 'margin: 16px 0 8px 0; color: #333;';
+      advancedContent.appendChild(weekFilterTitle);
+      
+      const weekFilterDiv = document.createElement('div');
+      
+      // Quick buttons
+      const selectAllBtn = document.createElement('button');
+      selectAllBtn.textContent = "Select All";
+      selectAllBtn.type = 'button';
+      selectAllBtn.style.cssText = 'margin-right: 8px; padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;';
+      selectAllBtn.onclick = function() {
+        weekCheckboxStates = weekCheckboxStates.map(()=>true);
         updateAllTabs();
         renderMappingPanel(allRows);
       };
-    }, 0);
-
-    // Base year input for week label parsing
-    let byDiv = document.createElement('div');
-    byDiv.style.marginTop = '10px';
-    const currentWeekLabels = weekLabels || [];
-    const needsYear = needsBaseYear(currentWeekLabels);
-    const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
-    
-    if (needsYear) {
-      byDiv.innerHTML = `
-        <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; margin-bottom: 10px;">
-          <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
-          <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
-        </div>
-        <div style="margin-bottom: 10px;">
-          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
-          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
-                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
-                 placeholder="e.g. 2023">
-          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
-        </div>
-      `;
-    } else {
-      byDiv.innerHTML = `
-        <div style="margin-bottom: 10px;">
-          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
-          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
-                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
-                 placeholder="e.g. 2023">
-          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
-        </div>
-      `;
+      
+      const deselectAllBtn = document.createElement('button');
+      deselectAllBtn.textContent = "Deselect All";
+      deselectAllBtn.type = 'button';
+      deselectAllBtn.style.cssText = 'margin-right: 8px; padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;';
+      deselectAllBtn.onclick = function() {
+        weekCheckboxStates = weekCheckboxStates.map(()=>false);
+        updateAllTabs();
+        renderMappingPanel(allRows);
+      };
+      
+      weekFilterDiv.appendChild(selectAllBtn);
+      weekFilterDiv.appendChild(deselectAllBtn);
+      
+      // Checkbox group
+      const groupDiv = document.createElement('div');
+      groupDiv.style.cssText = 'margin-top: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;';
+      weekLabels.forEach((label, idx) => {
+        const checkboxDiv = document.createElement('div');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = weekCheckboxStates[idx] !== false;
+        cb.id = 'weekcol_cb_' + idx;
+        cb.onchange = function() {
+          weekCheckboxStates[idx] = cb.checked;
+          updateAllTabs();
+          renderMappingPanel(allRows);
+        };
+        const lab = document.createElement('label');
+        lab.htmlFor = cb.id;
+        lab.textContent = label;
+        lab.style.cssText = 'margin-left: 4px; font-size: 0.9em;';
+        checkboxDiv.appendChild(cb);
+        checkboxDiv.appendChild(lab);
+        groupDiv.appendChild(checkboxDiv);
+      });
+      weekFilterDiv.appendChild(groupDiv);
+      advancedContent.appendChild(weekFilterDiv);
     }
+
+    // Reset button in advanced section
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = "Reset All Mapping";
+    resetBtn.style.cssText = 'margin-top: 16px; padding: 6px 14px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;';
+    resetBtn.onclick = function() {
+      autoDetectMapping(allRows);
+      weekCheckboxStates = weekLabels.map(()=>true);
+      openingBalance = 0;
+      userGroupingOverrides.clear();
+      userSpecifiedBaseYear = null;
+      window.firstWeekDate = new Date();
+      renderMappingPanel(allRows);
+      updateWeekLabels();
+      updateAllTabs();
+    };
+    advancedContent.appendChild(resetBtn);
+
+    // Advanced toggle functionality
+    advancedBtn.addEventListener('click', function() {
+      const isOpen = advancedContent.style.display !== 'none';
+      advancedContent.style.display = isOpen ? 'none' : 'block';
+      const caret = advancedBtn.querySelector('.caret');
+      if (caret) {
+        caret.textContent = isOpen ? '▶' : '▼';
+      }
+      advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">${isOpen ? '▶' : '▼'}</span>${isOpen ? 'Advanced Options' : 'Hide Advanced Options'}`;
+    });
+
+    advancedDiv.appendChild(advancedBtn);
+    advancedDiv.appendChild(advancedContent);
+    panel.appendChild(advancedDiv);
     
-    panel.appendChild(byDiv);
-    
-    // Date preview table container
-    const previewDiv = document.createElement('div');
-    previewDiv.id = 'datePreviewTable';
-    previewDiv.style.display = 'none';
-    panel.appendChild(previewDiv);
-    
+    // Setup event listeners after DOM is ready
     setTimeout(() => {
+      // Opening balance input handler
+      const obInput = document.getElementById('openingBalanceInput');
+      if (obInput) {
+        obInput.addEventListener('input', function() {
+          openingBalance = parseFloat(obInput.value) || 0;
+          updateAllTabs();
+        });
+      }
+      
+      // Base year input handlers
       const byInput = document.getElementById('baseYearInput');
       const currentYearDisplay = document.getElementById('currentYearDisplay');
       
@@ -800,154 +936,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showDatePreview(currentWeekLabels, initialYear);
       }
     }, 0);
-
-    // First week date input removed - dates now parsed directly from spreadsheet labels
-
-
-    const resetBtn = document.createElement('button');
-    resetBtn.textContent = "Reset Mapping";
-    resetBtn.style.marginLeft = '10px';
-    resetBtn.onclick = function() {
-      autoDetectMapping(allRows);
-      weekCheckboxStates = weekLabels.map(()=>true);
-      openingBalance = 0;
-      userGroupingOverrides.clear();
-      userSpecifiedBaseYear = null; // Reset base year
-      
-      // Reset first week date to today
-      window.firstWeekDate = new Date();
-      
-      renderMappingPanel(allRows);
-      updateWeekLabels();
-      updateAllTabs();
-    };
-    panel.appendChild(resetBtn);
-
-    // Collapsible Week filter UI
-    if (weekLabels.length) {
-      const weekFilterDiv = document.createElement('div');
-      weekFilterDiv.className = "collapsible-week-filter";
-
-      // Collapsible header
-      const collapseBtn = document.createElement('button');
-      collapseBtn.type = 'button';
-      collapseBtn.className = 'collapse-toggle';
-      collapseBtn.innerHTML = `<span class="caret" style="display:inline-block;transition:transform 0.2s;margin-right:6px;">&#9654;</span>Filter week columns to include:`;
-      collapseBtn.style.marginBottom = '10px';
-      collapseBtn.style.background = 'none';
-      collapseBtn.style.color = '#1976d2';
-      collapseBtn.style.fontWeight = 'bold';
-      collapseBtn.style.fontSize = '1.06em';
-      collapseBtn.style.border = 'none';
-      collapseBtn.style.cursor = 'pointer';
-      collapseBtn.style.outline = 'none';
-      collapseBtn.style.padding = '4px 0';
-
-      // Collapsible content
-      const collapsibleContent = document.createElement('div');
-      collapsibleContent.className = "week-checkbox-collapsible-content";
-      collapsibleContent.style.display = 'none';
-      collapsibleContent.style.margin = '14px 0 4px 0';
-
-      // Buttons
-      const selectAllBtn = document.createElement('button');
-      selectAllBtn.textContent = "Select All";
-      selectAllBtn.type = 'button';
-      selectAllBtn.style.marginRight = '8px';
-      selectAllBtn.onclick = function() {
-        weekCheckboxStates = weekCheckboxStates.map(()=>true);
-        updateAllTabs();
-        renderMappingPanel(allRows);
-      };
-      const deselectAllBtn = document.createElement('button');
-      deselectAllBtn.textContent = "Deselect All";
-      deselectAllBtn.type = 'button';
-      deselectAllBtn.onclick = function() {
-        weekCheckboxStates = weekCheckboxStates.map(()=>false);
-        updateAllTabs();
-        renderMappingPanel(allRows);
-      };
-      collapsibleContent.appendChild(selectAllBtn);
-      collapsibleContent.appendChild(deselectAllBtn);
-
-      // Checkbox group
-      const groupDiv = document.createElement('div');
-      groupDiv.className = 'week-checkbox-group';
-      groupDiv.style.marginTop = '8px';
-      weekLabels.forEach((label, idx) => {
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = weekCheckboxStates[idx] !== false;
-        cb.id = 'weekcol_cb_' + idx;
-        cb.onchange = function() {
-          weekCheckboxStates[idx] = cb.checked;
-          updateAllTabs();
-          renderMappingPanel(allRows);
-        };
-        const lab = document.createElement('label');
-        lab.htmlFor = cb.id;
-        lab.textContent = label;
-        lab.style.marginRight = '13px';
-        groupDiv.appendChild(cb);
-        groupDiv.appendChild(lab);
-      });
-      collapsibleContent.appendChild(groupDiv);
-
-      // Collapsible logic
-      collapseBtn.addEventListener('click', function() {
-        const isOpen = collapsibleContent.style.display !== 'none';
-        collapsibleContent.style.display = isOpen ? 'none' : 'block';
-        const caret = collapseBtn.querySelector('.caret');
-        caret.style.transform = isOpen ? 'rotate(0)' : 'rotate(90deg)';
-      });
-
-      weekFilterDiv.appendChild(collapseBtn);
-      weekFilterDiv.appendChild(collapsibleContent);
-      panel.appendChild(weekFilterDiv);
-    }
-
-    // Save Mapping Button
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = "Save Mapping";
-    saveBtn.style.margin = "10px 0";
-    saveBtn.onclick = function() {
-      mappingConfigured = true;
-      updateWeekLabels();
-      updateAllTabs();
-      renderMappingPanel(allRows);
-    };
-    panel.appendChild(saveBtn);
-
-    // Compact preview
-    if (weekLabels.length && mappingConfigured) {
-      const previewWrap = document.createElement('div');
-      const compactTable = document.createElement('table');
-      compactTable.className = "compact-preview-table";
-      const tr1 = document.createElement('tr');
-      tr1.appendChild(document.createElement('th'));
-      getFilteredWeekIndices().forEach(fi => {
-        const th = document.createElement('th');
-        th.textContent = weekLabels[fi];
-        tr1.appendChild(th);
-      });
-      compactTable.appendChild(tr1);
-      const tr2 = document.createElement('tr');
-      const lbl = document.createElement('td');
-      lbl.textContent = "Bank Balance (rolling)";
-      tr2.appendChild(lbl);
-      let rolling = getRollingBankBalanceArr();
-      getFilteredWeekIndices().forEach((fi, i) => {
-        let bal = rolling[i];
-        let td = document.createElement('td');
-        td.textContent = isNaN(bal) ? '' : `€${Math.round(bal)}`;
-        if (bal < 0) td.style.background = "#ffeaea";
-        tr2.appendChild(td);
-      });
-      compactTable.appendChild(tr2);
-      previewWrap.style.overflowX = "auto";
-      previewWrap.appendChild(compactTable);
-      panel.appendChild(previewWrap);
-    }
   }
 
   function autoDetectMapping(sheet) {
@@ -3449,6 +3437,55 @@ setupExcelExport();
   // Date mapping now handled directly through spreadsheet column label parsing
   // No manual date selection required
   // -------------------- Update All Tabs --------------------
+  /**
+   * Create or update mapping summary banner for all tabs
+   */
+  function updateMappingSummaryBanners() {
+    if (!weekLabels || weekLabels.length === 0) return;
+    
+    const currentYear = userSpecifiedBaseYear || new Date().getFullYear();
+    const mappedCount = weekLabels.filter(label => parseWeekLabelAsDate(label, currentYear)).length;
+    const totalCount = weekLabels.length;
+    
+    // Create summary content
+    const summaryHTML = `
+      <div style="background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em;">
+        <strong>📅 Current Mapping:</strong> 
+        ${mappedCount}/${totalCount} weeks mapped using base year <strong>${currentYear}</strong> | 
+        Week range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]}
+        ${mappedCount < totalCount ? 
+          ` | <span style="color: #ff9800;">⚠️ ${totalCount - mappedCount} week(s) need attention</span>` : 
+          ' | <span style="color: #4caf50;">✅ All weeks mapped successfully</span>'
+        }
+      </div>
+    `;
+    
+    // Target containers for each tab
+    const targetContainers = [
+      'pnl', 'roi', 'summary'  // Tab IDs where we want to show mapping summary
+    ];
+    
+    targetContainers.forEach(tabId => {
+      const tabContainer = document.getElementById(tabId);
+      if (!tabContainer) return;
+      
+      // Remove existing summary
+      const existingSummary = tabContainer.querySelector('.mapping-summary-banner');
+      if (existingSummary) {
+        existingSummary.remove();
+      }
+      
+      // Add new summary at the top (after the h2 heading)
+      const heading = tabContainer.querySelector('h2');
+      if (heading) {
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'mapping-summary-banner';
+        summaryDiv.innerHTML = summaryHTML;
+        heading.parentNode.insertBefore(summaryDiv, heading.nextSibling);
+      }
+    });
+  }
+
   function updateAllTabs() {
     clearRoiSuggestions(); // Clear suggestions when data changes
     renderRepaymentRows();
@@ -3458,6 +3495,9 @@ setupExcelExport();
     renderSummaryTab();
     renderRoiSection();
     renderTornadoChart();
+    
+    // Update mapping summary banners on all tabs
+    updateMappingSummaryBanners();
     
     // Update NPV display in modal if open
     updateNPVDisplayInModal();
