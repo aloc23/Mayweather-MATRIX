@@ -967,17 +967,48 @@ document.addEventListener('DOMContentLoaded', function() {
     for (let r = 0; r < Math.min(sheet.length, 10); r++) {
       for (let c = 0; c < Math.min(sheet[r].length, 30); c++) {
         const val = (sheet[r][c] || '').toString().toLowerCase();
-        if (/week\s*\d+/.test(val) || /week\s*\d+\/\d+/.test(val)) {
+        
+        // Enhanced detection patterns for week/date columns
+        const isWeekPattern = /week\s*\d+/.test(val) || /week\s*\d+\/\d+/.test(val);
+        const isDateRange = /\d{1,2}-\d{1,2}\s+[a-z]{3}/.test(val); // e.g., "3-9 Jan"
+        const isDateSlash = /^\d{1,2}\/\d{1,2}/.test(val); // e.g., "28/06"
+        const isMonthDate = /\d{1,2}\s+[a-z]{3}/.test(val); // e.g., "28 Jun"
+        
+        if (isWeekPattern || isDateRange || isDateSlash || isMonthDate) {
           config.weekLabelRow = r;
           config.weekColStart = c;
           let lastCol = c;
-          while (
-            lastCol < sheet[r].length &&
-            ((sheet[r][lastCol] || '').toLowerCase().indexOf('week') >= 0 ||
-            /^\d{1,2}\/\d{1,2}/.test(sheet[r][lastCol] || ''))
-          ) {
-            lastCol++;
+          
+          // Find all consecutive columns that could be week/date columns
+          while (lastCol < sheet[r].length) {
+            const cellVal = (sheet[r][lastCol] || '').toString().trim();
+            
+            // Stop if we hit an empty cell or a cell that clearly isn't a week/date
+            if (!cellVal) {
+              break;
+            }
+            
+            const cellValLower = cellVal.toLowerCase();
+            const hasWeek = cellValLower.indexOf('week') >= 0;
+            const hasDateRange = /\d{1,2}-\d{1,2}\s+[a-z]{3}/.test(cellValLower);
+            const hasDateSlash = /^\d{1,2}\/\d{1,2}/.test(cellVal);
+            const hasMonthDate = /\d{1,2}\s+[a-z]{3}/.test(cellValLower);
+            const hasDate = /\d/.test(cellVal); // Contains any digit, likely a date/week
+            
+            // If this column matches any date/week pattern, include it
+            if (hasWeek || hasDateRange || hasDateSlash || hasMonthDate || hasDate) {
+              lastCol++;
+            } else {
+              // Check if it's a typical non-week header (like "Category", "Total", etc.)
+              const isNonWeekHeader = /^(category|total|sum|description|item|type|name)$/i.test(cellVal);
+              if (isNonWeekHeader) {
+                break;
+              }
+              // For any other text, include it as it might be a week label
+              lastCol++;
+            }
           }
+          
           config.weekColEnd = lastCol - 1;
           config.firstDataRow = r + 1;
           config.lastDataRow = sheet.length-1;
@@ -985,11 +1016,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }
-    config.weekLabelRow = 4;
-    config.weekColStart = 5;
-    config.weekColEnd = Math.max(5, (sheet[4]||[]).length-1);
-    config.firstDataRow = 6;
-    config.lastDataRow = sheet.length-1;
+    
+    // Improved fallback logic - try to find the first row with multiple columns
+    for (let r = 0; r < Math.min(sheet.length, 10); r++) {
+      if (sheet[r] && sheet[r].length > 2) {
+        // Look for a row that seems to have week/date data
+        let hasDateLikeContent = false;
+        let weekColStart = 1; // Start from column 1, assuming column 0 is labels
+        
+        // Check if columns after the first contain date-like or numeric content
+        for (let c = 1; c < sheet[r].length; c++) {
+          const val = (sheet[r][c] || '').toString();
+          if (/\d/.test(val) || /[a-z]{3}/i.test(val)) {
+            hasDateLikeContent = true;
+            break;
+          }
+        }
+        
+        if (hasDateLikeContent) {
+          config.weekLabelRow = r;
+          config.weekColStart = weekColStart;
+          config.weekColEnd = sheet[r].length - 1; // Include all columns with data
+          config.firstDataRow = r + 1;
+          config.lastDataRow = sheet.length - 1;
+          return;
+        }
+      }
+    }
+    
+    // Final fallback - use original logic but with first row
+    const headerRow = sheet[0] || [];
+    config.weekLabelRow = 0;
+    config.weekColStart = 1; // Start from column 1, assuming column 0 is labels
+    config.weekColEnd = Math.max(1, headerRow.length - 1);
+    config.firstDataRow = 1;
+    config.lastDataRow = sheet.length - 1;
   }
 
   function extractWeekStartDates(weekLabels, baseYear) {
