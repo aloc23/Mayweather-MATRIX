@@ -165,29 +165,7 @@
     </section>
     <section id="roi" class="tab-content">
       <h2>Investment Return &amp; Repayments</h2>
-      <div class="info-banner" style="background: #fff3e0; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #ff9800;">
-        <strong>⚠️ Week Grouping Applied:</strong> This tab uses calendar week grouping for accurate IRR/NPV calculations. All suggestions are cross-referenced against actual weekly balances from the Weekly Cashflow tab.
-        <div style="margin-top: 8px; font-size: 0.9em; color: #ef6c00;">
-          <strong>Why grouping?</strong> Multiple spreadsheet columns for the same calendar week (e.g., Saturday + Sunday payments) are combined to ensure accurate time-based financial calculations.
-        </div>
-      </div>
       
-      <!-- Week Grouping Preview Pane -->
-      <div id="weekGroupingPreview" class="collapsible-table-section" style="margin-bottom: 20px;">
-        <button class="collapsible-header" type="button">
-          <span class="caret">&#9660;</span> Week Grouping Preview for IRR/NPV Calculations
-        </button>
-        <div class="collapsible-content">
-          <div id="weekGroupingContent" style="padding: 12px; background-color: #f8f9fa; border-radius: 6px; margin-top: 8px;">
-            <div style="margin-bottom: 8px; color: #666; font-size: 0.9em;">
-              This shows how original spreadsheet columns are grouped by calendar week for accurate time-based financial calculations:
-            </div>
-            <div id="groupingDetails">
-              <!-- Will be populated by JavaScript -->
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="roi-input-bar" style="display:flex; gap:1em; align-items:center; margin-bottom:1em;">
         <label for="investmentWeek"><b>Investment Week:</b></label>
         <select id="investmentWeek"></select>
