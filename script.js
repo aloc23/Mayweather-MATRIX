@@ -498,6 +498,43 @@ document.addEventListener('DOMContentLoaded', function() {
       return isDateLike && !hasExplicitYear;
     });
   }
+
+  /**
+   * Validate base year input - must be 4-digit year between 2023-2100
+   */
+  function validateBaseYear(yearValue) {
+    const year = parseInt(yearValue);
+    if (isNaN(year)) {
+      return { valid: false, error: 'Please enter a valid year' };
+    }
+    if (year < 2023 || year > 2100) {
+      return { valid: false, error: 'Year must be between 2023 and 2100' };
+    }
+    if (yearValue.toString().length !== 4) {
+      return { valid: false, error: 'Please enter a 4-digit year' };
+    }
+    return { valid: true, year: year };
+  }
+
+  /**
+   * Show/hide year validation error message
+   */
+  function showYearValidationError(message, inputElement) {
+    // Remove existing error
+    const existingError = document.getElementById('yearValidationError');
+    if (existingError) existingError.remove();
+    
+    if (message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'yearValidationError';
+      errorDiv.style.cssText = 'color: #d32f2f; font-size: 0.9em; margin-top: 4px; margin-bottom: 8px;';
+      errorDiv.textContent = '⚠️ ' + message;
+      inputElement.parentNode.insertBefore(errorDiv, inputElement.nextSibling);
+      inputElement.style.borderColor = '#d32f2f';
+    } else {
+      inputElement.style.borderColor = '';
+    }
+  }
   
   /**
    * Create and show date preview table
@@ -510,11 +547,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     previewDiv.innerHTML = '';
     
-    const title = document.createElement('h4');
-    title.textContent = 'Date Preview (using base year ' + baseYear + ')';
-    title.style.marginTop = '20px';
-    title.style.marginBottom = '10px';
-    previewDiv.appendChild(title);
+    // Header with clear year indication
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'background: #e3f2fd; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #1976d2;';
+    headerDiv.innerHTML = `
+      <h4 style="margin: 0 0 8px 0; color: #1976d2;">📅 Date Mapping Preview</h4>
+      <div style="font-size: 0.95em; margin-bottom: 6px;">
+        <strong>Base Year:</strong> <span style="color: #1976d2; font-weight: bold;">${baseYear}</span> 
+        (applied to week labels without explicit years)
+      </div>
+      <div style="font-size: 0.9em; color: #1565c0;">
+        All downstream calculations (ROI, IRR, NPV) will use these mapped dates.
+      </div>
+    `;
+    previewDiv.appendChild(headerDiv);
     
     const table = document.createElement('table');
     table.style.borderCollapse = 'collapse';
@@ -522,40 +568,69 @@ document.addEventListener('DOMContentLoaded', function() {
     table.style.marginBottom = '15px';
     
     const headerRow = document.createElement('tr');
-    headerRow.innerHTML = '<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Label</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Parsed Date</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Status</th>';
+    headerRow.innerHTML = '<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Label</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Mapped Date</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Range</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Status</th>';
     table.appendChild(headerRow);
     
-    weekLabels.slice(0, 10).forEach(label => { // Show first 10 for preview
+    let successCount = 0;
+    let ambiguousCount = 0;
+    
+    weekLabels.slice(0, 10).forEach((label, index) => { // Show first 10 for preview
       const row = document.createElement('tr');
       const parsedDate = parseWeekLabelAsDate(label, baseYear);
       
       let dateStr = 'Not parsed';
+      let weekRange = '';
       let status = '❌ Failed';
       let statusColor = '#ff6b6b';
       
       if (parsedDate) {
-        dateStr = parsedDate.toLocaleDateString();
-        status = '✅ Success';
+        dateStr = parsedDate.toLocaleDateString('en-GB');
+        // Calculate week range (e.g., "3-9 Jan 2023")
+        const weekStart = new Date(parsedDate);
+        const weekEnd = new Date(parsedDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        const formatOptions = { day: 'numeric', month: 'short' };
+        weekRange = `${weekStart.toLocaleDateString('en-GB', formatOptions)} - ${weekEnd.toLocaleDateString('en-GB', formatOptions)}`;
+        
+        status = '✅ Mapped';
         statusColor = '#28a745';
+        successCount++;
+      } else {
+        ambiguousCount++;
       }
       
       row.innerHTML = `
-        <td style="border: 1px solid #ddd; padding: 8px;">${label}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-weight: 500;">${label}</td>
         <td style="border: 1px solid #ddd; padding: 8px;">${dateStr}</td>
-        <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor};">${status}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 0.9em; color: #666;">${weekRange}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor}; font-weight: 500;">${status}</td>
       `;
       table.appendChild(row);
     });
     
+    previewDiv.appendChild(table);
+    
+    // Summary and warnings
+    const summaryDiv = document.createElement('div');
+    summaryDiv.style.cssText = 'margin-top: 10px; font-size: 0.9em;';
+    
     if (weekLabels.length > 10) {
-      const note = document.createElement('p');
-      note.textContent = `Showing first 10 of ${weekLabels.length} week labels`;
-      note.style.fontSize = '0.9em';
-      note.style.color = '#666';
-      previewDiv.appendChild(note);
+      summaryDiv.innerHTML += `<div style="color: #666; margin-bottom: 8px;">Showing first 10 of ${weekLabels.length} week labels</div>`;
     }
     
-    previewDiv.appendChild(table);
+    summaryDiv.innerHTML += `<div style="margin-bottom: 8px;"><strong>Summary:</strong> ${successCount} successfully mapped, ${ambiguousCount} failed to parse</div>`;
+    
+    if (ambiguousCount > 0) {
+      summaryDiv.innerHTML += `
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 8px; color: #856404;">
+          <strong>⚠️ Warning:</strong> ${ambiguousCount} week label(s) could not be parsed. 
+          Please ensure labels follow supported formats (e.g., "1 Jan", "Jan 1", "8 Jan") or contain explicit years.
+        </div>
+      `;
+    }
+    
+    previewDiv.appendChild(summaryDiv);
     previewDiv.style.display = 'block';
   }
 
@@ -652,12 +727,24 @@ document.addEventListener('DOMContentLoaded', function() {
           <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
           <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
         </div>
-        Base Year for Week Labels: <input type="number" id="baseYearInput" value="${defaultYear}" min="2020" max="2030" style="width:80px;">
-        <button type="button" id="updatePreviewBtn" style="margin-left: 10px; padding: 4px 8px;">Update Preview</button>
+        <div style="margin-bottom: 10px;">
+          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                 placeholder="e.g. 2023">
+          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
+        </div>
       `;
     } else {
-      byDiv.innerHTML = `Base Year for Week Labels: <input type="number" id="baseYearInput" value="${defaultYear}" min="2020" max="2030" style="width:80px;">
-        <button type="button" id="updatePreviewBtn" style="margin-left: 10px; padding: 4px 8px;">Update Preview</button>`;
+      byDiv.innerHTML = `
+        <div style="margin-bottom: 10px;">
+          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
+          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                 placeholder="e.g. 2023">
+          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
+        </div>
+      `;
     }
     
     panel.appendChild(byDiv);
@@ -670,28 +757,47 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setTimeout(() => {
       const byInput = document.getElementById('baseYearInput');
-      const updateBtn = document.getElementById('updatePreviewBtn');
+      const currentYearDisplay = document.getElementById('currentYearDisplay');
       
       if (byInput) {
-        byInput.oninput = function() {
-          const year = parseInt(byInput.value) || new Date().getFullYear();
-          userSpecifiedBaseYear = year;
-          updateAllTabs();
-        };
-      }
-      
-      if (updateBtn) {
-        updateBtn.onclick = function() {
-          const year = parseInt(byInput.value) || new Date().getFullYear();
-          userSpecifiedBaseYear = year;
-          showDatePreview(currentWeekLabels, year);
-          updateAllTabs();
-        };
+        function updateYear() {
+          const validation = validateBaseYear(byInput.value);
+          
+          if (validation.valid) {
+            userSpecifiedBaseYear = validation.year;
+            showYearValidationError(null, byInput); // Clear any error
+            if (currentYearDisplay) {
+              currentYearDisplay.textContent = `Currently using: ${validation.year}`;
+              currentYearDisplay.style.color = '#1976d2';
+            }
+            
+            // Immediately update preview and all tabs
+            if (currentWeekLabels.length > 0) {
+              showDatePreview(currentWeekLabels, validation.year);
+            }
+            updateAllTabs();
+          } else {
+            showYearValidationError(validation.error, byInput);
+            if (currentYearDisplay) {
+              currentYearDisplay.textContent = 'Invalid year - please correct';
+              currentYearDisplay.style.color = '#d32f2f';
+            }
+          }
+        }
+        
+        // Add multiple event listeners for immediate updates
+        byInput.addEventListener('input', updateYear);
+        byInput.addEventListener('change', updateYear);
+        byInput.addEventListener('blur', updateYear);
+        
+        // Initial validation
+        updateYear();
       }
       
       // Show initial preview if we have week labels
       if (currentWeekLabels.length > 0) {
-        showDatePreview(currentWeekLabels, defaultYear);
+        const initialYear = userSpecifiedBaseYear || defaultYear;
+        showDatePreview(currentWeekLabels, initialYear);
       }
     }, 0);
 

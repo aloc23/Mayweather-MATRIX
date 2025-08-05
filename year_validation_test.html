@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Year Validation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { border: 1px solid #ccc; padding: 15px; margin: 15px 0; }
+        .error { color: #d32f2f; }
+        .success { color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>Year Validation Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Year Validation Function</h2>
+        <div id="validation-tests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Interactive Year Input Test</h2>
+        <label for="testYearInput">Base Year:</label>
+        <input type="number" id="testYearInput" min="2023" max="2100" 
+               style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+               placeholder="e.g. 2023">
+        <span id="testYearDisplay" style="margin-left: 12px; font-weight: bold;"></span>
+        <div id="testValidationResult" style="margin-top: 10px;"></div>
+    </div>
+
+    <script>
+    // Copy validation functions from main script
+    function validateBaseYear(yearValue) {
+        const year = parseInt(yearValue);
+        if (isNaN(year)) {
+            return { valid: false, error: 'Please enter a valid year' };
+        }
+        if (year < 2023 || year > 2100) {
+            return { valid: false, error: 'Year must be between 2023 and 2100' };
+        }
+        if (yearValue.toString().length !== 4) {
+            return { valid: false, error: 'Please enter a 4-digit year' };
+        }
+        return { valid: true, year: year };
+    }
+
+    // Test cases
+    const testCases = [
+        { input: '2023', expected: true, description: 'Valid minimum year' },
+        { input: '2050', expected: true, description: 'Valid middle year' },
+        { input: '2100', expected: true, description: 'Valid maximum year' },
+        { input: '2022', expected: false, description: 'Too early (2022)' },
+        { input: '2101', expected: false, description: 'Too late (2101)' },
+        { input: '23', expected: false, description: 'Not 4 digits' },
+        { input: '12345', expected: false, description: 'Too many digits' },
+        { input: 'abc', expected: false, description: 'Non-numeric' },
+        { input: '', expected: false, description: 'Empty string' },
+        { input: '2023.5', expected: false, description: 'Decimal number' }
+    ];
+
+    // Run tests
+    const testResultsDiv = document.getElementById('validation-tests');
+    testCases.forEach((testCase, index) => {
+        const result = validateBaseYear(testCase.input);
+        const passed = result.valid === testCase.expected;
+        
+        const testDiv = document.createElement('div');
+        testDiv.innerHTML = `
+            <strong>Test ${index + 1}:</strong> ${testCase.description}<br>
+            Input: "${testCase.input}" | Expected: ${testCase.expected ? 'Valid' : 'Invalid'} | 
+            Result: ${result.valid ? 'Valid' : 'Invalid'} 
+            ${result.error ? `(${result.error})` : ''} | 
+            <span class="${passed ? 'success' : 'error'}">${passed ? '✅ PASS' : '❌ FAIL'}</span>
+        `;
+        testDiv.style.marginBottom = '8px';
+        testDiv.style.padding = '8px';
+        testDiv.style.backgroundColor = passed ? '#f0f8f0' : '#fff0f0';
+        testDiv.style.border = `1px solid ${passed ? '#28a745' : '#d32f2f'}`;
+        testDiv.style.borderRadius = '4px';
+        testResultsDiv.appendChild(testDiv);
+    });
+
+    // Interactive test
+    const testInput = document.getElementById('testYearInput');
+    const testDisplay = document.getElementById('testYearDisplay');
+    const testResult = document.getElementById('testValidationResult');
+
+    function updateTest() {
+        const validation = validateBaseYear(testInput.value);
+        
+        if (validation.valid) {
+            testDisplay.textContent = `Currently using: ${validation.year}`;
+            testDisplay.style.color = '#1976d2';
+            testInput.style.borderColor = '#28a745';
+            testResult.innerHTML = '<span style="color: #28a745;">✅ Valid year - ready to proceed</span>';
+        } else {
+            testDisplay.textContent = 'Invalid year';
+            testDisplay.style.color = '#d32f2f';
+            testInput.style.borderColor = '#d32f2f';
+            testResult.innerHTML = `<span style="color: #d32f2f;">⚠️ ${validation.error}</span>`;
+        }
+    }
+
+    testInput.addEventListener('input', updateTest);
+    testInput.addEventListener('change', updateTest);
+    testInput.addEventListener('blur', updateTest);
+    
+    // Initial test
+    testInput.value = '2023';
+    updateTest();
+    </script>
+</body>
+</html>
