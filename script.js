@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
   // -------------------- Date/Week Utilities --------------------
   
+  // Global configuration for base year used in week label parsing
+  let userSpecifiedBaseYear = null;
+  
   /**
    * Parse date from column header text
    * Supports formats like "Sat 28/06/2025", "28/06/2025", "28 Jun 2025", etc.
@@ -103,8 +106,11 @@ document.addEventListener('DOMContentLoaded', function() {
    * Supports formats like '1 Jan', '8 Jan', '15 Jan', '1-7 Jan', '6-12 Jan', etc.
    * Returns a Date object with the year from referenceYear if parsing is successful
    */
-  function parseWeekLabelAsDate(weekLabel, referenceYear = new Date().getFullYear()) {
+  function parseWeekLabelAsDate(weekLabel, referenceYear = null) {
     if (!weekLabel || typeof weekLabel !== 'string') return null;
+    
+    // Use user-specified base year, fallback to current year if not set
+    const effectiveYear = referenceYear || userSpecifiedBaseYear || new Date().getFullYear();
     
     const text = weekLabel.toString().trim();
     
@@ -122,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const [, day, monthStr] = match;
       const monthIndex = months[monthStr.toLowerCase()];
       if (monthIndex !== undefined) {
-        return new Date(referenceYear, monthIndex, parseInt(day));
+        return new Date(effectiveYear, monthIndex, parseInt(day));
       }
     }
     
@@ -132,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const [, monthStr, day] = match;
       const monthIndex = months[monthStr.toLowerCase()];
       if (monthIndex !== undefined) {
-        return new Date(referenceYear, monthIndex, parseInt(day));
+        return new Date(effectiveYear, monthIndex, parseInt(day));
       }
     }
     
@@ -142,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const [, day, monthStr] = match;
       const monthIndex = months[monthStr.toLowerCase()];
       if (monthIndex !== undefined) {
-        return new Date(referenceYear, monthIndex, parseInt(day));
+        return new Date(effectiveYear, monthIndex, parseInt(day));
       }
     }
     
@@ -150,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     match = text.match(/^(\d{1,2})\/(\d{1,2})$/);
     if (match) {
       const [, day, month] = match;
-      return new Date(referenceYear, parseInt(month) - 1, parseInt(day));
+      return new Date(effectiveYear, parseInt(month) - 1, parseInt(day));
     }
     
     // Pattern 5: "Jan 1-7", "Jan 6-12" (month first with range)
@@ -159,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const [, monthStr, day] = match;
       const monthIndex = months[monthStr.toLowerCase()];
       if (monthIndex !== undefined) {
-        return new Date(referenceYear, monthIndex, parseInt(day));
+        return new Date(effectiveYear, monthIndex, parseInt(day));
       }
     }
     
@@ -178,8 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
    * Enhanced week label parsing with overlap detection
    * Returns {date, isRange, startDay, endDay, monthIndex, hasOverlap}
    */
-  function parseWeekLabelWithDetails(weekLabel, referenceYear = new Date().getFullYear()) {
+  function parseWeekLabelWithDetails(weekLabel, referenceYear = null) {
     if (!weekLabel || typeof weekLabel !== 'string') return null;
+    
+    // Use user-specified base year, fallback to current year if not set
+    const effectiveYear = referenceYear || userSpecifiedBaseYear || new Date().getFullYear();
     
     const text = weekLabel.toString().trim();
     const months = {
@@ -195,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const [, startDay, endDay, monthStr] = match;
       const monthIndex = months[monthStr.toLowerCase()];
       if (monthIndex !== undefined) {
-        const startDate = new Date(referenceYear, monthIndex, parseInt(startDay));
+        const startDate = new Date(effectiveYear, monthIndex, parseInt(startDay));
         return {
           date: startDate,
           isRange: true,
@@ -226,13 +235,16 @@ document.addEventListener('DOMContentLoaded', function() {
   /**
    * Detect overlaps and duplicates in week label sequence
    */
-  function detectWeekLabelOverlaps(weekLabels, referenceYear = new Date().getFullYear()) {
+  function detectWeekLabelOverlaps(weekLabels, referenceYear = null) {
+    // Use user-specified base year, fallback to current year if not set
+    const effectiveYear = referenceYear || userSpecifiedBaseYear || new Date().getFullYear();
+    
     const parsedWeeks = [];
     const overlaps = [];
     const duplicates = [];
     
     weekLabels.forEach((label, index) => {
-      const parsed = parseWeekLabelWithDetails(label, referenceYear);
+      const parsed = parseWeekLabelWithDetails(label, effectiveYear);
       if (parsed) {
         parsedWeeks.push({...parsed, index, label});
         
@@ -464,6 +476,89 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  /**
+   * Check if week labels contain explicit years or need a base year
+   */
+  function needsBaseYear(weekLabels) {
+    if (!weekLabels || weekLabels.length === 0) return false;
+    
+    return weekLabels.some(label => {
+      if (!label || typeof label !== 'string') return false;
+      const text = label.toString().trim();
+      
+      // Check if label contains explicit year (4 digits)
+      const hasExplicitYear = /\d{4}/.test(text);
+      
+      // Check if it's a parseable date-like label (month names, day patterns)
+      const isDateLike = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december)\b/i.test(text) ||
+                        /^\d{1,2}[-\/]\d{1,2}$/.test(text) ||
+                        /^\d{1,2}-\d{1,2}\s+\w+/.test(text);
+      
+      // Needs base year if it looks like a date but has no explicit year
+      return isDateLike && !hasExplicitYear;
+    });
+  }
+  
+  /**
+   * Create and show date preview table
+   */
+  function showDatePreview(weekLabels, baseYear) {
+    if (!weekLabels || weekLabels.length === 0) return;
+    
+    const previewDiv = document.getElementById('datePreviewTable');
+    if (!previewDiv) return;
+    
+    previewDiv.innerHTML = '';
+    
+    const title = document.createElement('h4');
+    title.textContent = 'Date Preview (using base year ' + baseYear + ')';
+    title.style.marginTop = '20px';
+    title.style.marginBottom = '10px';
+    previewDiv.appendChild(title);
+    
+    const table = document.createElement('table');
+    table.style.borderCollapse = 'collapse';
+    table.style.width = '100%';
+    table.style.marginBottom = '15px';
+    
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = '<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Week Label</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Parsed Date</th><th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Status</th>';
+    table.appendChild(headerRow);
+    
+    weekLabels.slice(0, 10).forEach(label => { // Show first 10 for preview
+      const row = document.createElement('tr');
+      const parsedDate = parseWeekLabelAsDate(label, baseYear);
+      
+      let dateStr = 'Not parsed';
+      let status = '❌ Failed';
+      let statusColor = '#ff6b6b';
+      
+      if (parsedDate) {
+        dateStr = parsedDate.toLocaleDateString();
+        status = '✅ Success';
+        statusColor = '#28a745';
+      }
+      
+      row.innerHTML = `
+        <td style="border: 1px solid #ddd; padding: 8px;">${label}</td>
+        <td style="border: 1px solid #ddd; padding: 8px;">${dateStr}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor};">${status}</td>
+      `;
+      table.appendChild(row);
+    });
+    
+    if (weekLabels.length > 10) {
+      const note = document.createElement('p');
+      note.textContent = `Showing first 10 of ${weekLabels.length} week labels`;
+      note.style.fontSize = '0.9em';
+      note.style.color = '#666';
+      previewDiv.appendChild(note);
+    }
+    
+    previewDiv.appendChild(table);
+    previewDiv.style.display = 'block';
+  }
+
   // -------------------- Spreadsheet Upload & Mapping --------------------
   function setupSpreadsheetUpload() {
     var spreadsheetUpload = document.getElementById('spreadsheetUpload');
@@ -544,6 +639,62 @@ document.addEventListener('DOMContentLoaded', function() {
       };
     }, 0);
 
+    // Base year input for week label parsing
+    let byDiv = document.createElement('div');
+    byDiv.style.marginTop = '10px';
+    const currentWeekLabels = weekLabels || [];
+    const needsYear = needsBaseYear(currentWeekLabels);
+    const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
+    
+    if (needsYear) {
+      byDiv.innerHTML = `
+        <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; margin-bottom: 10px;">
+          <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
+          <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
+        </div>
+        Base Year for Week Labels: <input type="number" id="baseYearInput" value="${defaultYear}" min="2020" max="2030" style="width:80px;">
+        <button type="button" id="updatePreviewBtn" style="margin-left: 10px; padding: 4px 8px;">Update Preview</button>
+      `;
+    } else {
+      byDiv.innerHTML = `Base Year for Week Labels: <input type="number" id="baseYearInput" value="${defaultYear}" min="2020" max="2030" style="width:80px;">
+        <button type="button" id="updatePreviewBtn" style="margin-left: 10px; padding: 4px 8px;">Update Preview</button>`;
+    }
+    
+    panel.appendChild(byDiv);
+    
+    // Date preview table container
+    const previewDiv = document.createElement('div');
+    previewDiv.id = 'datePreviewTable';
+    previewDiv.style.display = 'none';
+    panel.appendChild(previewDiv);
+    
+    setTimeout(() => {
+      const byInput = document.getElementById('baseYearInput');
+      const updateBtn = document.getElementById('updatePreviewBtn');
+      
+      if (byInput) {
+        byInput.oninput = function() {
+          const year = parseInt(byInput.value) || new Date().getFullYear();
+          userSpecifiedBaseYear = year;
+          updateAllTabs();
+        };
+      }
+      
+      if (updateBtn) {
+        updateBtn.onclick = function() {
+          const year = parseInt(byInput.value) || new Date().getFullYear();
+          userSpecifiedBaseYear = year;
+          showDatePreview(currentWeekLabels, year);
+          updateAllTabs();
+        };
+      }
+      
+      // Show initial preview if we have week labels
+      if (currentWeekLabels.length > 0) {
+        showDatePreview(currentWeekLabels, defaultYear);
+      }
+    }, 0);
+
     // First week date input removed - dates now parsed directly from spreadsheet labels
 
 
@@ -555,6 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
       weekCheckboxStates = weekLabels.map(()=>true);
       openingBalance = 0;
       userGroupingOverrides.clear();
+      userSpecifiedBaseYear = null; // Reset base year
       
       // Reset first week date to today
       window.firstWeekDate = new Date();
@@ -851,9 +1003,10 @@ document.addEventListener('DOMContentLoaded', function() {
    * Uses enhanced parsing with overlap detection and proper handling
    */
   function calculateWeekStartDatesFromLabels(weekLabels) {
-    const currentYear = new Date().getFullYear();
+    // Use user-specified base year, fallback to current year if not set
+    const effectiveYear = userSpecifiedBaseYear || new Date().getFullYear();
     const dates = [];
-    const analysisResult = detectWeekLabelOverlaps(weekLabels, currentYear);
+    const analysisResult = detectWeekLabelOverlaps(weekLabels, effectiveYear);
     
     // Store overlap information for warnings
     window.weekLabelOverlaps = analysisResult.overlaps;
@@ -866,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let calculatedDate = null;
       
       // Try to parse the label as a date
-      const parsedDate = parseWeekLabelAsDate(label, currentYear);
+      const parsedDate = parseWeekLabelAsDate(label, effectiveYear);
       if (parsedDate) {
         calculatedDate = parsedDate;
         lastValidDate = parsedDate;
@@ -3156,8 +3309,9 @@ setupExcelExport();
     if (!dateMappingStatus) return;
     
     if (weekLabels && weekLabels.length > 0) {
-      const currentYear = new Date().getFullYear();
-      const analysisResult = detectWeekLabelOverlaps(weekLabels, currentYear);
+      // Use user-specified base year, fallback to current year if not set
+      const effectiveYear = userSpecifiedBaseYear || new Date().getFullYear();
+      const analysisResult = detectWeekLabelOverlaps(weekLabels, effectiveYear);
       
       const parsedCount = analysisResult.parsedWeeks.length;
       const overlapCount = analysisResult.overlaps.length;
