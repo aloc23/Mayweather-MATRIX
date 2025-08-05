@@ -176,10 +176,9 @@ document.addEventListener('DOMContentLoaded', function() {
   let roiInvestment = 120000;
   let roiInterest = 0.0;
 
-  // Week grouping state
+  // Week grouping state (always enabled internally)
   let weekGroups = [];
   let ungroupedColumns = [];
-  let groupingEnabled = true;
   let userGroupingOverrides = new Map(); // Store user modifications to groupings
 
   // ROI week/date mapping
@@ -402,116 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 0);
     }
 
-    // Week Grouping Controls
-    if (weekLabels.length > 0) {
-      const groupingDiv = document.createElement('div');
-      groupingDiv.style.marginTop = '15px';
-      groupingDiv.style.padding = '12px';
-      groupingDiv.style.border = '1px solid #e0e7ef';
-      groupingDiv.style.borderRadius = '6px';
-      groupingDiv.style.backgroundColor = '#f9fbfc';
-      
-      const groupingHeader = document.createElement('h4');
-      groupingHeader.textContent = 'Calendar Week Grouping';
-      groupingHeader.style.margin = '0 0 10px 0';
-      groupingHeader.style.color = '#1976d2';
-      groupingDiv.appendChild(groupingHeader);
-      
-      const groupingCheckbox = document.createElement('input');
-      groupingCheckbox.type = 'checkbox';
-      groupingCheckbox.id = 'enableGrouping';
-      groupingCheckbox.checked = groupingEnabled;
-      groupingCheckbox.onchange = function() {
-        groupingEnabled = this.checked;
-        updateWeekLabels();
-        renderMappingPanel(allRows);
-        updateAllTabs();
-      };
-      
-      const groupingLabel = document.createElement('label');
-      groupingLabel.htmlFor = 'enableGrouping';
-      groupingLabel.textContent = ' Enable automatic grouping of columns by calendar week';
-      groupingLabel.style.marginLeft = '5px';
-      
-      groupingDiv.appendChild(groupingCheckbox);
-      groupingDiv.appendChild(groupingLabel);
-      
-      if (groupingEnabled && (weekGroups.length > 0 || ungroupedColumns.length > 0)) {
-        const previewDiv = document.createElement('div');
-        previewDiv.style.marginTop = '10px';
-        
-        const previewHeader = document.createElement('h5');
-        previewHeader.textContent = 'Grouping Preview:';
-        previewHeader.style.margin = '0 0 8px 0';
-        previewDiv.appendChild(previewHeader);
-        
-        // Show grouped weeks
-        if (weekGroups.length > 0) {
-          const groupedTitle = document.createElement('div');
-          groupedTitle.textContent = 'Grouped by Calendar Week:';
-          groupedTitle.style.fontWeight = 'bold';
-          groupedTitle.style.marginBottom = '5px';
-          previewDiv.appendChild(groupedTitle);
-          
-          weekGroups.forEach(group => {
-            const groupItem = document.createElement('div');
-            groupItem.style.marginBottom = '4px';
-            groupItem.style.padding = '4px 8px';
-            groupItem.style.backgroundColor = '#e3f2fd';
-            groupItem.style.borderRadius = '4px';
-            groupItem.style.fontSize = '0.9em';
-            
-            const weekInfo = `${group.year}-W${group.week.toString().padStart(2, '0')}`;
-            const columnsList = group.columns.map(col => `"${col.header}"`).join(', ');
-            groupItem.textContent = `${weekInfo}: ${columnsList}`;
-            
-            previewDiv.appendChild(groupItem);
-          });
-        }
-        
-        // Show ungrouped columns
-        if (ungroupedColumns.length > 0) {
-          const ungroupedTitle = document.createElement('div');
-          ungroupedTitle.textContent = 'Individual Columns (not grouped):';
-          ungroupedTitle.style.fontWeight = 'bold';
-          ungroupedTitle.style.marginTop = '8px';
-          ungroupedTitle.style.marginBottom = '5px';
-          previewDiv.appendChild(ungroupedTitle);
-          
-          ungroupedColumns.forEach(col => {
-            const colItem = document.createElement('div');
-            colItem.style.marginBottom = '2px';
-            colItem.style.padding = '2px 8px';
-            colItem.style.backgroundColor = '#fff3e0';
-            colItem.style.borderRadius = '4px';
-            colItem.style.fontSize = '0.9em';
-            colItem.textContent = `"${col.header}"`;
-            previewDiv.appendChild(colItem);
-          });
-        }
-        
-        // Add user confirmation note
-        if (weekGroups.length > 0) {
-          const confirmationNote = document.createElement('div');
-          confirmationNote.style.marginTop = '10px';
-          confirmationNote.style.padding = '8px';
-          confirmationNote.style.backgroundColor = '#f0f8ff';
-          confirmationNote.style.border = '1px solid #1976d2';
-          confirmationNote.style.borderRadius = '4px';
-          confirmationNote.style.fontSize = '0.85em';
-          confirmationNote.innerHTML = `
-            <strong>✓ Automatic Grouping Applied</strong><br>
-            Columns with matching calendar weeks have been grouped together for accurate time-based analysis.
-            This ensures extra columns (like Saturday payments) in the same week are properly aggregated.
-          `;
-          previewDiv.appendChild(confirmationNote);
-        }
-        
-        groupingDiv.appendChild(previewDiv);
-      }
-      
-      panel.appendChild(groupingDiv);
-    }
+
     const resetBtn = document.createElement('button');
     resetBtn.textContent = "Reset Mapping";
     resetBtn.style.marginLeft = '10px';
@@ -519,7 +409,6 @@ document.addEventListener('DOMContentLoaded', function() {
       autoDetectMapping(allRows);
       weekCheckboxStates = weekLabels.map(()=>true);
       openingBalance = 0;
-      groupingEnabled = true;
       userGroupingOverrides.clear();
       
       // Reset first week date to today
@@ -738,8 +627,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let weekRow = mappedData[config.weekLabelRow] || [];
     let rawHeaders = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
     
-    if (groupingEnabled && rawHeaders.length > 0) {
-      // Group columns by calendar week
+    // Always enable grouping internally for ROI calculations, but use raw headers for display
+    if (rawHeaders.length > 0) {
+      // Group columns by calendar week (internal use for ROI)
       const groupingResult = groupColumnsByWeek(rawHeaders);
       weekGroups = groupingResult.groups;
       ungroupedColumns = groupingResult.ungrouped;
@@ -747,8 +637,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Apply user overrides
       applyUserGroupingOverrides();
       
-      // Create consolidated week labels from groups
-      weekLabels = [];
+      // For user display, always use the original raw headers (no grouping UI)
+      weekLabels = rawHeaders;
+      
+      // Store the group mapping for ROI calculations only
       const allGroups = [...weekGroups];
       
       // Add ungrouped columns as individual "groups"
@@ -762,7 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       });
       
-      // Sort groups by week/date order
+      // Sort groups by week/date order (for ROI internal calculations)
       allGroups.sort((a, b) => {
         if (a.year && b.year && a.week && b.week) {
           if (a.year !== b.year) return a.year - b.year;
@@ -777,22 +669,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return aFirstIndex - bFirstIndex;
       });
       
-      // Generate consolidated labels
-      weekLabels = allGroups.map(group => {
-        if (group.columns.length > 1) {
-          // Multiple columns grouped together
-          return `${group.year}-W${group.week.toString().padStart(2, '0')} (${group.columns.length} cols)`;
-        } else {
-          // Single column (grouped or ungrouped)
-          return group.primaryHeader;
-        }
-      });
-      
-      // Store the group mapping for data extraction
+      // Store the group mapping for ROI calculations (internal use only)
       window.weekGroupMapping = allGroups;
       
     } else {
-      // Grouping disabled - use original logic
+      // No data available
       weekLabels = rawHeaders;
       weekGroups = [];
       ungroupedColumns = [];
@@ -839,7 +720,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let arr = [];
     const groupMapping = window.weekGroupMapping;
     
-    if (groupMapping && groupingEnabled && useGrouping) {
+    if (groupMapping && useGrouping) {
       // Use grouped columns (only for ROI tab)
       for (let g = 0; g < groupMapping.length; g++) {
         if (!weekCheckboxStates[g]) continue;
@@ -887,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let arr = [];
     const groupMapping = window.weekGroupMapping;
     
-    if (groupMapping && groupingEnabled && useGrouping) {
+    if (groupMapping && useGrouping) {
       // Use grouped columns (only for ROI tab)
       for (let g = 0; g < groupMapping.length; g++) {
         if (!weekCheckboxStates[g]) continue;
@@ -1005,8 +886,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function getRawFilteredWeekIndices() {
     const rawLabels = getRawWeekLabels();
     if (weekCheckboxStates && weekCheckboxStates.length > 0) {
-      // Map grouped indices back to raw indices if grouping is enabled
-      if (groupingEnabled && window.weekGroupMapping) {
+      // Map grouped indices back to raw indices (grouping is always internal)
+      if (window.weekGroupMapping) {
         const rawIndices = [];
         window.weekGroupMapping.forEach((group, groupIndex) => {
           if (weekCheckboxStates[groupIndex]) {
@@ -1017,7 +898,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         return rawIndices.sort((a, b) => a - b);
       } else {
-        // Direct mapping when grouping is disabled
+        // Direct mapping when no grouping mapping available
         return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
       }
     } else {
@@ -1025,59 +906,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Function to update week grouping preview for ROI tab
-  function updateWeekGroupingPreview() {
-    const previewContent = document.getElementById('groupingDetails');
-    if (!previewContent) return;
-    
-    if (!groupingEnabled || !window.weekGroupMapping || window.weekGroupMapping.length === 0) {
-      previewContent.innerHTML = '<div style="color: #666; font-style: italic;">Week grouping is not enabled or no grouping data available.</div>';
-      return;
-    }
-    
-    let previewHtml = '';
-    
-    // Show grouped weeks
-    const groupedWeeks = window.weekGroupMapping.filter(group => group.columns.length > 1);
-    if (groupedWeeks.length > 0) {
-      previewHtml += '<div style="margin-bottom: 12px;"><strong>Grouped Columns:</strong></div>';
-      groupedWeeks.forEach(group => {
-        const weekInfo = group.year && group.week ? `${group.year}-W${group.week.toString().padStart(2, '0')}` : 'Unknown';
-        const columnsList = group.columns.map(col => `"${col.header}"`).join(', ');
-        previewHtml += `
-          <div class="grouping-item" style="margin-bottom: 6px; padding: 6px 10px; background: #e3f2fd; border-radius: 4px; border-left: 3px solid #1976d2;">
-            <strong>${weekInfo}:</strong> ${columnsList}
-          </div>
-        `;
-      });
-    }
-    
-    // Show ungrouped columns
-    const ungroupedWeeks = window.weekGroupMapping.filter(group => group.columns.length === 1);
-    if (ungroupedWeeks.length > 0) {
-      previewHtml += '<div style="margin-bottom: 12px; margin-top: 16px;"><strong>Individual Columns:</strong></div>';
-      ungroupedWeeks.forEach(group => {
-        const col = group.columns[0];
-        previewHtml += `
-          <div class="grouping-item" style="margin-bottom: 4px; padding: 4px 10px; background: #fff3e0; border-radius: 4px; border-left: 3px solid #ff9800;">
-            "${col.header}"
-          </div>
-        `;
-      });
-    }
-    
-    if (groupedWeeks.length === 0 && ungroupedWeeks.length === 0) {
-      previewHtml = '<div style="color: #666; font-style: italic;">No grouping information available.</div>';
-    } else {
-      previewHtml += `
-        <div style="margin-top: 16px; padding: 8px; background: #f0f8ff; border-radius: 4px; font-size: 0.85em; color: #1976d2;">
-          <strong>Note:</strong> Grouping ensures columns with the same calendar week are combined for accurate time-based IRR/NPV calculations.
-        </div>
-      `;
-    }
-    
-    previewContent.innerHTML = previewHtml;
-  }
   
   // New function to get explicit repayment dates and amounts for NPV/IRR calculations
   function getExplicitRepaymentSchedule() {
@@ -1653,8 +1481,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let label = mappedData[r][0] || `Row ${r + 1}`;
         let vals = [];
         
-        if (groupMapping && groupingEnabled) {
-          // Use grouped columns
+        if (groupMapping) {
+          // Use grouped columns (internal grouping)
           for (let g = 0; g < groupMapping.length; g++) {
             if (!weekCheckboxStates[g]) continue;
             
@@ -3121,7 +2949,6 @@ setupExcelExport();
     renderSummaryTab();
     renderRoiSection();
     renderTornadoChart();
-    updateWeekGroupingPreview(); // Update ROI grouping preview
     
     // Update NPV display in modal if open
     updateNPVDisplayInModal();
