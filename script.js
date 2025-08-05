@@ -2063,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', function() {
       investmentWeekIndex,
       openingBalance,
       cashflow,
-      weekStartDates
+      weekStartDates: actualWeekStartDates
     });
     
     suggestedRepayments = result.suggestedRepayments;
@@ -2450,11 +2450,18 @@ function renderRoiSection() {
   const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
   const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
   const investmentWeek = investmentWeekIndex;
-  const investmentDate = weekStartDates[investmentWeek] || null;
-
+  // Use ROI-specific dates if ROI date mapping is active, otherwise use regular dates
+  let actualWeekStartDates;
+  if (roiDateMapping.isActive && roiWeekStartDates.length > 0) {
+    actualWeekStartDates = roiWeekStartDates;
+  } else {
+    actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  }
+  
   // Handle case when no week mapping is available - use default weeks
   let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-  let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  
+  const investmentDate = actualWeekStartDates[investmentWeek] || null;
   
   // Get explicit repayment schedule for accurate date-based calculations
   const explicitSchedule = window.getExplicitRepaymentSchedule ? window.getExplicitRepaymentSchedule() : getExplicitRepaymentSchedule();
@@ -2958,6 +2965,9 @@ setupExcelExport();
     isActive: false
   };
   
+  // Separate week start dates specifically for ROI calculations (isolated from other tabs)
+  let roiWeekStartDates = [];
+  
   // Make roiDateMapping globally accessible
   window.roiDateMapping = roiDateMapping;
   
@@ -3024,9 +3034,9 @@ setupExcelExport();
     if (weekCount > 0) {
       const mappedDates = calculateEvenlySpacedDates(startDate, endDate, weekCount);
       
-      // Update the global weekStartDates array
-      weekStartDates = mappedDates;
-      window.weekStartDates = mappedDates;
+      // Update the ROI-specific weekStartDates array (isolated from other tabs)
+      roiWeekStartDates = mappedDates;
+      window.roiWeekStartDates = mappedDates;
       
       // Update investment week dropdown to reflect new dates
       if (typeof populateInvestmentWeekDropdown === 'function') {
@@ -3036,12 +3046,10 @@ setupExcelExport();
       // Show and update the date mapping preview
       updateDateMappingPreview();
       
-      // Refresh ROI calculations with new dates
-      if (typeof updateAllTabs === 'function') {
-        updateAllTabs();
-      }
+      // Refresh only ROI calculations with new dates (don't affect other tabs)
+      renderRoiSection();
       
-      console.log('ROI date mapping applied:', {
+      console.log('ROI date mapping applied (isolated to ROI tab only):', {
         startDate: startDate.toLocaleDateString(),
         endDate: endDate.toLocaleDateString(), 
         weekCount: weekCount,
@@ -3071,8 +3079,9 @@ setupExcelExport();
       
       const effectiveWeekLabels = (typeof weekLabels !== 'undefined' && weekLabels) ? weekLabels : 
                                  (window.weekLabels || []);
-      const effectiveWeekStartDates = (typeof weekStartDates !== 'undefined' && weekStartDates) ? weekStartDates : 
-                                     (window.weekStartDates || []);
+      const effectiveWeekStartDates = roiWeekStartDates.length > 0 ? roiWeekStartDates : 
+                                     ((typeof weekStartDates !== 'undefined' && weekStartDates) ? weekStartDates : 
+                                     (window.weekStartDates || []));
       
       effectiveWeekLabels.forEach((label, index) => {
         const date = effectiveWeekStartDates[index];
