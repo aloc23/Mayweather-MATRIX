@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MATRIX - Simplified Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="header">
+    <h1>MATRIX - Simplified Week Mapping Test</h1>
+  </div>
+  <div class="container">
+    <nav class="tabs" role="tablist">
+      <button data-tab="main" class="active">Weekly Cashflow</button>
+    </nav>
+    <section id="main" class="tab-content active">
+      <h2>Weekly Cashflow</h2>
+      <div class="subtabs" role="tablist">
+        <button data-subtab="mapping" class="active">Spreadsheet Mapping</button>
+      </div>
+      <div id="subtab-mapping" class="subtab-panel active">
+        <h3>Spreadsheet Mapping</h3>
+        <div id="mappingPanel">
+          <!-- This will be populated by our simplified mapping logic -->
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <script>
+    // Simulate the simplified mapping logic without external dependencies
+    let rawData = [
+      ['Category', '3-9 Jan', '10-16 Jan', '17-23 Jan', '24-30 Jan', '31 Jan-6 Feb', '7-13 Feb', '14-20 Feb'],
+      ['Income', 1000, 1200, 1100, 1300, 1400, 1500, 1600],
+      ['Expenses', 800, 900, 850, 950, 1000, 1100, 1200],
+      ['Bank Balance', 200, 500, 750, 1100, 1500, 1900, 2300]
+    ];
+    
+    let mappedData = rawData;
+    let config = {
+      weekLabelRow: 0,
+      weekColStart: 1,
+      weekColEnd: 7,
+      firstDataRow: 1,
+      lastDataRow: 3
+    };
+    let weekLabels = [];
+    let openingBalance = 0;
+    let userSpecifiedBaseYear = null;
+    
+    function renderSimplifiedMappingPanel() {
+      const panel = document.getElementById('mappingPanel');
+      if (!panel) return;
+      
+      // Extract week labels
+      let weekRow = mappedData[config.weekLabelRow] || [];
+      weekLabels = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+      
+      panel.innerHTML = `
+        <!-- Step 1: Simplified mapping summary -->
+        <div style="background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;">
+          <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Week Columns Mapped in Order as per Spreadsheet</h4>
+          <div style="font-size: 0.9em; margin-bottom: 6px;">
+            <strong>Sequential Mapping:</strong> ${weekLabels.length} columns mapped as Week 1, Week 2, Week 3, etc. |
+            <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
+          </div>
+          <div style="font-size: 0.85em; color: #2e7d32;">
+            Each spreadsheet column is treated as a sequential week regardless of column labels. All downstream calculations use this column-based mapping.
+          </div>
+        </div>
+        
+        <!-- Step 2: Essential inputs -->
+        <div style="margin-bottom: 16px;">
+          <div style="margin-bottom: 12px;">
+            <label for="openingBalanceInput" style="font-weight: bold; margin-right: 8px;">Opening Balance:</label>
+            <input type="number" id="openingBalanceInput" value="0" 
+                   style="width:120px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                   placeholder="0">
+            <span style="margin-left: 8px; font-size: 0.9em; color: #666;">Starting bank balance</span>
+          </div>
+          
+          <div style="margin-bottom: 12px;">
+            <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">First Week Date (Optional):</label>
+            <input type="number" id="baseYearInput" value="2024" min="2023" max="2100" 
+                   style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+                   placeholder="e.g. 2023">
+            <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #666;">
+              Weeks will start from Jan 1, 2024 and increment by 7 days
+            </span>
+            <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+              Leave blank to use current date. This only affects date calculations - column mapping remains sequential.
+            </div>
+          </div>
+        </div>
+        
+        <!-- Step 3: Column mapping preview -->
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #6c757d;">
+          <h5 style="margin: 0 0 8px 0; color: #495057;">📋 Column Mapping Preview</h5>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 0.9em;">
+            ${weekLabels.map((label, index) => 
+              `<div style="padding: 4px 8px; background: white; border-radius: 4px; border: 1px solid #dee2e6;">
+                <strong>Week ${index + 1}:</strong> ${label}
+              </div>`
+            ).join('')}
+          </div>
+        </div>
+        
+        <!-- Step 4: Advanced options (collapsed by default) -->
+        <div style="margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 16px;">
+          <button type="button" id="advancedBtn" style="background: none; border: none; color: #6c757d; font-weight: bold; cursor: pointer; font-size: 0.9em; padding: 8px 0;">
+            <span class="caret" style="margin-right: 6px;">▶</span>Advanced Mapping Options
+          </button>
+          <div id="advancedContent" style="display: none; margin-top: 12px; padding: 16px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
+            <p>Advanced options would go here (row/column selection, week filters, etc.)</p>
+          </div>
+        </div>
+      `;
+      
+      // Setup advanced toggle
+      const advancedBtn = document.getElementById('advancedBtn');
+      const advancedContent = document.getElementById('advancedContent');
+      if (advancedBtn && advancedContent) {
+        advancedBtn.addEventListener('click', function() {
+          const isOpen = advancedContent.style.display !== 'none';
+          advancedContent.style.display = isOpen ? 'none' : 'block';
+          const caret = advancedBtn.querySelector('.caret');
+          if (caret) {
+            caret.textContent = isOpen ? '▶' : '▼';
+          }
+          advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">${isOpen ? '▶' : '▼'}</span>${isOpen ? 'Advanced Mapping Options' : 'Hide Advanced Options'}`;
+        });
+      }
+      
+      // Setup year input
+      const byInput = document.getElementById('baseYearInput');
+      const currentYearDisplay = document.getElementById('currentYearDisplay');
+      if (byInput && currentYearDisplay) {
+        byInput.addEventListener('input', function() {
+          const yearValue = byInput.value;
+          const year = parseInt(yearValue);
+          
+          if (!isNaN(year) && year >= 2023 && year <= 2100 && yearValue.length === 4) {
+            userSpecifiedBaseYear = year;
+            currentYearDisplay.textContent = `Weeks will start from Jan 1, ${year} and increment by 7 days`;
+            currentYearDisplay.style.color = '#666';
+          } else if (yearValue === '') {
+            userSpecifiedBaseYear = null;
+            currentYearDisplay.textContent = `Weeks will start from current date and increment by 7 days`;
+            currentYearDisplay.style.color = '#666';
+          } else {
+            currentYearDisplay.textContent = `Invalid year - using current date instead`;
+            currentYearDisplay.style.color = '#6c757d';
+          }
+        });
+      }
+    }
+    
+    // Initialize the simplified mapping panel
+    document.addEventListener('DOMContentLoaded', function() {
+      renderSimplifiedMappingPanel();
+    });
+  </script>
+</body>
+</html>
