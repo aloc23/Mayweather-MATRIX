@@ -666,6 +666,88 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   setupSpreadsheetUpload();
 
+  function renderBankBalanceTableInMapping(panel) {
+    // Create bank balance table to show immediately below mapping panel
+    const balanceDiv = document.createElement('div');
+    balanceDiv.style.cssText = 'background: #fff3cd; padding: 12px; border-radius: 6px; margin: 16px 0; border-left: 4px solid #ffc107;';
+    
+    try {
+      // Get the data arrays using the same logic as other tabs
+      let incomeArr = getIncomeArr(false); // No grouping for direct mapping
+      let expenditureArr = getExpenditureArr(false);
+      let repaymentArr = getRepaymentArr();
+      let rollingArr = getRollingBankBalanceArr(false);
+      let weekIdxs = getRawFilteredWeekIndices();
+      let rawLabels = getRawWeekLabels();
+      
+      // Validate we have data to show
+      if (!weekIdxs || weekIdxs.length === 0 || !rollingArr || rollingArr.length === 0) {
+        balanceDiv.innerHTML = `
+          <h5 style="margin: 0 0 8px 0; color: #856404;">💰 Running Bank Balance</h5>
+          <div style="font-size: 0.9em; color: #856404;">
+            Upload and configure your spreadsheet data to see bank balance preview.
+          </div>
+        `;
+      } else {
+        // Create a simple table showing weekly bank balance
+        let tableRows = '';
+        let minBal = null, minBalWeek = null;
+        
+        // Show first 10 weeks or all if less
+        const displayWeeks = Math.min(10, weekIdxs.length);
+        for (let i = 0; i < displayWeeks; i++) {
+          const idx = weekIdxs[i];
+          const balance = rollingArr[i] || 0;
+          const label = rawLabels[idx] || `Week ${idx + 1}`;
+          
+          if (minBal === null || balance < minBal) {
+            minBal = balance;
+            minBalWeek = label;
+          }
+          
+          tableRows += `
+            <tr${balance < 0 ? ' style="color: #dc3545; font-weight: bold;"' : ''}>
+              <td style="padding: 4px 8px; border-bottom: 1px solid #dee2e6;">${label}</td>
+              <td style="padding: 4px 8px; border-bottom: 1px solid #dee2e6; text-align: right;">€${Math.round(balance).toLocaleString()}</td>
+            </tr>
+          `;
+        }
+        
+        balanceDiv.innerHTML = `
+          <h5 style="margin: 0 0 8px 0; color: #856404;">💰 Running Bank Balance Preview</h5>
+          <div style="font-size: 0.9em; color: #856404; margin-bottom: 8px;">
+            Shows your cash position each week based on sequential column mapping
+          </div>
+          <div style="max-height: 200px; overflow-y: auto;">
+            <table style="width: 100%; font-size: 0.9em; background: white; border-radius: 4px;">
+              <thead>
+                <tr style="background: #f8f9fa;">
+                  <th style="padding: 6px 8px; text-align: left; border-bottom: 2px solid #dee2e6;">Week</th>
+                  <th style="padding: 6px 8px; text-align: right; border-bottom: 2px solid #dee2e6;">Bank Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+              </tbody>
+            </table>
+          </div>
+          ${weekIdxs.length > 10 ? `<div style="font-size: 0.85em; color: #856404; margin-top: 8px;">... and ${weekIdxs.length - 10} more weeks. View complete analysis in Weekly Cashflow Charts tab.</div>` : ''}
+          ${minBal !== null && minBal < 0 ? `<div style="font-size: 0.9em; color: #dc3545; margin-top: 8px; font-weight: bold;">⚠️ Lowest Balance: ${minBalWeek}: €${Math.round(minBal).toLocaleString()}</div>` : ''}
+        `;
+      }
+    } catch (error) {
+      // Fallback if data isn't available yet
+      balanceDiv.innerHTML = `
+        <h5 style="margin: 0 0 8px 0; color: #856404;">💰 Running Bank Balance</h5>
+        <div style="font-size: 0.9em; color: #856404;">
+          Configure your spreadsheet mapping to see bank balance preview.
+        </div>
+      `;
+    }
+    
+    panel.appendChild(balanceDiv);
+  }
+
   function renderMappingPanel(allRows) {
     const panel = document.getElementById('mappingPanel');
     if (!panel) return;
@@ -704,25 +786,8 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     essentialDiv.appendChild(obDiv);
     
-    // Optional base year input (simplified)
-    const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
-    const yearDiv = document.createElement('div');
-    yearDiv.style.cssText = 'margin-bottom: 12px;';
-    yearDiv.innerHTML = `
-      <div>
-        <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">First Week Date (Optional):</label>
-        <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
-               style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
-               placeholder="e.g. 2023">
-        <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #666;">
-          Weeks will start from Jan 1, ${defaultYear} and increment by 7 days
-        </span>
-      </div>
-      <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
-        Leave blank to use current date. This only affects date calculations - column mapping remains sequential.
-      </div>
-    `;
-    essentialDiv.appendChild(yearDiv);
+    // Note: Removed "First Week Date (Optional)" input for clarity and simplicity
+    // All calculations now use pure sequential week mapping based on column order
     panel.appendChild(essentialDiv);
 
     // Step 3: Column mapping preview (always visible when available)
@@ -741,6 +806,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
       panel.appendChild(previewDiv);
+    }
+
+    // Step 3.5: Running Bank Balance Table (immediately below mapping preview)
+    if (weekLabels && weekLabels.length > 0) {
+      renderBankBalanceTableInMapping(panel);
     }
 
     // Step 4: Advanced options (collapsible, collapsed by default)
@@ -888,47 +958,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
-      // Base year input handlers (simplified - no validation errors)
-      const byInput = document.getElementById('baseYearInput');
-      const currentYearDisplay = document.getElementById('currentYearDisplay');
-      
-      if (byInput) {
-        function updateYear() {
-          const yearValue = byInput.value;
-          const year = parseInt(yearValue);
-          
-          if (!isNaN(year) && year >= 2023 && year <= 2100 && yearValue.length === 4) {
-            userSpecifiedBaseYear = year;
-            if (currentYearDisplay) {
-              currentYearDisplay.textContent = `Weeks will start from Jan 1, ${year} and increment by 7 days`;
-              currentYearDisplay.style.color = '#666';
-            }
-          } else if (yearValue === '') {
-            // Allow blank - use current date
-            userSpecifiedBaseYear = null;
-            if (currentYearDisplay) {
-              currentYearDisplay.textContent = `Weeks will start from current date and increment by 7 days`;
-              currentYearDisplay.style.color = '#666';
-            }
-          } else {
-            // Invalid year but don't show error - just indicate it's not used
-            if (currentYearDisplay) {
-              currentYearDisplay.textContent = `Invalid year - using current date instead`;
-              currentYearDisplay.style.color = '#6c757d';
-            }
-          }
-          
-          // Always update (no blocking on validation errors)
-          updateAllTabs();
-        }
-        
-        // Add event listeners for immediate updates
-        byInput.addEventListener('input', updateYear);
-        byInput.addEventListener('change', updateYear);
-        
-        // Initial update
-        updateYear();
-      }
+      // Note: Base year input handlers removed - using pure sequential week mapping
       
     }, 0);
   }
@@ -999,11 +1029,9 @@ document.addEventListener('DOMContentLoaded', function() {
     dropdown.innerHTML = '';
     weekLabels.forEach((label, i) => {
       const opt = document.createElement('option');
-      let dateStr = weekStartDates[i]
-        ? weekStartDates[i].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-        : 'N/A';
       opt.value = i;
-      opt.textContent = `${label} (${dateStr})`;
+      // Show only week number/label, no date association for clarity
+      opt.textContent = label || `Week ${i + 1}`;
       dropdown.appendChild(opt);
     });
     dropdown.value = investmentWeekIndex;
