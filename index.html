@@ -358,13 +358,13 @@
         <div class="form-group">
           <h4>Tab Overview</h4>
           <div style="margin-bottom: 16px;">
-            <strong>📈 Weekly Cashflow:</strong> Shows direct spreadsheet mapping with no grouping. Use this to see exactly how your uploaded data maps to each week.
+            <strong>📈 Weekly Cashflow:</strong> Shows direct spreadsheet mapping for each week exactly as uploaded. Use this to see how your data maps to individual weeks.
           </div>
           <div style="margin-bottom: 16px;">
             <strong>📊 Profit & Loss:</strong> Displays profitability analysis using direct column mapping, consistent with Weekly Cashflow for easy cross-referencing.
           </div>
           <div style="margin-bottom: 16px;">
-            <strong>💰 Investment Return & Repayments:</strong> Uses calendar week grouping for accurate IRR/NPV calculations. Multiple columns for the same week are combined for proper time-based analysis.
+            <strong>💰 Investment Return & Repayments:</strong> Provides IRR/NPV calculations and repayment suggestions. Grouping is applied internally for accurate time-based financial calculations.
           </div>
           <div style="margin-bottom: 16px;">
             <strong>📋 Summary:</strong> Provides overview KPIs and consolidated reports across all tabs.
@@ -372,9 +372,9 @@
         </div>
         
         <div class="form-group">
-          <h4>Week Grouping Explained</h4>
+          <h4>Internal Week Grouping for ROI</h4>
           <div style="margin-bottom: 12px;">
-            <strong>Why do we group weeks in ROI calculations?</strong>
+            <strong>Why does ROI use internal grouping?</strong>
           </div>
           <div style="margin-bottom: 8px;">
             • Ensures accurate time intervals for IRR/NPV calculations
@@ -386,7 +386,7 @@
             • Prevents double-counting or timing errors in financial formulas
           </div>
           <div style="margin-bottom: 16px;">
-            • Only applied in ROI tab - analysis tabs always show direct mapping
+            • Applied automatically in ROI calculations - no user intervention needed
           </div>
         </div>
         
@@ -396,16 +396,19 @@
             1. Upload your spreadsheet in the <strong>Spreadsheet Mapping</strong> subtab
           </div>
           <div style="margin-bottom: 8px;">
-            2. Review cashflow in <strong>Weekly Cashflow</strong> tab to verify data accuracy
+            2. Configure which columns represent your weekly data (no grouping controls needed)
           </div>
           <div style="margin-bottom: 8px;">
-            3. Check profitability in <strong>Profit & Loss</strong> tab
+            3. Review cashflow in <strong>Weekly Cashflow</strong> tab to verify data accuracy
           </div>
           <div style="margin-bottom: 8px;">
-            4. Use <strong>Investment Return & Repayments</strong> for ROI analysis and repayment planning
+            4. Check profitability in <strong>Profit & Loss</strong> tab
           </div>
           <div style="margin-bottom: 8px;">
-            5. Review consolidated results in <strong>Summary</strong> tab
+            5. Use <strong>Investment Return & Repayments</strong> for ROI analysis and repayment planning
+          </div>
+          <div style="margin-bottom: 8px;">
+            6. Review consolidated results in <strong>Summary</strong> tab
           </div>
         </div>
       </div>
