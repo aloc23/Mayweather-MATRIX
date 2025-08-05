@@ -844,6 +844,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update date mapping preview
     updateDateMappingPreview();
+    
+    // Setup ROI date mapping if not already done
+    if (typeof setupRoiDateMapping === 'function') {
+      setupRoiDateMapping();
+    }
   }
   
   /**
@@ -2641,14 +2646,16 @@ function renderRoiSection() {
   const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
   const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
   const investmentWeek = investmentWeekIndex;
-  
-  // Use dates calculated from spreadsheet column labels
-  let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-    Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  // Use ROI-specific dates if ROI date mapping is active, otherwise use regular dates
+  let actualWeekStartDates;
+  if (roiDateMapping.isActive && roiWeekStartDates.length > 0) {
+    actualWeekStartDates = roiWeekStartDates;
+  } else {
+    actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  }
   
   // Handle case when no week mapping is available - use default weeks
-  let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
-    Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+  let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
   
   const investmentDate = actualWeekStartDates[investmentWeek] || null;
   
@@ -2822,9 +2829,6 @@ function renderRoiSection() {
   if (typeof updateDateMappingPreview === 'function') {
     updateDateMappingPreview();
   }
-  
-  // Update spreadsheet date mapping summary in ROI tab
-  updateSpreadsheetDateSummary();
 
   // Charts
   renderRoiCharts(investment, repayments);
@@ -3148,46 +3152,376 @@ function setupExcelExport() {
 // Initialize Excel export functionality
 setupExcelExport();
 
-  /**
-   * Update spreadsheet date mapping summary in ROI tab
-   */
-  function updateSpreadsheetDateSummary() {
-    const dateMappingStatus = document.getElementById('dateMappingStatus');
-    if (!dateMappingStatus) return;
-    
-    if (weekLabels && weekLabels.length > 0) {
-      const currentYear = new Date().getFullYear();
-      const analysisResult = detectWeekLabelOverlaps(weekLabels, currentYear);
-      
-      const parsedCount = analysisResult.parsedWeeks.length;
-      const overlapCount = analysisResult.overlaps.length;
-      const duplicateCount = analysisResult.duplicates.length;
-      
-      let statusText = `${parsedCount}/${weekLabels.length} week labels parsed as dates`;
-      if (overlapCount > 0) statusText += `, ${overlapCount} overlaps detected`;
-      if (duplicateCount > 0) statusText += `, ${duplicateCount} duplicates found`;
-      
-      dateMappingStatus.textContent = statusText;
-      
-      // Add color coding
-      if (overlapCount > 0 || duplicateCount > 0) {
-        dateMappingStatus.style.color = '#f57c00';
-        dateMappingStatus.innerHTML += ' ⚠️';
-      } else if (parsedCount > 0) {
-        dateMappingStatus.style.color = '#388e3c';
-        dateMappingStatus.innerHTML += ' ✓';
-      } else {
-        dateMappingStatus.style.color = '#666';
-      }
-    } else {
-      dateMappingStatus.textContent = 'Upload spreadsheet to see date mapping';
-      dateMappingStatus.style.color = '#666';
-    }
-  }
-  
   // -------------------- ROI DATE MAPPING REMOVED --------------------
   // Date mapping now handled directly through spreadsheet column label parsing
   // No manual date selection required
+    if (!startDate || weekCount <= 0) {
+      return [];
+    }
+    
+    // Get the week labels to check if any can be parsed as dates
+    const effectiveWeekLabels = (typeof weekLabels !== 'undefined' && weekLabels && weekLabels.length > 0) ? weekLabels : 
+                               (window.weekLabels && window.weekLabels.length > 0) ? window.weekLabels : [];
+    
+    const dates = [];
+    const referenceYear = startDate.getFullYear();
+    
+    for (let i = 0; i < weekCount; i++) {
+      let mappedDate = null;
+      
+      // Try to parse the week label as a real date first
+      if (effectiveWeekLabels[i]) {
+        mappedDate = parseWeekLabelAsDate(effectiveWeekLabels[i], referenceYear);
+        
+        // If we parsed a date, check if it would spill into next year
+        if (mappedDate && mappedDate.getFullYear() > referenceYear) {
+          // If it spills into next year and we have an end date constraint, 
+          // check if sequential dating would be better
+          if (endDate && mappedDate > endDate) {
+            mappedDate = null; // Fall back to sequential dating
+          }
+        }
+      }
+      
+      // If we couldn't parse the label as a date, use sequential 7-day increments
+      if (!mappedDate) {
+        mappedDate = new Date(startDate);
+        mappedDate.setDate(startDate.getDate() + (i * 7));
+        
+        // If we have an end date and sequential dating would exceed it,
+        // and this isn't the first week, try to prevent year spillage
+        if (endDate && mappedDate > endDate && i > 0) {
+          const prevDate = dates[i - 1];
+          const daysUntilEndDate = Math.floor((endDate - prevDate) / (24 * 60 * 60 * 1000));
+          
+          // If we can fit the remaining weeks within the end date with smaller intervals
+          const remainingWeeks = weekCount - i;
+          if (remainingWeeks > 0 && daysUntilEndDate > 0) {
+            const adjustedInterval = Math.max(1, Math.floor(daysUntilEndDate / remainingWeeks));
+            mappedDate = new Date(prevDate);
+            mappedDate.setDate(prevDate.getDate() + adjustedInterval);
+          }
+        }
+      }
+      
+      dates.push(mappedDate);
+    }
+    
+    return dates;
+  }
+  
+  // Make function globally accessible
+  window.calculateEvenlySpacedDates = calculateEvenlySpacedDates;
+  
+  /**
+   * Apply ROI date mapping to week start dates
+   */
+  function applyRoiDateMapping() {
+    const startDateInput = document.getElementById('roiStartDate');
+    const endDateInput = document.getElementById('roiEndDate');
+    
+    if (!startDateInput) return;
+    
+    const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+    const endDate = endDateInput && endDateInput.value ? new Date(endDateInput.value) : null;
+    
+    if (!startDate) {
+      alert('Please select an investment start date.');
+      return;
+    }
+    
+    if (endDate && startDate >= endDate) {
+      alert('End date must be after start date.');
+      return;
+    }
+    
+    // Store the ROI date mapping
+    roiDateMapping = {
+      startDate: startDate,
+      endDate: endDate,
+      isActive: true
+    };
+    
+    // Calculate sequential dates based on start date and week labels
+    const weekCount = (typeof weekLabels !== 'undefined' && weekLabels && weekLabels.length > 0) ? weekLabels.length : 
+                     (window.weekLabels && window.weekLabels.length > 0) ? window.weekLabels.length : 0;
+    if (weekCount > 0) {
+      const mappedDates = calculateEvenlySpacedDates(startDate, endDate, weekCount);
+      
+      // Update the ROI-specific weekStartDates array (isolated from other tabs)
+      roiWeekStartDates = mappedDates;
+      window.roiWeekStartDates = mappedDates;
+      
+      // Update investment week dropdown to reflect new dates
+      if (typeof populateInvestmentWeekDropdown === 'function') {
+        populateInvestmentWeekDropdown();
+      }
+      
+      // Show and update the date mapping preview
+      updateDateMappingPreview();
+      
+      // Refresh only ROI calculations with new dates (don't affect other tabs)
+      renderRoiSection();
+      
+      console.log('ROI date mapping applied (sequential 7-day increments):', {
+        startDate: startDate.toLocaleDateString(),
+        endDate: endDate ? endDate.toLocaleDateString() : 'Not specified', 
+        weekCount: weekCount,
+        mappedDates: mappedDates.map(d => d.toLocaleDateString())
+      });
+    } else {
+      alert('No week data available. Please configure spreadsheet mapping first.');
+    }
+  }
+  
+  // Make function globally accessible
+  window.applyRoiDateMapping = applyRoiDateMapping;
+  
+  /**
+   * Update the date mapping preview table with enhanced parsing information
+   */
+  function updateDateMappingPreview() {
+    const previewSection = document.getElementById('dateMappingPreview');
+    const tableBody = document.querySelector('#dateMappingTable tbody');
+    const dateMappingStatus = document.getElementById('dateMappingStatus');
+    
+    if (!previewSection || !tableBody) return;
+    
+    if (weekLabels && weekLabels.length > 0) {
+      previewSection.style.display = 'block';
+      tableBody.innerHTML = '';
+      
+      const currentYear = new Date().getFullYear();
+      const analysisResult = detectWeekLabelOverlaps(weekLabels, currentYear);
+      
+      // Update status summary
+      if (dateMappingStatus) {
+        const parsedCount = analysisResult.parsedWeeks.length;
+        const overlapCount = analysisResult.overlaps.length;
+        const duplicateCount = analysisResult.duplicates.length;
+        
+        let statusText = `${parsedCount}/${weekLabels.length} weeks parsed successfully`;
+        if (overlapCount > 0) statusText += `, ${overlapCount} overlaps detected`;
+        if (duplicateCount > 0) statusText += `, ${duplicateCount} duplicates found`;
+        
+        dateMappingStatus.textContent = statusText;
+        dateMappingStatus.style.color = (overlapCount > 0 || duplicateCount > 0) ? '#f57c00' : '#388e3c';
+      }
+      
+      weekLabels.forEach((label, index) => {
+        const parsedDate = parseWeekLabelAsDate(label, currentYear);
+        const parsedDetails = parseWeekLabelWithDetails(label, currentYear);
+        const date = weekStartDates[index];
+        
+        // Determine mapping method
+        let mappingMethod = 'Sequential (+7 days)';
+        let notes = '';
+        
+        if (parsedDate) {
+          mappingMethod = 'Parsed from label';
+          if (parsedDetails?.isRange) {
+            mappingMethod = 'Range parsed (start date)';
+            notes = `Range: ${parsedDetails.startDay}-${parsedDetails.endDay}`;
+          }
+        }
+        
+        // Check for overlaps
+        const hasOverlap = analysisResult.overlaps.some(overlap => 
+          overlap.index1 === index || overlap.index2 === index
+        );
+        const hasDuplicate = analysisResult.duplicates.some(dup => 
+          dup.index1 === index || dup.index2 === index
+        );
+        
+        if (hasOverlap) {
+          notes += (notes ? '; ' : '') + 'Overlap detected';
+        }
+        if (hasDuplicate) {
+          notes += (notes ? '; ' : '') + 'Duplicate found';
+        }
+        
+        // Calculate week number
+        let weekNumber = 'N/A';
+        if (date) {
+          const isoWeek = getISOWeek(date);
+          if (isoWeek) {
+            weekNumber = `${isoWeek.year}-W${isoWeek.week.toString().padStart(2, '0')}`;
+          }
+        }
+        
+        const row = document.createElement('tr');
+        
+        // Style row based on issues
+        let rowStyle = '';
+        if (hasOverlap || hasDuplicate) {
+          rowStyle = 'style="background-color: rgba(255, 152, 0, 0.1);"';
+        } else if (parsedDate) {
+          rowStyle = 'style="background-color: rgba(76, 175, 80, 0.05);"';
+        }
+        
+        row.innerHTML = `
+          <td>${label}</td>
+          <td>${parsedDate ? parsedDate.toLocaleDateString('en-GB') : (date ? date.toLocaleDateString('en-GB') : 'N/A')}</td>
+          <td>${weekNumber}</td>
+          <td style="font-size: 0.9em; color: #666;">${mappingMethod}</td>
+          <td style="font-size: 0.85em; color: ${(hasOverlap || hasDuplicate) ? '#f57c00' : '#666'};">${notes}</td>
+        `;
+        row.setAttribute('style', rowStyle);
+        tableBody.appendChild(row);
+      });
+      
+      // Show warnings if there are overlaps or duplicates
+      if (analysisResult.overlaps.length > 0 || analysisResult.duplicates.length > 0) {
+        showDateMappingWarnings(analysisResult.overlaps, analysisResult.duplicates);
+      } else {
+        clearDateMappingWarnings();
+      }
+    } else {
+      previewSection.style.display = 'none';
+      if (dateMappingStatus) {
+        dateMappingStatus.textContent = 'Upload spreadsheet to see date mapping';
+        dateMappingStatus.style.color = '#666';
+      }
+    }
+  }
+  
+  /**
+   * Show warnings for date mapping issues
+   */
+  function showDateMappingWarnings(overlaps, duplicates) {
+    const previewSection = document.getElementById('dateMappingPreview');
+    if (!previewSection) return;
+    
+    // Remove existing warnings
+    const existingWarning = previewSection.querySelector('.date-mapping-warnings');
+    if (existingWarning) {
+      existingWarning.remove();
+    }
+    
+    if (overlaps.length === 0 && duplicates.length === 0) return;
+    
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'date-mapping-warnings';
+    warningDiv.style.cssText = 'margin-top: 10px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;';
+    
+    let warningHtml = '<strong>⚠️ Date Mapping Issues Detected:</strong><br>';
+    
+    if (overlaps.length > 0) {
+      warningHtml += `<br><strong>Overlapping weeks (${overlaps.length}):</strong><ul>`;
+      overlaps.forEach(overlap => {
+        warningHtml += `<li>"${overlap.label1}" and "${overlap.label2}" overlap by ${overlap.overlapDays} days</li>`;
+      });
+      warningHtml += '</ul>';
+    }
+    
+    if (duplicates.length > 0) {
+      warningHtml += `<br><strong>Duplicate dates (${duplicates.length}):</strong><ul>`;
+      duplicates.forEach(dup => {
+        warningHtml += `<li>"${dup.label1}" and "${dup.label2}" map to the same date</li>`;
+      });
+      warningHtml += '</ul>';
+    }
+    
+    warningHtml += '<br><em>IRR/NPV calculations will use actual parsed dates to prevent double-counting.</em>';
+    
+    warningDiv.innerHTML = warningHtml;
+    previewSection.appendChild(warningDiv);
+  }
+  
+  /**
+   * Clear date mapping warnings
+   */
+  function clearDateMappingWarnings() {
+    const previewSection = document.getElementById('dateMappingPreview');
+    if (!previewSection) return;
+    
+    const existingWarning = previewSection.querySelector('.date-mapping-warnings');
+    if (existingWarning) {
+      existingWarning.remove();
+    }
+  }
+  
+  // Make function globally accessible
+  window.updateDateMappingPreview = updateDateMappingPreview;
+  
+  /**
+   * Reset ROI date mapping to default sequential calculation
+   */
+  function resetRoiDateMapping() {
+    roiDateMapping = {
+      startDate: null,
+      endDate: null,
+      isActive: false
+    };
+    
+    // Reset to sequential calculation based on first week date
+    if (window.firstWeekDate && weekLabels.length > 0) {
+      weekStartDates = calculateSequentialWeekDates(window.firstWeekDate, weekLabels.length);
+    } else {
+      weekStartDates = extractWeekStartDates(weekLabels, 2025);
+    }
+    
+    // Update UI
+    populateInvestmentWeekDropdown();
+    updateDateMappingPreview();
+    updateAllTabs();
+    
+    // Clear date inputs
+    const startDateInput = document.getElementById('roiStartDate');
+    const endDateInput = document.getElementById('roiEndDate');
+    if (startDateInput) startDateInput.value = '';
+    if (endDateInput) endDateInput.value = '';
+  }
+  
+  /**
+   * Setup ROI date mapping event handlers
+   */
+  function setupRoiDateMapping() {
+    const applyBtn = document.getElementById('applyDateMappingBtn');
+    const startDateInput = document.getElementById('roiStartDate');
+    const endDateInput = document.getElementById('roiEndDate');
+    
+    if (applyBtn) {
+      applyBtn.addEventListener('click', applyRoiDateMapping);
+    }
+    
+    // Auto-apply when start date is selected (end date is optional)
+    function handleDateChange() {
+      if (startDateInput && startDateInput.value) {
+        // Small delay to allow for user to finish selecting
+        setTimeout(() => {
+          if (startDateInput.value) {
+            applyRoiDateMapping();
+          }
+        }, 500);
+      }
+    }
+    
+    if (startDateInput) {
+      startDateInput.addEventListener('change', handleDateChange);
+    }
+    if (endDateInput) {
+      endDateInput.addEventListener('change', handleDateChange);
+    }
+    
+    // Initialize default dates if week data is available
+    if (weekLabels.length > 0 && weekStartDates.length > 0) {
+      // Set default start date to first week
+      const firstDate = weekStartDates[0];
+      const lastDate = weekStartDates[weekStartDates.length - 1];
+      
+      if (firstDate && startDateInput && !startDateInput.value) {
+        startDateInput.value = firstDate.toISOString().split('T')[0];
+      }
+      if (lastDate && endDateInput && !endDateInput.value) {
+        endDateInput.value = lastDate.toISOString().split('T')[0];
+      }
+    }
+  }
+  
+  // Initialize ROI date mapping functionality
+  setupRoiDateMapping();
+
   // -------------------- Update All Tabs --------------------
   function updateAllTabs() {
     clearRoiSuggestions(); // Clear suggestions when data changes

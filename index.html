@@ -166,20 +166,14 @@
     <section id="roi" class="tab-content">
       <h2>Investment Return &amp; Repayments</h2>
       
-      <!-- Date Mapping Section -->
-      <div class="roi-date-mapping" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:1em; border-left:4px solid #007bff;">
-        <h4 style="margin:0 0 10px 0; color:#007bff;">📅 Date Mapping for Accurate IRR/NPV</h4>
-        <div style="display:flex; gap:1em; align-items:center; flex-wrap:wrap;">
-          <label for="roiStartDate"><b>Investment Start Date:</b></label>
-          <input type="date" id="roiStartDate" style="width:150px;">
-          
-          <label for="roiEndDate"><b>Investment End Date:</b></label>
-          <input type="date" id="roiEndDate" style="width:150px;">
-          
-          <button id="applyDateMappingBtn" style="background:#007bff; color:white; border:none; padding:6px 14px; border-radius:4px;">Apply Date Mapping</button>
+      <!-- Spreadsheet Date Mapping Preview -->
+      <div class="spreadsheet-date-preview" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:1em; border-left:4px solid #007bff;">
+        <h4 style="margin:0 0 10px 0; color:#007bff;">📅 Spreadsheet Date Mapping</h4>
+        <div style="font-size:0.9em; color:#6c757d; margin-bottom:8px;">
+          Dates are automatically parsed from your spreadsheet column labels. Week sequence is based on column order with proper overlap handling.
         </div>
-        <div style="font-size:0.9em; color:#6c757d; margin-top:8px;">
-          Select investment start date to map your spreadsheet weeks to calendar dates. End date is optional and helps prevent year spillage.
+        <div id="spreadsheetDateMappingSummary" style="font-size:0.95em; padding:6px 0;">
+          <span id="dateMappingStatus">Upload spreadsheet to see date mapping</span>
         </div>
       </div>
       
@@ -210,7 +204,7 @@
       </div>
       
       <!-- Date Mapping Preview -->
-      <div id="dateMappingPreview" class="date-mapping-preview" style="margin-bottom:1em; display:none;">
+      <div id="dateMappingPreview" class="date-mapping-preview" style="margin-bottom:1em;">
         <div class="collapsible-table-section">
           <button class="collapsible-header" type="button">
             <span class="caret">&#9660;</span> Week to Date Mapping Preview
@@ -221,9 +215,10 @@
                 <thead>
                   <tr>
                     <th>Week Label</th>
-                    <th>Mapped Date</th>
-                    <th>Days from Start</th>
+                    <th>Parsed Date</th>
+                    <th>Week Number</th>
                     <th>Mapping Method</th>
+                    <th>Notes</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
