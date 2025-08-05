@@ -68,9 +68,9 @@
       <div id="subtab-charts" class="subtab-panel">
         <h3>Weekly Cashflow Charts & Analysis</h3>
         <div class="info-banner" style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #1976d2;">
-          <strong>ℹ️ Direct Spreadsheet Mapping:</strong> This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns, with no grouping applied.
+          <strong>ℹ️ Direct Spreadsheet Column Mapping:</strong> This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
           <div style="margin-top: 8px; font-size: 0.9em; color: #1565c0;">
-            <strong>Tip:</strong> Column labels shown here match your original spreadsheet exactly. Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
+            <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
           </div>
         </div>
         <div class="chart-wrapper">
@@ -96,9 +96,9 @@
     <section id="pnl" class="tab-content">
       <h2>Profit &amp; Loss Statement</h2>
       <div class="info-banner" style="background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;">
-        <strong>📊 Direct Profitability Analysis:</strong> Shows profitability per week using original spreadsheet column mapping, with no grouping applied for clear transparency.
+        <strong>📊 Direct Profitability Analysis:</strong> Shows profitability per week using sequential column mapping from your spreadsheet (Week 1, Week 2, etc.).
         <div style="margin-top: 8px; font-size: 0.9em; color: #2e7d32;">
-          <strong>Tip:</strong> Week labels here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
+          <strong>Tip:</strong> Week numbers here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
         </div>
       </div>
       <div id="pnlSummary"></div>
@@ -166,14 +166,14 @@
     <section id="roi" class="tab-content">
       <h2>Investment Return &amp; Repayments</h2>
       
-      <!-- Spreadsheet Date Mapping Preview -->
+      <!-- Spreadsheet Column Mapping Preview -->
       <div class="spreadsheet-date-preview" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:1em; border-left:4px solid #007bff;">
-        <h4 style="margin:0 0 10px 0; color:#007bff;">📅 Spreadsheet Date Mapping</h4>
+        <h4 style="margin:0 0 10px 0; color:#007bff;">📋 Spreadsheet Column Mapping</h4>
         <div style="font-size:0.9em; color:#6c757d; margin-bottom:8px;">
-          Dates are automatically parsed from your spreadsheet column labels. Week sequence is based on column order with proper overlap handling.
+          Columns are mapped sequentially as Week 1, Week 2, etc. based on spreadsheet column order. All calculations use this consistent column-based mapping.
         </div>
         <div id="spreadsheetDateMappingSummary" style="font-size:0.95em; padding:6px 0;">
-          <span id="dateMappingStatus">Upload spreadsheet to see date mapping</span>
+          <span id="dateMappingStatus">Upload spreadsheet to see column mapping</span>
         </div>
       </div>
       
@@ -203,13 +203,16 @@
         </div>
       </div>
       
-      <!-- Date Mapping Preview -->
-      <div id="dateMappingPreview" class="date-mapping-preview" style="margin-bottom:1em;">
+      <!-- Date Mapping Preview (Advanced) -->
+      <div id="dateMappingPreview" class="date-mapping-preview" style="margin-bottom:1em; display:none;">
         <div class="collapsible-table-section">
           <button class="collapsible-header" type="button">
-            <span class="caret">&#9660;</span> Week to Date Mapping Preview
+            <span class="caret">&#9658;</span> Advanced: Week to Date Mapping Preview
           </button>
-          <div class="collapsible-content active">
+          <div class="collapsible-content">
+            <div style="padding: 8px; background: #fff3cd; border-radius: 4px; margin-bottom: 8px; font-size: 0.9em; color: #856404;">
+              <strong>Note:</strong> This advanced preview shows date parsing results. The main application uses sequential column mapping regardless of parsing success.
+            </div>
             <div class="scroll-x">
               <table id="dateMappingTable" class="table table-sm">
                 <thead>
@@ -394,13 +397,13 @@
         <div class="form-group">
           <h4>Tab Overview</h4>
           <div style="margin-bottom: 16px;">
-            <strong>📈 Weekly Cashflow:</strong> Shows direct spreadsheet mapping for each week exactly as uploaded. Use this to see how your data maps to individual weeks.
+            <strong>📈 Weekly Cashflow:</strong> Shows sequential column mapping for each week (Week 1, Week 2, etc.). Use this to see how your spreadsheet columns map to weeks.
           </div>
           <div style="margin-bottom: 16px;">
-            <strong>📊 Profit & Loss:</strong> Displays profitability analysis using direct column mapping, consistent with Weekly Cashflow for easy cross-referencing.
+            <strong>📊 Profit & Loss:</strong> Displays profitability analysis using sequential column mapping, consistent with Weekly Cashflow for easy cross-referencing.
           </div>
           <div style="margin-bottom: 16px;">
-            <strong>💰 Investment Return & Repayments:</strong> Provides IRR/NPV calculations and repayment suggestions. Grouping is applied internally for accurate time-based financial calculations.
+            <strong>💰 Investment Return & Repayments:</strong> Provides IRR/NPV calculations and repayment suggestions using sequential week mapping for time-based financial calculations.
           </div>
           <div style="margin-bottom: 16px;">
             <strong>📋 Summary:</strong> Provides overview KPIs and consolidated reports across all tabs.
@@ -408,21 +411,21 @@
         </div>
         
         <div class="form-group">
-          <h4>Internal Week Grouping for ROI</h4>
+          <h4>Sequential Column Mapping</h4>
           <div style="margin-bottom: 12px;">
-            <strong>Why does ROI use internal grouping?</strong>
+            <strong>How does column mapping work?</strong>
           </div>
           <div style="margin-bottom: 8px;">
-            • Ensures accurate time intervals for IRR/NPV calculations
+            • Each spreadsheet column maps to Week 1, Week 2, Week 3, etc. in order
           </div>
           <div style="margin-bottom: 8px;">
-            • Combines multiple payments in the same calendar week (e.g., Saturday + Sunday)
+            • No complex date parsing required - works with any column labels
           </div>
           <div style="margin-bottom: 8px;">
-            • Prevents double-counting or timing errors in financial formulas
+            • Consistent mapping across all calculations and tabs
           </div>
           <div style="margin-bottom: 16px;">
-            • Applied automatically in ROI calculations - no user intervention needed
+            • Optional base year for date calculations only (doesn't affect mapping)
           </div>
         </div>
         
@@ -432,19 +435,22 @@
             1. Upload your spreadsheet in the <strong>Spreadsheet Mapping</strong> subtab
           </div>
           <div style="margin-bottom: 8px;">
-            2. Configure which columns represent your weekly data (no grouping controls needed)
+            2. Review the automatic sequential column mapping (Week 1, Week 2, etc.)
           </div>
           <div style="margin-bottom: 8px;">
-            3. Review cashflow in <strong>Weekly Cashflow</strong> tab to verify data accuracy
+            3. Optionally set a base year for date calculations
           </div>
           <div style="margin-bottom: 8px;">
-            4. Check profitability in <strong>Profit & Loss</strong> tab
+            4. Review cashflow in <strong>Weekly Cashflow</strong> tab to verify data accuracy
           </div>
           <div style="margin-bottom: 8px;">
-            5. Use <strong>Investment Return & Repayments</strong> for ROI analysis and repayment planning
+            5. Check profitability in <strong>Profit & Loss</strong> tab
           </div>
           <div style="margin-bottom: 8px;">
-            6. Review consolidated results in <strong>Summary</strong> tab
+            6. Use <strong>Investment Return & Repayments</strong> for ROI analysis and repayment planning
+          </div>
+          <div style="margin-bottom: 8px;">
+            7. Review consolidated results in <strong>Summary</strong> tab
           </div>
         </div>
       </div>

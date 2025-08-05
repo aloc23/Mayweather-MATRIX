@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
           rawData = json;
           mappedData = json;
           autoDetectMapping(mappedData);
-          mappingConfigured = false;
+          mappingConfigured = true; // Sequential mapping is always configured after auto-detection
           
           // Initialize first week date to today if not already set
           if (!window.firstWeekDate) {
@@ -671,20 +671,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!panel) return;
     panel.innerHTML = '';
 
-    // Essential workflow: Upload -> Auto-detect -> Year input -> Live preview
+    // Streamlined workflow: Upload -> Auto-detect -> Simple column mapping
     
     // Step 1: Auto-detected mapping summary (always visible)
     const mappingSummaryDiv = document.createElement('div');
     mappingSummaryDiv.style.cssText = 'background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;';
     mappingSummaryDiv.innerHTML = `
-      <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Spreadsheet Mapping Auto-Detected</h4>
+      <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Week Columns Mapped in Order as per Spreadsheet</h4>
       <div style="font-size: 0.9em; margin-bottom: 6px;">
-        <strong>Week Labels Row:</strong> Row ${config.weekLabelRow + 1} | 
-        <strong>Week Columns:</strong> ${config.weekColStart + 1} to ${config.weekColEnd + 1} | 
+        <strong>Sequential Mapping:</strong> ${weekLabels ? weekLabels.length : 0} columns mapped as Week 1, Week 2, Week 3, etc. |
         <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
       </div>
       <div style="font-size: 0.85em; color: #2e7d32;">
-        Auto-detection found ${weekLabels ? weekLabels.length : 0} week columns. Click "Advanced Options" below to manually adjust if needed.
+        Each spreadsheet column is treated as a sequential week regardless of column labels. All downstream calculations use this column-based mapping.
       </div>
     `;
     panel.appendChild(mappingSummaryDiv);
@@ -705,55 +704,53 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     essentialDiv.appendChild(obDiv);
     
-    // Base year input for week label parsing
-    const currentWeekLabels = weekLabels || [];
-    const needsYear = needsBaseYear(currentWeekLabels);
+    // Optional base year input (simplified)
     const defaultYear = userSpecifiedBaseYear || new Date().getFullYear();
-    
     const yearDiv = document.createElement('div');
     yearDiv.style.cssText = 'margin-bottom: 12px;';
-    
-    if (needsYear) {
-      yearDiv.innerHTML = `
-        <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; margin-bottom: 10px;">
-          <strong>⚠️ Base Year Required:</strong> Week labels detected without explicit years.<br>
-          <span style="font-size: 0.9em; color: #666;">Specify the year for the first week to ensure correct date parsing.</span>
-        </div>
-        <div>
-          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
-          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
-                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
-                 placeholder="e.g. 2023">
-          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
-        </div>
-      `;
-    } else {
-      yearDiv.innerHTML = `
-        <div>
-          <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">Base Year for Week Labels:</label>
-          <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
-                 style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
-                 placeholder="e.g. 2023">
-          <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #1976d2; font-weight: bold;">Currently using: ${defaultYear}</span>
-        </div>
-      `;
-    }
+    yearDiv.innerHTML = `
+      <div>
+        <label for="baseYearInput" style="font-weight: bold; margin-right: 8px;">First Week Date (Optional):</label>
+        <input type="number" id="baseYearInput" value="${defaultYear}" min="2023" max="2100" 
+               style="width:100px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px;" 
+               placeholder="e.g. 2023">
+        <span id="currentYearDisplay" style="margin-left: 12px; font-size: 0.9em; color: #666;">
+          Weeks will start from Jan 1, ${defaultYear} and increment by 7 days
+        </span>
+      </div>
+      <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+        Leave blank to use current date. This only affects date calculations - column mapping remains sequential.
+      </div>
+    `;
     essentialDiv.appendChild(yearDiv);
     panel.appendChild(essentialDiv);
 
-    // Step 3: Live date preview (always visible when available)
-    const previewDiv = document.createElement('div');
-    previewDiv.id = 'datePreviewTable';
-    panel.appendChild(previewDiv);
+    // Step 3: Column mapping preview (always visible when available)
+    if (weekLabels && weekLabels.length > 0) {
+      const previewDiv = document.createElement('div');
+      previewDiv.style.cssText = 'background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #6c757d;';
+      previewDiv.innerHTML = `
+        <h5 style="margin: 0 0 8px 0; color: #495057;">📋 Column Mapping Preview</h5>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 0.9em;">
+          ${weekLabels.slice(0, 8).map((label, index) => 
+            `<div style="padding: 4px 8px; background: white; border-radius: 4px; border: 1px solid #dee2e6;">
+              <strong>Week ${index + 1}:</strong> ${label}
+            </div>`
+          ).join('')}
+          ${weekLabels.length > 8 ? `<div style="padding: 4px 8px; color: #6c757d;">... and ${weekLabels.length - 8} more weeks</div>` : ''}
+        </div>
+      `;
+      panel.appendChild(previewDiv);
+    }
 
-    // Step 4: Advanced options (collapsible)
+    // Step 4: Advanced options (collapsible, collapsed by default)
     const advancedDiv = document.createElement('div');
     advancedDiv.style.cssText = 'margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 16px;';
     
     const advancedBtn = document.createElement('button');
     advancedBtn.type = 'button';
-    advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">▶</span>Advanced Options`;
-    advancedBtn.style.cssText = 'background: none; border: none; color: #1976d2; font-weight: bold; cursor: pointer; font-size: 1em; padding: 8px 0;';
+    advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">▶</span>Advanced Mapping Options`;
+    advancedBtn.style.cssText = 'background: none; border: none; color: #6c757d; font-weight: bold; cursor: pointer; font-size: 0.9em; padding: 8px 0;';
     
     const advancedContent = document.createElement('div');
     advancedContent.style.display = 'none';
@@ -873,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (caret) {
         caret.textContent = isOpen ? '▶' : '▼';
       }
-      advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">${isOpen ? '▶' : '▼'}</span>${isOpen ? 'Advanced Options' : 'Hide Advanced Options'}`;
+      advancedBtn.innerHTML = `<span class="caret" style="margin-right: 6px;">${isOpen ? '▶' : '▼'}</span>${isOpen ? 'Advanced Mapping Options' : 'Hide Advanced Options'}`;
     });
 
     advancedDiv.appendChild(advancedBtn);
@@ -891,50 +888,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
       
-      // Base year input handlers
+      // Base year input handlers (simplified - no validation errors)
       const byInput = document.getElementById('baseYearInput');
       const currentYearDisplay = document.getElementById('currentYearDisplay');
       
       if (byInput) {
         function updateYear() {
-          const validation = validateBaseYear(byInput.value);
+          const yearValue = byInput.value;
+          const year = parseInt(yearValue);
           
-          if (validation.valid) {
-            userSpecifiedBaseYear = validation.year;
-            showYearValidationError(null, byInput); // Clear any error
+          if (!isNaN(year) && year >= 2023 && year <= 2100 && yearValue.length === 4) {
+            userSpecifiedBaseYear = year;
             if (currentYearDisplay) {
-              currentYearDisplay.textContent = `Currently using: ${validation.year}`;
-              currentYearDisplay.style.color = '#1976d2';
+              currentYearDisplay.textContent = `Weeks will start from Jan 1, ${year} and increment by 7 days`;
+              currentYearDisplay.style.color = '#666';
             }
-            
-            // Immediately update preview and all tabs
-            if (currentWeekLabels.length > 0) {
-              showDatePreview(currentWeekLabels, validation.year);
+          } else if (yearValue === '') {
+            // Allow blank - use current date
+            userSpecifiedBaseYear = null;
+            if (currentYearDisplay) {
+              currentYearDisplay.textContent = `Weeks will start from current date and increment by 7 days`;
+              currentYearDisplay.style.color = '#666';
             }
-            updateAllTabs();
           } else {
-            showYearValidationError(validation.error, byInput);
+            // Invalid year but don't show error - just indicate it's not used
             if (currentYearDisplay) {
-              currentYearDisplay.textContent = 'Invalid year - please correct';
-              currentYearDisplay.style.color = '#d32f2f';
+              currentYearDisplay.textContent = `Invalid year - using current date instead`;
+              currentYearDisplay.style.color = '#6c757d';
             }
           }
+          
+          // Always update (no blocking on validation errors)
+          updateAllTabs();
         }
         
-        // Add multiple event listeners for immediate updates
+        // Add event listeners for immediate updates
         byInput.addEventListener('input', updateYear);
         byInput.addEventListener('change', updateYear);
-        byInput.addEventListener('blur', updateYear);
         
-        // Initial validation
+        // Initial update
         updateYear();
       }
       
-      // Show initial preview if we have week labels
-      if (currentWeekLabels.length > 0) {
-        const initialYear = userSpecifiedBaseYear || defaultYear;
-        showDatePreview(currentWeekLabels, initialYear);
-      }
     }, 0);
   }
 
@@ -1018,53 +1013,31 @@ document.addEventListener('DOMContentLoaded', function() {
     let weekRow = mappedData[config.weekLabelRow] || [];
     let rawHeaders = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
     
-    // Always enable grouping internally for ROI calculations, but use raw headers for display
+    // Use sequential column mapping as the primary approach
     if (rawHeaders.length > 0) {
-      // Group columns by calendar week (internal use for ROI)
-      const groupingResult = groupColumnsByWeek(rawHeaders);
-      weekGroups = groupingResult.groups;
-      ungroupedColumns = groupingResult.ungrouped;
-      
-      // Apply user overrides
-      applyUserGroupingOverrides();
-      
-      // For user display, always use the original raw headers (no grouping UI)
+      // For user display, always use the original raw headers (sequential mapping)
       weekLabels = rawHeaders;
       
-      // Make weekLabels globally accessible for ROI calculations
-      window.weekLabels = weekLabels;
+      // Create sequential week mapping for downstream calculations
+      // Each column is treated as a sequential week regardless of label content
+      const sequentialGroups = rawHeaders.map((header, index) => ({
+        weekKey: `week-${index + 1}`,
+        year: null,
+        week: index + 1,
+        columns: [{
+          index: index,
+          header: header,
+          parsedDate: null,
+          weekNumber: index + 1,
+          weekKey: `week-${index + 1}`
+        }],
+        primaryHeader: header
+      }));
       
-      // Store the group mapping for ROI calculations only
-      const allGroups = [...weekGroups];
-      
-      // Add ungrouped columns as individual "groups"
-      ungroupedColumns.forEach(col => {
-        allGroups.push({
-          weekKey: `ungrouped-${col.index}`,
-          year: null,
-          week: null,
-          columns: [col],
-          primaryHeader: col.header
-        });
-      });
-      
-      // Sort groups by week/date order (for ROI internal calculations)
-      allGroups.sort((a, b) => {
-        if (a.year && b.year && a.week && b.week) {
-          if (a.year !== b.year) return a.year - b.year;
-          return a.week - b.week;
-        }
-        // Put grouped items first, then ungrouped
-        if (a.year && !b.year) return -1;
-        if (!a.year && b.year) return 1;
-        // For ungrouped items, sort by original column order
-        const aFirstIndex = a.columns[0]?.index || 0;
-        const bFirstIndex = b.columns[0]?.index || 0;
-        return aFirstIndex - bFirstIndex;
-      });
-      
-      // Store the group mapping for ROI calculations (internal use only)
-      window.weekGroupMapping = allGroups;
+      // Store sequential mapping for all calculations
+      weekGroups = sequentialGroups;
+      ungroupedColumns = [];
+      window.weekGroupMapping = sequentialGroups;
       
     } else {
       // No data available
@@ -1080,21 +1053,52 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     populateWeekDropdown(weekLabels);
 
-    // Calculate week start dates based on parsed spreadsheet labels
+    // Calculate week start dates - use simple sequential approach
     if (weekLabels.length > 0) {
-      weekStartDates = calculateWeekStartDatesFromLabels(weekLabels);
+      weekStartDates = calculateSequentialWeekDates(weekLabels);
     } else {
       weekStartDates = [];
     }
     populateInvestmentWeekDropdown();
     
-    // Update date mapping preview
+    // Update date mapping preview (optional)
     updateDateMappingPreview();
   }
   
   /**
+   * Calculate sequential week dates for column-based mapping
+   * Optionally uses base year if provided, otherwise defaults to current date
+   */
+  function calculateSequentialWeekDates(weekLabels) {
+    const dates = [];
+    
+    // Determine starting date - use base year if provided, otherwise current date
+    let startDate;
+    if (userSpecifiedBaseYear) {
+      // If user provided a base year, start from January 1st of that year
+      startDate = new Date(userSpecifiedBaseYear, 0, 1);
+    } else if (window.firstWeekDate) {
+      // Use user-specified first week date if available
+      startDate = new Date(window.firstWeekDate);
+    } else {
+      // Default to current date
+      startDate = new Date();
+    }
+    
+    // Generate sequential dates (7 days apart) for each column
+    weekLabels.forEach((label, index) => {
+      const weekDate = new Date(startDate);
+      weekDate.setDate(startDate.getDate() + (7 * index));
+      dates.push(weekDate);
+    });
+    
+    return dates;
+  }
+
+  /**
    * Calculate week start dates directly from spreadsheet column labels
    * Uses enhanced parsing with overlap detection and proper handling
+   * DEPRECATED: Kept for compatibility but not used in sequential mapping mode
    */
   function calculateWeekStartDatesFromLabels(weekLabels) {
     // Use user-specified base year, fallback to current year if not set
@@ -3403,32 +3407,13 @@ setupExcelExport();
     if (!dateMappingStatus) return;
     
     if (weekLabels && weekLabels.length > 0) {
-      // Use user-specified base year, fallback to current year if not set
-      const effectiveYear = userSpecifiedBaseYear || new Date().getFullYear();
-      const analysisResult = detectWeekLabelOverlaps(weekLabels, effectiveYear);
-      
-      const parsedCount = analysisResult.parsedWeeks.length;
-      const overlapCount = analysisResult.overlaps.length;
-      const duplicateCount = analysisResult.duplicates.length;
-      
-      let statusText = `${parsedCount}/${weekLabels.length} week labels parsed as dates`;
-      if (overlapCount > 0) statusText += `, ${overlapCount} overlaps detected`;
-      if (duplicateCount > 0) statusText += `, ${duplicateCount} duplicates found`;
-      
+      // Simple sequential mapping summary
+      const statusText = `${weekLabels.length} columns mapped sequentially as Week 1, Week 2, etc.`;
       dateMappingStatus.textContent = statusText;
-      
-      // Add color coding
-      if (overlapCount > 0 || duplicateCount > 0) {
-        dateMappingStatus.style.color = '#f57c00';
-        dateMappingStatus.innerHTML += ' ⚠️';
-      } else if (parsedCount > 0) {
-        dateMappingStatus.style.color = '#388e3c';
-        dateMappingStatus.innerHTML += ' ✓';
-      } else {
-        dateMappingStatus.style.color = '#666';
-      }
+      dateMappingStatus.style.color = '#388e3c';
+      dateMappingStatus.innerHTML += ' ✓';
     } else {
-      dateMappingStatus.textContent = 'Upload spreadsheet to see date mapping';
+      dateMappingStatus.textContent = 'Upload spreadsheet to see column mapping';
       dateMappingStatus.style.color = '#666';
     }
   }
@@ -3443,20 +3428,13 @@ setupExcelExport();
   function updateMappingSummaryBanners() {
     if (!weekLabels || weekLabels.length === 0) return;
     
-    const currentYear = userSpecifiedBaseYear || new Date().getFullYear();
-    const mappedCount = weekLabels.filter(label => parseWeekLabelAsDate(label, currentYear)).length;
-    const totalCount = weekLabels.length;
-    
-    // Create summary content
+    // Create summary content for sequential column mapping
     const summaryHTML = `
       <div style="background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em;">
-        <strong>📅 Current Mapping:</strong> 
-        ${mappedCount}/${totalCount} weeks mapped using base year <strong>${currentYear}</strong> | 
-        Week range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]}
-        ${mappedCount < totalCount ? 
-          ` | <span style="color: #ff9800;">⚠️ ${totalCount - mappedCount} week(s) need attention</span>` : 
-          ' | <span style="color: #4caf50;">✅ All weeks mapped successfully</span>'
-        }
+        <strong>📋 Sequential Column Mapping:</strong> 
+        ${weekLabels.length} columns mapped as Week 1, Week 2, Week 3, etc. | 
+        Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
+        <span style="color: #4caf50;">✅ All calculations use column-based sequential mapping</span>
       </div>
     `;
     
