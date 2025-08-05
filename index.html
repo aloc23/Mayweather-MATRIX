@@ -166,6 +166,23 @@
     <section id="roi" class="tab-content">
       <h2>Investment Return &amp; Repayments</h2>
       
+      <!-- Date Mapping Section -->
+      <div class="roi-date-mapping" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:1em; border-left:4px solid #007bff;">
+        <h4 style="margin:0 0 10px 0; color:#007bff;">📅 Date Mapping for Accurate IRR/NPV</h4>
+        <div style="display:flex; gap:1em; align-items:center; flex-wrap:wrap;">
+          <label for="roiStartDate"><b>Investment Start Date:</b></label>
+          <input type="date" id="roiStartDate" style="width:150px;">
+          
+          <label for="roiEndDate"><b>Investment End Date:</b></label>
+          <input type="date" id="roiEndDate" style="width:150px;">
+          
+          <button id="applyDateMappingBtn" style="background:#007bff; color:white; border:none; padding:6px 14px; border-radius:4px;">Apply Date Mapping</button>
+        </div>
+        <div style="font-size:0.9em; color:#6c757d; margin-top:8px;">
+          Select start and end dates to map your spreadsheet weeks to actual calendar dates for accurate IRR/NPV calculations.
+        </div>
+      </div>
+      
       <div class="roi-input-bar" style="display:flex; gap:1em; align-items:center; margin-bottom:1em;">
         <label for="investmentWeek"><b>Investment Week:</b></label>
         <select id="investmentWeek"></select>
@@ -189,6 +206,29 @@
           <span id="suggestedIrrDisplay" style="font-weight:bold; color:#1976d2; margin-right:8px;">Target IRR: 20%</span>
           <button id="editTargetIrrBtn" style="background:#ff9800; color:white; border:none; padding:6px 14px; border-radius:4px;">Edit Target IRR/NPV</button>
           <button id="showSuggestedRepaymentsBtn" style="background:#2196f3; color:white; border:none; padding:6px 14px; border-radius:4px;">Show Suggested Repayments</button>
+        </div>
+      </div>
+      
+      <!-- Date Mapping Preview -->
+      <div id="dateMappingPreview" class="date-mapping-preview" style="margin-bottom:1em; display:none;">
+        <div class="collapsible-table-section">
+          <button class="collapsible-header" type="button">
+            <span class="caret">&#9660;</span> Week to Date Mapping Preview
+          </button>
+          <div class="collapsible-content active">
+            <div class="scroll-x">
+              <table id="dateMappingTable" class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Week Label</th>
+                    <th>Mapped Date</th>
+                    <th>Days from Start</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
       <div style="display:flex; gap:2em; flex-wrap:wrap;">
