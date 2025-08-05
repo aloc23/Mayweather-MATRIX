@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
           rawData = json;
           mappedData = json;
           autoDetectMapping(mappedData);
-          mappingConfigured = false;
+          mappingConfigured = true; // Sequential mapping is always configured after auto-detection
           
           // Initialize first week date to today if not already set
           if (!window.firstWeekDate) {

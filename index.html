@@ -397,13 +397,13 @@
         <div class="form-group">
           <h4>Tab Overview</h4>
           <div style="margin-bottom: 16px;">
-            <strong>📈 Weekly Cashflow:</strong> Shows direct spreadsheet mapping for each week exactly as uploaded. Use this to see how your data maps to individual weeks.
+            <strong>📈 Weekly Cashflow:</strong> Shows sequential column mapping for each week (Week 1, Week 2, etc.). Use this to see how your spreadsheet columns map to weeks.
           </div>
           <div style="margin-bottom: 16px;">
-            <strong>📊 Profit & Loss:</strong> Displays profitability analysis using direct column mapping, consistent with Weekly Cashflow for easy cross-referencing.
+            <strong>📊 Profit & Loss:</strong> Displays profitability analysis using sequential column mapping, consistent with Weekly Cashflow for easy cross-referencing.
           </div>
           <div style="margin-bottom: 16px;">
-            <strong>💰 Investment Return & Repayments:</strong> Provides IRR/NPV calculations and repayment suggestions. Grouping is applied internally for accurate time-based financial calculations.
+            <strong>💰 Investment Return & Repayments:</strong> Provides IRR/NPV calculations and repayment suggestions using sequential week mapping for time-based financial calculations.
           </div>
           <div style="margin-bottom: 16px;">
             <strong>📋 Summary:</strong> Provides overview KPIs and consolidated reports across all tabs.
@@ -411,21 +411,21 @@
         </div>
         
         <div class="form-group">
-          <h4>Internal Week Grouping for ROI</h4>
+          <h4>Sequential Column Mapping</h4>
           <div style="margin-bottom: 12px;">
-            <strong>Why does ROI use internal grouping?</strong>
+            <strong>How does column mapping work?</strong>
           </div>
           <div style="margin-bottom: 8px;">
-            • Ensures accurate time intervals for IRR/NPV calculations
+            • Each spreadsheet column maps to Week 1, Week 2, Week 3, etc. in order
           </div>
           <div style="margin-bottom: 8px;">
-            • Combines multiple payments in the same calendar week (e.g., Saturday + Sunday)
+            • No complex date parsing required - works with any column labels
           </div>
           <div style="margin-bottom: 8px;">
-            • Prevents double-counting or timing errors in financial formulas
+            • Consistent mapping across all calculations and tabs
           </div>
           <div style="margin-bottom: 16px;">
-            • Applied automatically in ROI calculations - no user intervention needed
+            • Optional base year for date calculations only (doesn't affect mapping)
           </div>
         </div>
         
@@ -435,19 +435,22 @@
             1. Upload your spreadsheet in the <strong>Spreadsheet Mapping</strong> subtab
           </div>
           <div style="margin-bottom: 8px;">
-            2. Configure which columns represent your weekly data (no grouping controls needed)
+            2. Review the automatic sequential column mapping (Week 1, Week 2, etc.)
           </div>
           <div style="margin-bottom: 8px;">
-            3. Review cashflow in <strong>Weekly Cashflow</strong> tab to verify data accuracy
+            3. Optionally set a base year for date calculations
           </div>
           <div style="margin-bottom: 8px;">
-            4. Check profitability in <strong>Profit & Loss</strong> tab
+            4. Review cashflow in <strong>Weekly Cashflow</strong> tab to verify data accuracy
           </div>
           <div style="margin-bottom: 8px;">
-            5. Use <strong>Investment Return & Repayments</strong> for ROI analysis and repayment planning
+            5. Check profitability in <strong>Profit & Loss</strong> tab
           </div>
           <div style="margin-bottom: 8px;">
-            6. Review consolidated results in <strong>Summary</strong> tab
+            6. Use <strong>Investment Return & Repayments</strong> for ROI analysis and repayment planning
+          </div>
+          <div style="margin-bottom: 8px;">
+            7. Review consolidated results in <strong>Summary</strong> tab
           </div>
         </div>
       </div>
