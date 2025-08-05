@@ -694,6 +694,11 @@ document.addEventListener('DOMContentLoaded', function() {
       weekStartDates = extractWeekStartDates(weekLabels, 2025);
     }
     populateInvestmentWeekDropdown();
+    
+    // Setup ROI date mapping if not already done
+    if (typeof setupRoiDateMapping === 'function') {
+      setupRoiDateMapping();
+    }
   }
   
   function applyUserGroupingOverrides() {
@@ -2058,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', function() {
       investmentWeekIndex,
       openingBalance,
       cashflow,
-      weekStartDates
+      weekStartDates: actualWeekStartDates
     });
     
     suggestedRepayments = result.suggestedRepayments;
@@ -2445,11 +2450,18 @@ function renderRoiSection() {
   const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
   const discountRate = parseFloat(document.getElementById('roiInterestInput').value) || 0;
   const investmentWeek = investmentWeekIndex;
-  const investmentDate = weekStartDates[investmentWeek] || null;
-
+  // Use ROI-specific dates if ROI date mapping is active, otherwise use regular dates
+  let actualWeekStartDates;
+  if (roiDateMapping.isActive && roiWeekStartDates.length > 0) {
+    actualWeekStartDates = roiWeekStartDates;
+  } else {
+    actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  }
+  
   // Handle case when no week mapping is available - use default weeks
   let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-  let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+  
+  const investmentDate = actualWeekStartDates[investmentWeek] || null;
   
   // Get explicit repayment schedule for accurate date-based calculations
   const explicitSchedule = window.getExplicitRepaymentSchedule ? window.getExplicitRepaymentSchedule() : getExplicitRepaymentSchedule();
@@ -2616,6 +2628,11 @@ function renderRoiSection() {
 
   document.getElementById('roiSummary').innerHTML = summary;
   document.getElementById('roiPaybackTableWrap').innerHTML = tableHtml;
+
+  // Update date mapping preview
+  if (typeof updateDateMappingPreview === 'function') {
+    updateDateMappingPreview();
+  }
 
   // Charts
   renderRoiCharts(investment, repayments);
@@ -2938,6 +2955,233 @@ function setupExcelExport() {
 
 // Initialize Excel export functionality
 setupExcelExport();
+
+  // -------------------- ROI DATE MAPPING FUNCTIONALITY --------------------
+  
+  // State for ROI date mapping
+  let roiDateMapping = {
+    startDate: null,
+    endDate: null,
+    isActive: false
+  };
+  
+  // Separate week start dates specifically for ROI calculations (isolated from other tabs)
+  let roiWeekStartDates = [];
+  
+  // Make roiDateMapping globally accessible
+  window.roiDateMapping = roiDateMapping;
+  
+  /**
+   * Calculate evenly spaced dates between start and end dates
+   * @param {Date} startDate - Investment start date
+   * @param {Date} endDate - Investment end date  
+   * @param {number} weekCount - Number of weeks to map
+   * @returns {Array} Array of Date objects
+   */
+  function calculateEvenlySpacedDates(startDate, endDate, weekCount) {
+    if (!startDate || !endDate || weekCount <= 0) {
+      return [];
+    }
+    
+    const dates = [];
+    const totalDays = (endDate - startDate) / (24 * 60 * 60 * 1000);
+    const daysBetweenWeeks = weekCount > 1 ? totalDays / (weekCount - 1) : 0;
+    
+    for (let i = 0; i < weekCount; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + Math.round(i * daysBetweenWeeks));
+      dates.push(date);
+    }
+    
+    return dates;
+  }
+  
+  // Make function globally accessible
+  window.calculateEvenlySpacedDates = calculateEvenlySpacedDates;
+  
+  /**
+   * Apply ROI date mapping to week start dates
+   */
+  function applyRoiDateMapping() {
+    const startDateInput = document.getElementById('roiStartDate');
+    const endDateInput = document.getElementById('roiEndDate');
+    
+    if (!startDateInput || !endDateInput) return;
+    
+    const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+    const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+    
+    if (!startDate || !endDate) {
+      alert('Please select both start and end dates.');
+      return;
+    }
+    
+    if (startDate >= endDate) {
+      alert('End date must be after start date.');
+      return;
+    }
+    
+    // Store the ROI date mapping
+    roiDateMapping = {
+      startDate: startDate,
+      endDate: endDate,
+      isActive: true
+    };
+    
+    // Calculate evenly spaced dates for the weeks
+    const weekCount = (typeof weekLabels !== 'undefined' && weekLabels) ? weekLabels.length : 
+                     (window.weekLabels ? window.weekLabels.length : 0);
+    if (weekCount > 0) {
+      const mappedDates = calculateEvenlySpacedDates(startDate, endDate, weekCount);
+      
+      // Update the ROI-specific weekStartDates array (isolated from other tabs)
+      roiWeekStartDates = mappedDates;
+      window.roiWeekStartDates = mappedDates;
+      
+      // Update investment week dropdown to reflect new dates
+      if (typeof populateInvestmentWeekDropdown === 'function') {
+        populateInvestmentWeekDropdown();
+      }
+      
+      // Show and update the date mapping preview
+      updateDateMappingPreview();
+      
+      // Refresh only ROI calculations with new dates (don't affect other tabs)
+      renderRoiSection();
+      
+      console.log('ROI date mapping applied (isolated to ROI tab only):', {
+        startDate: startDate.toLocaleDateString(),
+        endDate: endDate.toLocaleDateString(), 
+        weekCount: weekCount,
+        mappedDates: mappedDates.map(d => d.toLocaleDateString())
+      });
+    } else {
+      alert('No week data available. Please configure spreadsheet mapping first.');
+    }
+  }
+  
+  // Make function globally accessible
+  window.applyRoiDateMapping = applyRoiDateMapping;
+  
+  /**
+   * Update the date mapping preview table
+   */
+  function updateDateMappingPreview() {
+    const previewSection = document.getElementById('dateMappingPreview');
+    const tableBody = document.querySelector('#dateMappingTable tbody');
+    
+    if (!previewSection || !tableBody) return;
+    
+    if (roiDateMapping.isActive && ((typeof weekLabels !== 'undefined' && weekLabels && weekLabels.length > 0) || 
+                                        (window.weekLabels && window.weekLabels.length > 0))) {
+      previewSection.style.display = 'block';
+      tableBody.innerHTML = '';
+      
+      const effectiveWeekLabels = (typeof weekLabels !== 'undefined' && weekLabels) ? weekLabels : 
+                                 (window.weekLabels || []);
+      const effectiveWeekStartDates = roiWeekStartDates.length > 0 ? roiWeekStartDates : 
+                                     ((typeof weekStartDates !== 'undefined' && weekStartDates) ? weekStartDates : 
+                                     (window.weekStartDates || []));
+      
+      effectiveWeekLabels.forEach((label, index) => {
+        const date = effectiveWeekStartDates[index];
+        const daysFromStart = date && roiDateMapping.startDate 
+          ? Math.round((date - roiDateMapping.startDate) / (24 * 60 * 60 * 1000))
+          : 0;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${label}</td>
+          <td>${date ? date.toLocaleDateString('en-GB') : 'N/A'}</td>
+          <td>${daysFromStart}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    } else {
+      previewSection.style.display = 'none';
+    }
+  }
+  
+  // Make function globally accessible
+  window.updateDateMappingPreview = updateDateMappingPreview;
+  
+  /**
+   * Reset ROI date mapping to default sequential calculation
+   */
+  function resetRoiDateMapping() {
+    roiDateMapping = {
+      startDate: null,
+      endDate: null,
+      isActive: false
+    };
+    
+    // Reset to sequential calculation based on first week date
+    if (window.firstWeekDate && weekLabels.length > 0) {
+      weekStartDates = calculateSequentialWeekDates(window.firstWeekDate, weekLabels.length);
+    } else {
+      weekStartDates = extractWeekStartDates(weekLabels, 2025);
+    }
+    
+    // Update UI
+    populateInvestmentWeekDropdown();
+    updateDateMappingPreview();
+    updateAllTabs();
+    
+    // Clear date inputs
+    const startDateInput = document.getElementById('roiStartDate');
+    const endDateInput = document.getElementById('roiEndDate');
+    if (startDateInput) startDateInput.value = '';
+    if (endDateInput) endDateInput.value = '';
+  }
+  
+  /**
+   * Setup ROI date mapping event handlers
+   */
+  function setupRoiDateMapping() {
+    const applyBtn = document.getElementById('applyDateMappingBtn');
+    const startDateInput = document.getElementById('roiStartDate');
+    const endDateInput = document.getElementById('roiEndDate');
+    
+    if (applyBtn) {
+      applyBtn.addEventListener('click', applyRoiDateMapping);
+    }
+    
+    // Auto-apply when both dates are selected
+    function handleDateChange() {
+      if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+        // Small delay to allow for user to finish selecting
+        setTimeout(() => {
+          if (startDateInput.value && endDateInput.value) {
+            applyRoiDateMapping();
+          }
+        }, 500);
+      }
+    }
+    
+    if (startDateInput) {
+      startDateInput.addEventListener('change', handleDateChange);
+    }
+    if (endDateInput) {
+      endDateInput.addEventListener('change', handleDateChange);
+    }
+    
+    // Initialize default dates if week data is available
+    if (weekLabels.length > 0 && weekStartDates.length > 0) {
+      // Set default start date to first week
+      const firstDate = weekStartDates[0];
+      const lastDate = weekStartDates[weekStartDates.length - 1];
+      
+      if (firstDate && startDateInput && !startDateInput.value) {
+        startDateInput.value = firstDate.toISOString().split('T')[0];
+      }
+      if (lastDate && endDateInput && !endDateInput.value) {
+        endDateInput.value = lastDate.toISOString().split('T')[0];
+      }
+    }
+  }
+  
+  // Initialize ROI date mapping functionality
+  setupRoiDateMapping();
 
   // -------------------- Update All Tabs --------------------
   function updateAllTabs() {
