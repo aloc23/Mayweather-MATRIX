@@ -797,14 +797,14 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // -------------------- Calculation Helpers --------------------
-  function getIncomeArr() {
+  function getIncomeArr(useGrouping = false) {
     if (!mappedData || !mappingConfigured) return [];
     
     let arr = [];
     const groupMapping = window.weekGroupMapping;
     
-    if (groupMapping && groupingEnabled) {
-      // Use grouped columns
+    if (groupMapping && groupingEnabled && useGrouping) {
+      // Use grouped columns (only for ROI tab)
       for (let g = 0; g < groupMapping.length; g++) {
         if (!weekCheckboxStates[g]) continue;
         
@@ -825,9 +825,12 @@ document.addEventListener('DOMContentLoaded', function() {
         arr[g] = groupSum;
       }
     } else {
-      // Use original logic for individual columns
-      for (let w = 0; w < weekLabels.length; w++) {
-        if (!weekCheckboxStates[w]) continue;
+      // Use original logic for individual columns (Weekly Cashflow, P&L tabs)
+      const rawHeaders = mappedData[config.weekLabelRow] || [];
+      const rawWeekLabels = rawHeaders.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+      
+      for (let w = 0; w < rawWeekLabels.length; w++) {
+        if (weekCheckboxStates && !weekCheckboxStates[w]) continue;
         let absCol = config.weekColStart + w;
         let sum = 0;
         for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
@@ -842,14 +845,14 @@ document.addEventListener('DOMContentLoaded', function() {
     return arr;
   }
   
-  function getExpenditureArr() {
+  function getExpenditureArr(useGrouping = false) {
     if (!mappedData || !mappingConfigured) return [];
     
     let arr = [];
     const groupMapping = window.weekGroupMapping;
     
-    if (groupMapping && groupingEnabled) {
-      // Use grouped columns
+    if (groupMapping && groupingEnabled && useGrouping) {
+      // Use grouped columns (only for ROI tab)
       for (let g = 0; g < groupMapping.length; g++) {
         if (!weekCheckboxStates[g]) continue;
         
@@ -870,9 +873,12 @@ document.addEventListener('DOMContentLoaded', function() {
         arr[g] = groupSum;
       }
     } else {
-      // Use original logic for individual columns
-      for (let w = 0; w < weekLabels.length; w++) {
-        if (!weekCheckboxStates[w]) continue;
+      // Use original logic for individual columns (Weekly Cashflow, P&L tabs)
+      const rawHeaders = mappedData[config.weekLabelRow] || [];
+      const rawWeekLabels = rawHeaders.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+      
+      for (let w = 0; w < rawWeekLabels.length; w++) {
+        if (weekCheckboxStates && !weekCheckboxStates[w]) continue;
         let absCol = config.weekColStart + w;
         let sum = 0;
         for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
@@ -953,6 +959,90 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
+  // Helper functions to get raw (ungrouped) data for Weekly Cashflow and P&L tabs
+  function getRawWeekLabels() {
+    if (!mappedData || !mappingConfigured) return [];
+    let weekRow = mappedData[config.weekLabelRow] || [];
+    return weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
+  }
+  
+  function getRawFilteredWeekIndices() {
+    const rawLabels = getRawWeekLabels();
+    if (weekCheckboxStates && weekCheckboxStates.length > 0) {
+      // Map grouped indices back to raw indices if grouping is enabled
+      if (groupingEnabled && window.weekGroupMapping) {
+        const rawIndices = [];
+        window.weekGroupMapping.forEach((group, groupIndex) => {
+          if (weekCheckboxStates[groupIndex]) {
+            group.columns.forEach(col => {
+              rawIndices.push(col.index);
+            });
+          }
+        });
+        return rawIndices.sort((a, b) => a - b);
+      } else {
+        // Direct mapping when grouping is disabled
+        return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
+      }
+    } else {
+      return Array.from({length: rawLabels.length}, (_, i) => i);
+    }
+  }
+  
+  // Function to update week grouping preview for ROI tab
+  function updateWeekGroupingPreview() {
+    const previewContent = document.getElementById('groupingDetails');
+    if (!previewContent) return;
+    
+    if (!groupingEnabled || !window.weekGroupMapping || window.weekGroupMapping.length === 0) {
+      previewContent.innerHTML = '<div style="color: #666; font-style: italic;">Week grouping is not enabled or no grouping data available.</div>';
+      return;
+    }
+    
+    let previewHtml = '';
+    
+    // Show grouped weeks
+    const groupedWeeks = window.weekGroupMapping.filter(group => group.columns.length > 1);
+    if (groupedWeeks.length > 0) {
+      previewHtml += '<div style="margin-bottom: 12px;"><strong>Grouped Columns:</strong></div>';
+      groupedWeeks.forEach(group => {
+        const weekInfo = group.year && group.week ? `${group.year}-W${group.week.toString().padStart(2, '0')}` : 'Unknown';
+        const columnsList = group.columns.map(col => `"${col.header}"`).join(', ');
+        previewHtml += `
+          <div style="margin-bottom: 6px; padding: 6px 10px; background: #e3f2fd; border-radius: 4px; border-left: 3px solid #1976d2;">
+            <strong>${weekInfo}:</strong> ${columnsList}
+          </div>
+        `;
+      });
+    }
+    
+    // Show ungrouped columns
+    const ungroupedWeeks = window.weekGroupMapping.filter(group => group.columns.length === 1);
+    if (ungroupedWeeks.length > 0) {
+      previewHtml += '<div style="margin-bottom: 12px; margin-top: 16px;"><strong>Individual Columns:</strong></div>';
+      ungroupedWeeks.forEach(group => {
+        const col = group.columns[0];
+        previewHtml += `
+          <div style="margin-bottom: 4px; padding: 4px 10px; background: #fff3e0; border-radius: 4px; border-left: 3px solid #ff9800;">
+            "${col.header}"
+          </div>
+        `;
+      });
+    }
+    
+    if (groupedWeeks.length === 0 && ungroupedWeeks.length === 0) {
+      previewHtml = '<div style="color: #666; font-style: italic;">No grouping information available.</div>';
+    } else {
+      previewHtml += `
+        <div style="margin-top: 16px; padding: 8px; background: #f0f8ff; border-radius: 4px; font-size: 0.85em; color: #1976d2;">
+          <strong>Note:</strong> Grouping ensures columns with the same calendar week are combined for accurate time-based IRR/NPV calculations.
+        </div>
+      `;
+    }
+    
+    previewContent.innerHTML = previewHtml;
+  }
+  
   // New function to get explicit repayment dates and amounts for NPV/IRR calculations
   function getExplicitRepaymentSchedule() {
     let schedule = [];
@@ -1007,19 +1097,33 @@ document.addEventListener('DOMContentLoaded', function() {
   function getNetProfitArr(incomeArr, expenditureArr, repaymentArr) {
     return incomeArr.map((inc, i) => (inc || 0) - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
   }
-  function getRollingBankBalanceArr() {
-    let incomeArr = getIncomeArr();
-    let expenditureArr = getExpenditureArr();
+  function getRollingBankBalanceArr(useGrouping = false) {
+    let incomeArr = getIncomeArr(useGrouping);
+    let expenditureArr = getExpenditureArr(useGrouping);
     let repaymentArr = getRepaymentArr();
     let rolling = [];
     let ob = openingBalance;
-    getFilteredWeekIndices().forEach((fi, i) => {
-      let income = incomeArr[fi] || 0;
-      let out = expenditureArr[fi] || 0;
-      let repay = repaymentArr[i] || 0;
-      let prev = (i === 0 ? ob : rolling[i-1]);
-      rolling[i] = prev + income - out - repay;
-    });
+    
+    if (useGrouping) {
+      // For ROI tab with grouping
+      getFilteredWeekIndices().forEach((fi, i) => {
+        let income = incomeArr[fi] || 0;
+        let out = expenditureArr[fi] || 0;
+        let repay = repaymentArr[i] || 0;
+        let prev = (i === 0 ? ob : rolling[i-1]);
+        rolling[i] = prev + income - out - repay;
+      });
+    } else {
+      // For Weekly Cashflow and P&L tabs with direct mapping
+      getRawFilteredWeekIndices().forEach((fi, i) => {
+        let income = incomeArr[fi] || 0;
+        let out = expenditureArr[fi] || 0;
+        let repay = repaymentArr[i] || 0;
+        let prev = (i === 0 ? ob : rolling[i-1]);
+        rolling[i] = prev + income - out - repay;
+      });
+    }
+    
     return rolling;
   }
   function getMonthAgg(arr, months=12) {
@@ -1242,12 +1346,14 @@ document.addEventListener('DOMContentLoaded', function() {
       if (mainChartNoDataElem) mainChartNoDataElem.style.display = "none";
     }
 
-    const filteredWeeks = getFilteredWeekIndices();
-    const labels = filteredWeeks.map(idx => weekLabels[idx]);
-    const incomeArr = getIncomeArr();
-    const expenditureArr = getExpenditureArr();
+    // Use ungrouped data for Weekly Cashflow tab (direct spreadsheet mapping)
+    const rawLabels = getRawWeekLabels();
+    const filteredWeeks = getRawFilteredWeekIndices();
+    const labels = filteredWeeks.map(idx => rawLabels[idx] || `Week ${idx + 1}`);
+    const incomeArr = getIncomeArr(false); // No grouping for Weekly Cashflow
+    const expenditureArr = getExpenditureArr(false); // No grouping for Weekly Cashflow
     const repaymentArr = getRepaymentArr();
-    const rollingArr = getRollingBankBalanceArr();
+    const rollingArr = getRollingBankBalanceArr(false); // No grouping for Weekly Cashflow
     const netProfitArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
 
     const data = {
@@ -1348,15 +1454,18 @@ document.addEventListener('DOMContentLoaded', function() {
   const pnlSummary = document.getElementById('pnlSummary');
   if (!weeklyTable || !monthlyTable || !cashFlowTable) return;
 
-  // ---- Weekly table ----
+  // ---- Weekly table (use ungrouped data for direct P&L mapping) ----
   let tbody = weeklyTable.querySelector('tbody');
   if (tbody) tbody.innerHTML = '';
-  let incomeArr = getIncomeArr();
-  let expenditureArr = getExpenditureArr();
+  
+  // Use ungrouped data for P&L tab (direct spreadsheet mapping)
+  let incomeArr = getIncomeArr(false); // No grouping for P&L
+  let expenditureArr = getExpenditureArr(false); // No grouping for P&L
   let repaymentArr = getRepaymentArr();
-  let rollingArr = getRollingBankBalanceArr();
+  let rollingArr = getRollingBankBalanceArr(false); // No grouping for P&L
   let netArr = getNetProfitArr(incomeArr, expenditureArr, repaymentArr);
-  let weekIdxs = getFilteredWeekIndices();
+  let weekIdxs = getRawFilteredWeekIndices(); // Use raw indices for P&L
+  let rawLabels = getRawWeekLabels(); // Use raw labels for P&L
   let rows = '';
   let minBal = null, minBalWeek = null;
 
@@ -1365,14 +1474,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const netTooltip = `Income - Expenditure - Repayment\n${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${net}`;
     const balTooltip = `Prev Bal + Income - Expenditure - Repayment\n${i===0?openingBalance:rollingArr[i-1]} + ${incomeArr[idx]||0} - ${expenditureArr[idx]||0} - ${repaymentArr[i]||0} = ${rollingArr[i]||0}`;
     let row = `<tr${rollingArr[i]<0?' class="negative-balance-row"':''}>` +
-      `<td>${weekLabels[idx]}</td>` +
+      `<td>${rawLabels[idx] || `Week ${idx + 1}`}</td>` +
       `<td${incomeArr[idx]<0?' class="negative-number"':''}>€${Math.round(incomeArr[idx]||0).toLocaleString()}</td>` +
       `<td${expenditureArr[idx]<0?' class="negative-number"':''}>€${Math.round(expenditureArr[idx]||0).toLocaleString()}</td>` +
       `<td${repaymentArr[i]<0?' class="negative-number"':''}>€${Math.round(repaymentArr[i]||0).toLocaleString()}</td>` +
       `<td class="${net<0?'negative-number':''}" data-tooltip="${netTooltip}">€${Math.round(net||0).toLocaleString()}</td>` +
       `<td${rollingArr[i]<0?' class="negative-number"':''} data-tooltip="${balTooltip}">€${Math.round(rollingArr[i]||0).toLocaleString()}</td></tr>`;
     rows += row;
-    if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=weekLabels[idx];}
+    if (minBal===null||rollingArr[i]<minBal) {minBal=rollingArr[i];minBalWeek=rawLabels[idx];}
   });
   if (tbody) tbody.innerHTML = rows;
   renderSectionSummary('weekly-breakdown-header', `Total Net: €${netArr.reduce((a,b)=>a+(b||0),0).toLocaleString()}`, netArr);
@@ -2072,8 +2181,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // If no filtered weeks (no data loaded), use default 52-week timeline
     const actualFilteredWeeks = filteredWeeks.length > 0 ? filteredWeeks : Array.from({length: 52}, (_, i) => i);
     
-    const incomeArr = getIncomeArr ? getIncomeArr() : Array(52).fill(0);
-    const expenditureArr = getExpenditureArr ? getExpenditureArr() : Array(52).fill(0);
+    // Use GROUPED data for ROI calculations (proper time-based intervals)
+    const incomeArr = getIncomeArr ? getIncomeArr(true) : Array(52).fill(0);
+    const expenditureArr = getExpenditureArr ? getExpenditureArr(true) : Array(52).fill(0);
     const cashflow = {income: incomeArr, expenditure: expenditureArr};
     
     const result = computeEnhancedSuggestedRepayments({
@@ -2975,6 +3085,7 @@ setupExcelExport();
     renderSummaryTab();
     renderRoiSection();
     renderTornadoChart();
+    updateWeekGroupingPreview(); // Update ROI grouping preview
     
     // Update NPV display in modal if open
     updateNPVDisplayInModal();
