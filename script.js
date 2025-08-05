@@ -454,6 +454,23 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         }
         
+        // Add user confirmation note
+        if (weekGroups.length > 0) {
+          const confirmationNote = document.createElement('div');
+          confirmationNote.style.marginTop = '10px';
+          confirmationNote.style.padding = '8px';
+          confirmationNote.style.backgroundColor = '#f0f8ff';
+          confirmationNote.style.border = '1px solid #1976d2';
+          confirmationNote.style.borderRadius = '4px';
+          confirmationNote.style.fontSize = '0.85em';
+          confirmationNote.innerHTML = `
+            <strong>✓ Automatic Grouping Applied</strong><br>
+            Columns with matching calendar weeks have been grouped together for accurate time-based analysis.
+            This ensures extra columns (like Saturday payments) in the same week are properly aggregated.
+          `;
+          previewDiv.appendChild(confirmationNote);
+        }
+        
         groupingDiv.appendChild(previewDiv);
       }
       
@@ -1485,17 +1502,43 @@ document.addEventListener('DOMContentLoaded', function() {
       // Calculate row impact by "sum of absolute values" for each data row
       let impact = [];
       if (!mappedData || !mappingConfigured) return;
+      const groupMapping = window.weekGroupMapping;
+      
       for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
         let label = mappedData[r][0] || `Row ${r + 1}`;
         let vals = [];
-        for (let w = 0; w < weekLabels.length; w++) {
-          if (!weekCheckboxStates[w]) continue;
-          let absCol = config.weekColStart + w;
-          let val = mappedData[r][absCol];
-          if (typeof val === "string") val = val.replace(/,/g,'').replace(/€|\s/g,'');
-          let num = parseFloat(val);
-          if (!isNaN(num)) vals.push(num);
+        
+        if (groupMapping && groupingEnabled) {
+          // Use grouped columns
+          for (let g = 0; g < groupMapping.length; g++) {
+            if (!weekCheckboxStates[g]) continue;
+            
+            const group = groupMapping[g];
+            let groupSum = 0;
+            
+            // Aggregate values from all columns in this group for this row
+            group.columns.forEach(col => {
+              const absCol = config.weekColStart + col.index;
+              let val = mappedData[r][absCol];
+              if (typeof val === "string") val = val.replace(/,/g,'').replace(/€|\s/g,'');
+              let num = parseFloat(val);
+              if (!isNaN(num)) groupSum += num;
+            });
+            
+            if (groupSum !== 0) vals.push(groupSum);
+          }
+        } else {
+          // Use original logic for individual columns
+          for (let w = 0; w < weekLabels.length; w++) {
+            if (!weekCheckboxStates[w]) continue;
+            let absCol = config.weekColStart + w;
+            let val = mappedData[r][absCol];
+            if (typeof val === "string") val = val.replace(/,/g,'').replace(/€|\s/g,'');
+            let num = parseFloat(val);
+            if (!isNaN(num)) vals.push(num);
+          }
         }
+        
         let total = vals.reduce((a,b)=>a+Math.abs(b),0);
         if (total > 0) impact.push({label, total});
       }
