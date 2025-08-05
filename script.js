@@ -2958,6 +2958,9 @@ setupExcelExport();
     isActive: false
   };
   
+  // Make roiDateMapping globally accessible
+  window.roiDateMapping = roiDateMapping;
+  
   /**
    * Calculate evenly spaced dates between start and end dates
    * @param {Date} startDate - Investment start date
@@ -2982,6 +2985,9 @@ setupExcelExport();
     
     return dates;
   }
+  
+  // Make function globally accessible
+  window.calculateEvenlySpacedDates = calculateEvenlySpacedDates;
   
   /**
    * Apply ROI date mapping to week start dates
@@ -3013,21 +3019,27 @@ setupExcelExport();
     };
     
     // Calculate evenly spaced dates for the weeks
-    const weekCount = weekLabels.length;
+    const weekCount = (typeof weekLabels !== 'undefined' && weekLabels) ? weekLabels.length : 
+                     (window.weekLabels ? window.weekLabels.length : 0);
     if (weekCount > 0) {
       const mappedDates = calculateEvenlySpacedDates(startDate, endDate, weekCount);
       
       // Update the global weekStartDates array
       weekStartDates = mappedDates;
+      window.weekStartDates = mappedDates;
       
       // Update investment week dropdown to reflect new dates
-      populateInvestmentWeekDropdown();
+      if (typeof populateInvestmentWeekDropdown === 'function') {
+        populateInvestmentWeekDropdown();
+      }
       
       // Show and update the date mapping preview
       updateDateMappingPreview();
       
       // Refresh ROI calculations with new dates
-      updateAllTabs();
+      if (typeof updateAllTabs === 'function') {
+        updateAllTabs();
+      }
       
       console.log('ROI date mapping applied:', {
         startDate: startDate.toLocaleDateString(),
@@ -3040,6 +3052,9 @@ setupExcelExport();
     }
   }
   
+  // Make function globally accessible
+  window.applyRoiDateMapping = applyRoiDateMapping;
+  
   /**
    * Update the date mapping preview table
    */
@@ -3049,12 +3064,18 @@ setupExcelExport();
     
     if (!previewSection || !tableBody) return;
     
-    if (roiDateMapping.isActive && weekLabels.length > 0) {
+    if (roiDateMapping.isActive && ((typeof weekLabels !== 'undefined' && weekLabels && weekLabels.length > 0) || 
+                                        (window.weekLabels && window.weekLabels.length > 0))) {
       previewSection.style.display = 'block';
       tableBody.innerHTML = '';
       
-      weekLabels.forEach((label, index) => {
-        const date = weekStartDates[index];
+      const effectiveWeekLabels = (typeof weekLabels !== 'undefined' && weekLabels) ? weekLabels : 
+                                 (window.weekLabels || []);
+      const effectiveWeekStartDates = (typeof weekStartDates !== 'undefined' && weekStartDates) ? weekStartDates : 
+                                     (window.weekStartDates || []);
+      
+      effectiveWeekLabels.forEach((label, index) => {
+        const date = effectiveWeekStartDates[index];
         const daysFromStart = date && roiDateMapping.startDate 
           ? Math.round((date - roiDateMapping.startDate) / (24 * 60 * 60 * 1000))
           : 0;
@@ -3071,6 +3092,9 @@ setupExcelExport();
       previewSection.style.display = 'none';
     }
   }
+  
+  // Make function globally accessible
+  window.updateDateMappingPreview = updateDateMappingPreview;
   
   /**
    * Reset ROI date mapping to default sequential calculation
