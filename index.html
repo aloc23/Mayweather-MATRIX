@@ -35,34 +35,56 @@
         <button data-subtab="settings">Tool Settings</button>
       </div>
       <div id="subtab-mapping" class="subtab-panel active">
-        <h3>Spreadsheet Mapping</h3>
+        <div class="info-banner">
+          <h4><i class="icon">📊</i> Spreadsheet Mapping</h4>
+          <div class="banner-content">
+            Upload your financial spreadsheet to automatically map weekly cashflow data. Columns will be processed sequentially as Week 1, Week 2, etc.
+          </div>
+        </div>
         <input type="file" id="spreadsheetUpload" accept=".xlsx,.xls,.csv">
         <div id="mappingPanel"></div>
       </div>
       <div id="subtab-settings" class="subtab-panel">
-        <h3>Tool Settings</h3>
-        <label>Currency: <select id="settingsCurrency">
-          <option value="EUR">EUR (€)</option>
-          <option value="USD">USD ($)</option>
-          <option value="GBP">GBP (£)</option>
-        </select></label>
-        <label>Default Chart Type: <select id="settingsChartType">
-          <option value="line">Line</option>
-          <option value="bar">Bar</option>
-          <option value="pie">Pie</option>
-        </select></label>
+        <div class="info-banner">
+          <h4><i class="icon">⚙️</i> Tool Settings</h4>
+          <div class="banner-content">
+            Configure display preferences and default settings for the MATRIX application.
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>Currency: 
+              <select id="settingsCurrency">
+                <option value="EUR">EUR (€)</option>
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (£)</option>
+              </select>
+            </label>
+          </div>
+          <div class="setting-item">
+            <label>Default Chart Type: 
+              <select id="settingsChartType">
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="pie">Pie</option>
+              </select>
+            </label>
+          </div>
+        </div>
       </div>
     </section>
     <section id="pnl" class="tab-content">
       <h2>Profit &amp; Loss Statement</h2>
       
       <!-- Charts & Analysis Section -->
-      <div class="charts-analysis-section" style="margin-bottom: 24px;">
-        <h3>Cashflow Charts & Reports</h3>
-        <div class="info-banner" style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #1976d2;">
-          <strong>ℹ️ Direct Spreadsheet Column Mapping:</strong> This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
-          <div style="margin-top: 8px; font-size: 0.9em; color: #1565c0;">
-            <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
+      <div class="charts-analysis-section">
+        <div class="info-banner">
+          <h4><i class="icon">📈</i> Cashflow Charts & Reports</h4>
+          <div class="banner-content">
+            This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
+            <div style="margin-top: 8px; font-size: 0.9em; color: #1565c0;">
+              <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
+            </div>
           </div>
         </div>
         <div class="chart-wrapper">
@@ -72,10 +94,13 @@
         <div id="mainChartNoData" style="display:none; color:#c00; margin-top:12px;">No data to display. Please map and filter your weeks.</div>
       </div>
       
-      <div class="info-banner" style="background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;">
-        <strong>📊 Direct Profitability Analysis:</strong> Shows profitability per week using sequential column mapping from your spreadsheet (Week 1, Week 2, etc.).
-        <div style="margin-top: 8px; font-size: 0.9em; color: #2e7d32;">
-          <strong>Tip:</strong> Week numbers here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
+      <div class="info-banner" style="background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%); border-left-color: #4caf50;">
+        <h4><i class="icon">📊</i> Direct Profitability Analysis</h4>
+        <div class="banner-content">
+          Shows profitability per week using sequential column mapping from your spreadsheet (Week 1, Week 2, etc.).
+          <div style="margin-top: 8px; font-size: 0.9em; color: #2e7d32;">
+            <strong>Tip:</strong> Week numbers here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
+          </div>
         </div>
       </div>
       <div id="pnlSummary"></div>
@@ -142,119 +167,127 @@
     </section>
     <section id="roi" class="tab-content">
       <h2>Investment Return &amp; Repayments</h2>
-      <div class="subtabs" role="tablist">
-        <button data-subtab="roi-analysis" class="active">ROI Analysis</button>
-        <button data-subtab="repayment-sensitivity">Repayment Sensitivity Analysis</button>
-      </div>
-      <div id="subtab-roi-analysis" class="subtab-panel active">
+      
+      <!-- ROI Analysis and Repayment Management - Unified View -->
+      <div class="roi-unified-panel">
       
       <!-- Spreadsheet Column Mapping Preview -->
-      <div class="spreadsheet-date-preview" style="background:#f8f9fa; padding:12px; border-radius:6px; margin-bottom:1em; border-left:4px solid #007bff;">
-        <h4 style="margin:0 0 10px 0; color:#007bff;">📋 Spreadsheet Column Mapping</h4>
-        <div style="font-size:0.9em; color:#6c757d; margin-bottom:8px;">
+      <div class="info-banner modern-banner">
+        <h4><i class="icon">📋</i> Spreadsheet Column Mapping</h4>
+        <div class="banner-content">
           Columns are mapped sequentially as Week 1, Week 2, etc. based on spreadsheet column order. All calculations use this consistent column-based mapping.
         </div>
-        <div id="spreadsheetDateMappingSummary" style="font-size:0.95em; padding:6px 0;">
+        <div id="spreadsheetDateMappingSummary" class="mapping-summary">
           <span id="dateMappingStatus">Upload spreadsheet to see column mapping</span>
         </div>
       </div>
       
-      <div class="roi-input-bar" style="display:flex; gap:1em; align-items:center; margin-bottom:1em;">
-        <label for="investmentWeek"><b>Investment Week:</b></label>
-        <select id="investmentWeek"></select>
-        <label>Start Date: <input type="date" id="investmentStartDate" style="width:140px; margin-left:8px;"></label>
-
-        <label for="roiInvestmentInput"><b>Total Investment:</b></label>
-        <input type="number" id="roiInvestmentInput" value="300000" style="width:120px; margin-right:1em;">
-
-        <label for="roiInterestInput"><b>Interest Rate (%):</b></label>
-        <input type="number" id="roiInterestInput" value="20" style="width:70px; margin-right:1em;">
-
-        <button id="refreshRoiBtn" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px;">Refresh ROI</button>
+      <!-- Investment Setup and Controls -->
+      <div class="investment-controls-section">
+        <div class="controls-row">
+          <div class="control-group">
+            <label for="investmentWeek"><strong>Investment Week:</strong></label>
+            <select id="investmentWeek"></select>
+          </div>
+          <div class="control-group">
+            <label>Start Date:</label>
+            <input type="date" id="investmentStartDate">
+          </div>
+          <div class="control-group">
+            <label for="roiInvestmentInput"><strong>Total Investment:</strong></label>
+            <input type="number" id="roiInvestmentInput" value="300000">
+          </div>
+          <div class="control-group">
+            <label for="roiInterestInput"><strong>Interest Rate (%):</strong></label>
+            <input type="number" id="roiInterestInput" value="20">
+          </div>
+          <div class="control-group">
+            <button id="refreshRoiBtn" class="btn-primary">Refresh ROI</button>
+          </div>
+        </div>
       </div>
       
       <!-- Investment Summary & Target IRR Controls Section -->
-      <div class="investment-summary-section" style="display:flex; gap:2em; align-items:flex-start; margin-bottom:1em; padding:12px; border:1px solid #e0e7ef; border-radius:6px; background-color:#f9fbfc;">
-        <div style="flex:1;">
-          <div id="roiWarningAlert" style="margin-bottom: 1em;"></div>
-          <div id="roiSummary"></div>
+      <div class="investment-summary-section">
+        <div class="summary-content">
+          <div id="roiWarningAlert" class="warning-container"></div>
+          <div id="roiSummary" class="roi-summary-display"></div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span id="suggestedIrrDisplay" style="font-weight:bold; color:#1976d2; margin-right:8px;">Target IRR: 20%</span>
-          <button id="editTargetIrrBtn" style="background:#ff9800; color:white; border:none; padding:6px 14px; border-radius:4px;">Edit Target IRR/NPV</button>
-          <button id="showSuggestedRepaymentsBtn" style="background:#2196f3; color:white; border:none; padding:6px 14px; border-radius:4px;">Show Suggested Repayments</button>
+        <div class="summary-controls">
+          <span id="suggestedIrrDisplay" class="target-irr-display">Target IRR: 20%</span>
+          <button id="editTargetIrrBtn" class="btn-secondary">Edit Target IRR/NPV</button>
+          <button id="showSuggestedRepaymentsBtn" class="btn-accent">Show Suggested Repayments</button>
         </div>
       </div>
       
-      <!-- Date Mapping Preview (Advanced) -->
-      <div id="dateMappingPreview" class="date-mapping-preview" style="margin-bottom:1em; display:none;">
-        <div class="collapsible-table-section">
-          <button class="collapsible-header" type="button">
-            <span class="caret">&#9658;</span> Advanced: Week to Date Mapping Preview
-          </button>
-          <div class="collapsible-content">
-            <div style="padding: 8px; background: #fff3cd; border-radius: 4px; margin-bottom: 8px; font-size: 0.9em; color: #856404;">
-              <strong>Note:</strong> This advanced preview shows date parsing results. The main application uses sequential column mapping regardless of parsing success.
-            </div>
-            <div class="scroll-x">
-              <table id="dateMappingTable" class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>Week Label</th>
-                    <th>Parsed Date</th>
-                    <th>Week Number</th>
-                    <th>Mapping Method</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+      <!-- Repayment Management Section -->
+      <div class="repayment-management-section">
+        <div class="section-header">
+          <h3><i class="icon">💰</i> Repayment Management</h3>
+          <p class="section-description">Add specific repayments or use suggested schedules to optimize your ROI</p>
+        </div>
+        
+        <!-- Manual Repayment Entry -->
+        <div class="manual-repayment-panel">
+          <h4>Add Manual Repayments</h4>
+          <div id="loan-summary" class="loan-summary-bar">
+            <div class="loan-info">
+              <label>Outstanding Loan: <input type="number" id="loanOutstandingInput"></label>
+              <div id="totalRepaidBox" class="summary-box">Total Repaid: €0</div>
+              <div id="remainingBox" class="summary-box">Remaining: €0</div>
             </div>
           </div>
-        </div>
-      </div>
-      <div style="display:flex; gap:2em; flex-wrap:wrap;">
-        <div style="flex:2;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h4 style="margin:0;">Repayment &amp; Payback Table</h4>
-            <button id="exportToExcelBtn" style="background:#4caf50; color:white; border:none; padding:6px 14px; border-radius:4px;">Export to Excel</button>
+          
+          <form id="addRepaymentForm" class="repayment-form">
+            <div class="form-row">
+              <div class="radio-group">
+                <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
+                <select id="weekSelect"></select>
+                <label>Start Date: <input type="date" id="startDatePicker"></label>
+              </div>
+              <div class="radio-group">
+                <label><input type="radio" name="repaymentType" value="date"> Explicit Date</label>
+                <input type="date" id="repaymentDate" disabled>
+              </div>
+              <div class="radio-group">
+                <label><input type="radio" name="repaymentType" value="frequency"> Frequency</label>
+                <select id="repaymentFrequency" disabled>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="one-off">One-off</option>
+                </select>
+              </div>
+              <div class="amount-group">
+                <input type="number" id="repaymentAmount" placeholder="Repayment €">
+                <button type="submit" class="btn-primary">Add Repayment</button>
+              </div>
+            </div>
+          </form>
+          
+          <div id="repaymentWarning" class="warning-panel" style="display:none;">
+            <strong>⚠️ Warning:</strong> <span id="repaymentWarningText"></span>
           </div>
-          <div id="roiPaybackTableWrap"></div>
-        </div>
-        <div style="flex:1; min-width:340px;">
-          <h4>ROI Performance Chart</h4>
-          <canvas id="roiLineChart" style="min-height:300px; width:100%; margin-bottom:1em;"></canvas>
-          <canvas id="roiPieChart" style="min-height:200px; width:100%;"></canvas>
+          <div id="repaymentRows"></div>
+          <div id="repaymentSensitivityResults"></div>
         </div>
       </div>
+      
+      <!-- Analysis Results -->
+      <div class="analysis-results-section">
+        <div class="results-left">
+          <div class="section-header">
+            <h4>Repayment &amp; Payback Analysis</h4>
+            <button id="exportToExcelBtn" class="btn-success">Export to Excel</button>
+          </div>
+          <div id="roiPaybackTableWrap" class="table-container"></div>
+        </div>
+        <div class="results-right">
+          <h4>ROI Performance Charts</h4>
+          <canvas id="roiLineChart" class="chart-canvas"></canvas>
+          <canvas id="roiPieChart" class="chart-canvas"></canvas>
+        </div>
       </div>
-      <div id="subtab-repayment-sensitivity" class="subtab-panel">
-        <div id="loan-summary" style="display:flex; gap:2em; align-items:center; margin-bottom:12px;">
-          <label>Outstanding Loan: <input type="number" id="loanOutstandingInput" style="width:120px;"></label>
-          <div id="totalRepaidBox">Total Repaid: €0</div>
-          <div id="remainingBox">Remaining: €0</div>
-        </div>
-        <h3>Repayment Sensitivity Analysis</h3>
-        <form id="addRepaymentForm" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
-          <select id="weekSelect"></select>
-          <label>Start Date: <input type="date" id="startDatePicker" style="width:140px; margin-left:8px;"></label>
-          <label><input type="radio" name="repaymentType" value="date"> Explicit Date</label>
-          <input type="date" id="repaymentDate" disabled style="width:140px;">
-          <label><input type="radio" name="repaymentType" value="frequency"> Frequency</label>
-          <select id="repaymentFrequency" disabled>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="one-off">One-off</option>
-          </select>
-          <input type="number" id="repaymentAmount" placeholder="Repayment €" style="width:120px;">
-          <button type="submit">Add Repayment</button>
-        </form>
-        <div id="repaymentWarning" style="display:none; background:#fff3cd; border:1px solid #ffeaa7; padding:12px; border-radius:6px; margin:12px 0; color:#856404;">
-          <strong>⚠️ Warning:</strong> <span id="repaymentWarningText"></span>
-        </div>
-        <div id="repaymentRows" style="margin-top:18px;"></div>
-        <div id="repaymentSensitivityResults" style="margin-top:24px;"></div>
+      
       </div>
     </section>
     
@@ -358,6 +391,14 @@
     
     <section id="summary" class="tab-content">
       <h2>Summary Report</h2>
+      
+      <div class="info-banner">
+        <h4><i class="icon">📋</i> Executive Summary</h4>
+        <div class="banner-content">
+          Comprehensive overview of your financial performance with key performance indicators, visual analytics, and exportable reports.
+        </div>
+      </div>
+      
       <div class="kpi-cards">
         <div class="kpi-card">
           <div class="kpi-label">Total Income</div>
