@@ -1756,19 +1756,44 @@ document.addEventListener('DOMContentLoaded', function() {
       let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
       let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
       
+      // If no week data available, use fallback calculation
+      const hasWeekData = weekLabels && weekLabels.length > 0;
+      
       if (source === 'date' && repaymentDateInput.value) {
         // Date changed - update week selection and mapping
         const selectedDate = new Date(repaymentDateInput.value);
-        const mappedWeekIdx = mapDateToWeekIndex(selectedDate, actualWeekStartDates);
-        const mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+        let mappedWeekIdx, mappedWeekLabel;
         
-        // Update week selector
-        weekSelect.value = mappedWeekLabel;
+        if (hasWeekData) {
+          mappedWeekIdx = mapDateToWeekIndex(selectedDate, actualWeekStartDates);
+          mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+        } else {
+          // Fallback calculation when no spreadsheet data available
+          const baseDate = new Date(2025, 0, 1); // Jan 1, 2025
+          const daysDiff = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+          mappedWeekIdx = Math.floor(daysDiff / 7);
+          mappedWeekLabel = `Week ${mappedWeekIdx + 1}`;
+        }
+        
+        // Update week selector if available
+        if (weekSelect && hasWeekData) {
+          weekSelect.value = mappedWeekLabel;
+        }
         
         // Calculate week range for display
-        const weekStartDate = actualWeekStartDates[mappedWeekIdx];
-        const weekEndDate = new Date(weekStartDate);
-        weekEndDate.setDate(weekStartDate.getDate() + 6);
+        let weekStartDate, weekEndDate;
+        if (hasWeekData) {
+          weekStartDate = actualWeekStartDates[mappedWeekIdx];
+          weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekStartDate.getDate() + 6);
+        } else {
+          // Fallback week range calculation
+          const baseDate = new Date(2025, 0, 1);
+          weekStartDate = new Date(baseDate);
+          weekStartDate.setDate(baseDate.getDate() + (mappedWeekIdx * 7));
+          weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekStartDate.getDate() + 6);
+        }
         
         // Update mapping display with enhanced information
         if (mappingText) {
@@ -1779,10 +1804,14 @@ document.addEventListener('DOMContentLoaded', function() {
           dateWeekMapping.style.borderColor = '#4caf50';
         }
         
-        // Validate date is within available weeks
-        validateRepaymentTiming(selectedDate, mappedWeekIdx);
+        // Validate date only if week data is available
+        if (hasWeekData) {
+          validateRepaymentTiming(selectedDate, mappedWeekIdx);
+        } else {
+          clearValidation();
+        }
         
-      } else if (source === 'week' && weekSelect.value) {
+      } else if (source === 'week' && weekSelect.value && hasWeekData) {
         // Week changed - update date and mapping
         const weekIdx = mapWeekLabelToIndex(weekSelect.value, actualWeekLabels);
         const weekDate = actualWeekStartDates[weekIdx];
@@ -1810,7 +1839,10 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         // Clear mapping display
         if (mappingText) {
-          mappingText.textContent = 'Select a date or week to see mapping';
+          const displayText = hasWeekData ? 
+            'Select a date or week to see mapping' : 
+            'Select a date to see mapping (Upload spreadsheet for week synchronization)';
+          mappingText.textContent = displayText;
           dateWeekMapping.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #f1f8e9 100%)';
           dateWeekMapping.style.borderColor = '#bbdefb';
         }
@@ -1825,6 +1857,12 @@ document.addEventListener('DOMContentLoaded', function() {
       let isValid = true;
       let validationMessage = '';
       
+      // If no week data is available, allow any date selection
+      if (!weekLabels || weekLabels.length === 0) {
+        clearValidation();
+        return true;
+      }
+      
       // Check if date/week is within available range
       if (weekIndex < 0 || weekIndex >= weekLabels.length) {
         isValid = false;
@@ -1837,6 +1875,8 @@ document.addEventListener('DOMContentLoaded', function() {
           return mapWeekLabelToIndex(row.week, weekLabels) === weekIndex;
         } else if (row.type === 'date') {
           return mapDateToWeekIndex(row.explicitDate, weekStartDates) === weekIndex;
+        } else if (row.type === 'unified') {
+          return row.weekIndex === weekIndex;
         }
         return false;
       });
@@ -1923,12 +1963,23 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
           // Date/week-based repayment with enhanced data structure
           const selectedDate = new Date(repaymentDateInput.value);
-          const weekIndex = mapDateToWeekIndex(selectedDate, weekStartDates);
-          const weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
           
-          // Validate before adding
-          if (!validateRepaymentTiming(selectedDate, weekIndex)) {
-            return; // Don't add if validation fails
+          // For cases where no week data is available, use a default week calculation
+          let weekIndex, weekLabel;
+          if (weekLabels && weekLabels.length > 0) {
+            weekIndex = mapDateToWeekIndex(selectedDate, weekStartDates);
+            weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
+            
+            // Validate before adding
+            if (!validateRepaymentTiming(selectedDate, weekIndex)) {
+              return; // Don't add if validation fails
+            }
+          } else {
+            // Fallback calculation when no spreadsheet data available
+            const baseDate = new Date(2025, 0, 1); // Jan 1, 2025
+            const daysDiff = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+            weekIndex = Math.floor(daysDiff / 7);
+            weekLabel = `Week ${weekIndex + 1}`;
           }
           
           newRepayment = { 
