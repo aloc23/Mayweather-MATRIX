@@ -95,6 +95,44 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   /**
+   * Map any date to the canonical week index based on week start dates
+   * This ensures consistent mapping regardless of input method
+   */
+  function mapDateToWeekIndex(inputDate, weekStartDates) {
+    if (!inputDate || !weekStartDates || weekStartDates.length === 0) {
+      return 0; // Default to first week if no mapping available
+    }
+    
+    const targetDate = new Date(inputDate);
+    let closestWeekIdx = 0;
+    let closestDiff = Math.abs(weekStartDates[0] - targetDate);
+    
+    // Find the week with the closest start date
+    for (let i = 1; i < weekStartDates.length; i++) {
+      const diff = Math.abs(weekStartDates[i] - targetDate);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestWeekIdx = i;
+      }
+    }
+    
+    return closestWeekIdx;
+  }
+
+  /**
+   * Map week label to canonical week index  
+   * This ensures consistent mapping for dropdown selections
+   */
+  function mapWeekLabelToIndex(weekLabel, weekLabels) {
+    if (!weekLabel || !weekLabels || weekLabels.length === 0) {
+      return 0; // Default to first week
+    }
+    
+    const weekIdx = weekLabels.indexOf(weekLabel);
+    return weekIdx === -1 ? 0 : weekIdx;
+  }
+
+  /**
    * Create a week key for grouping (year-week)
    */
   function createWeekKey(year, week) {
@@ -1461,20 +1499,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
     let arr = Array(actualWeekLabels.length).fill(0);
     
-    // Store explicit date repayments separately to handle back-dating
-    let explicitDateRepayments = [];
-    
     repaymentRows.forEach(r => {
+      let canonicalWeekIdx = 0;
+      
       if (r.type === "week") {
-        let weekIdx = actualWeekLabels.indexOf(r.week);
-        if (weekIdx === -1) weekIdx = 0;
-        arr[weekIdx] += r.amount;
+        // Map week label to canonical week index
+        canonicalWeekIdx = mapWeekLabelToIndex(r.week, actualWeekLabels);
+        console.log('[DEBUG] Week repayment:', r.week, '-> week index:', canonicalWeekIdx);
       } else if (r.type === "date" && r.explicitDate) {
-        // Store explicit date repayments for later processing
-        explicitDateRepayments.push({
-          date: new Date(r.explicitDate),
-          amount: r.amount
-        });
+        // Map explicit date to canonical week index
+        canonicalWeekIdx = mapDateToWeekIndex(r.explicitDate, actualWeekStartDates);
+        console.log('[DEBUG] Date repayment:', r.explicitDate, '-> week index:', canonicalWeekIdx, 'week label:', actualWeekLabels[canonicalWeekIdx]);
       } else {
         // Handle frequency-based repayments
         if (r.frequency === "monthly") {
@@ -1482,36 +1517,25 @@ document.addEventListener('DOMContentLoaded', function() {
           for (let m=0; m<12; m++) {
             for (let w=m*perMonth; w<(m+1)*perMonth && w<arr.length; w++) arr[w] += r.amount;
           }
+          return; // Skip the single week assignment below
         }
         if (r.frequency === "quarterly") {
           let perQuarter = Math.ceil(arr.length/4);
           for (let q=0;q<4;q++) {
             for (let w=q*perQuarter; w<(q+1)*perQuarter && w<arr.length; w++) arr[w] += r.amount;
           }
+          return; // Skip the single week assignment below
         }
-        if (r.frequency === "one-off") { arr[0] += r.amount; }
+        if (r.frequency === "one-off") { 
+          canonicalWeekIdx = 0; 
+        }
+      }
+      
+      // Add repayment to the canonical week index
+      if (canonicalWeekIdx >= 0 && canonicalWeekIdx < arr.length) {
+        arr[canonicalWeekIdx] += r.amount;
       }
     });
-    
-    // Process explicit date repayments
-    if (explicitDateRepayments.length > 0) {
-      explicitDateRepayments.forEach(explicitRepayment => {
-        // Find the closest week to this explicit date
-        let closestWeekIdx = 0;
-        let closestDiff = Math.abs(actualWeekStartDates[0] - explicitRepayment.date);
-        
-        for (let i = 1; i < actualWeekStartDates.length; i++) {
-          let diff = Math.abs(actualWeekStartDates[i] - explicitRepayment.date);
-          if (diff < closestDiff) {
-            closestDiff = diff;
-            closestWeekIdx = i;
-          }
-        }
-        
-        // Add the repayment to the closest week
-        arr[closestWeekIdx] += explicitRepayment.amount;
-      });
-    }
     
     let finalResult;
     // If mapping is configured, return filtered results. Otherwise, return all results.
@@ -1565,13 +1589,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
     
     repaymentRows.forEach(r => {
+      let date, amount = r.amount;
+      
       if (r.type === "week") {
-        let weekIdx = actualWeekLabels.indexOf(r.week);
-        if (weekIdx === -1) weekIdx = 0;
-        let date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
-        schedule.push({ date, amount: r.amount });
+        // Map week label to canonical index, then get the date for that week
+        let canonicalWeekIdx = mapWeekLabelToIndex(r.week, actualWeekLabels);
+        date = actualWeekStartDates[canonicalWeekIdx] || new Date(2025, 0, 1 + canonicalWeekIdx * 7);
+        schedule.push({ date, amount });
       } else if (r.type === "date" && r.explicitDate) {
-        schedule.push({ date: new Date(r.explicitDate), amount: r.amount });
+        // Use the explicit date directly
+        date = new Date(r.explicitDate);
+        schedule.push({ date, amount });
       } else {
         // Handle frequency-based repayments with calculated dates
         if (r.frequency === "monthly") {
@@ -1579,8 +1607,8 @@ document.addEventListener('DOMContentLoaded', function() {
           for (let m=0; m<12; m++) {
             let weekIdx = m * perMonth;
             if (weekIdx < actualWeekStartDates.length) {
-              let date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
-              schedule.push({ date, amount: r.amount });
+              date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+              schedule.push({ date, amount });
             }
           }
         }
@@ -1589,14 +1617,14 @@ document.addEventListener('DOMContentLoaded', function() {
           for (let q=0;q<4;q++) {
             let weekIdx = q * perQuarter;
             if (weekIdx < actualWeekStartDates.length) {
-              let date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
-              schedule.push({ date, amount: r.amount });
+              date = actualWeekStartDates[weekIdx] || new Date(2025, 0, 1 + weekIdx * 7);
+              schedule.push({ date, amount });
             }
           }
         }
         if (r.frequency === "one-off") { 
-          let date = actualWeekStartDates[0] || new Date(2025, 0, 1);
-          schedule.push({ date, amount: r.amount });
+          date = actualWeekStartDates[0] || new Date(2025, 0, 1);
+          schedule.push({ date, amount });
         }
       }
     });
@@ -1751,6 +1779,20 @@ document.addEventListener('DOMContentLoaded', function() {
           amount: parseFloat(amount), 
           editing: false 
         };
+        
+        // Show user which week their repayment maps to for better clarity
+        if (type === "date" && explicitDate) {
+          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+          let mappedWeekIdx = mapDateToWeekIndex(explicitDate, actualWeekStartDates);
+          let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+          
+          // Store the mapped week information for display purposes
+          newRepayment.mappedWeek = mappedWeekLabel;
+          newRepayment.mappedWeekIndex = mappedWeekIdx;
+          
+          console.log('[INFO] Date repayment mapped to week:', mappedWeekLabel, 'at index:', mappedWeekIdx);
+        }
         
         console.log('[DEBUG] Adding new repayment:', JSON.parse(JSON.stringify(newRepayment)));
         repaymentRows.push(newRepayment);
@@ -1948,6 +1990,20 @@ document.addEventListener('DOMContentLoaded', function() {
         modeLabel.textContent = "Date";
         div.appendChild(modeLabel);
         div.appendChild(dateInput);
+        
+        // Show mapped week information for date-based repayments
+        if (row.explicitDate && !row.editing) {
+          const mappedWeekInfo = document.createElement('span');
+          mappedWeekInfo.style.cssText = 'margin-left: 8px; font-size: 0.9em; color: #666; font-style: italic;';
+          
+          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+          let mappedWeekIdx = mapDateToWeekIndex(row.explicitDate, actualWeekStartDates);
+          let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+          
+          mappedWeekInfo.textContent = `→ ${mappedWeekLabel}`;
+          div.appendChild(mappedWeekInfo);
+        }
       } else {
         modeLabel.textContent = "Frequency";
         div.appendChild(modeLabel);
