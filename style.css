@@ -211,7 +211,7 @@ h1 {
   color: #374151;
 }
 
-.date-input, .week-input {
+.date-input, .week-input, .year-input {
   padding: 10px 12px;
   border: 2px solid #d1d5db;
   border-radius: 8px;
@@ -220,7 +220,7 @@ h1 {
   background: #ffffff;
 }
 
-.date-input:focus, .week-input:focus {
+.date-input:focus, .week-input:focus, .year-input:focus {
   outline: none;
   border-color: #1976d2;
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
