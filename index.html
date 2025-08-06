@@ -227,9 +227,9 @@
           <p class="section-description">Add specific repayments or use suggested schedules to optimize your ROI</p>
         </div>
         
-        <!-- Manual Repayment Entry -->
-        <div class="manual-repayment-panel">
-          <h4>Add Manual Repayments</h4>
+        <!-- Repayment Schedule Table -->
+        <div class="repayment-schedule-panel">
+          <h4>Repayment Schedule</h4>
           <div id="loan-summary" class="loan-summary-bar">
             <div class="loan-info">
               <label>Outstanding Loan: <input type="number" id="loanOutstandingInput"></label>
@@ -238,73 +238,39 @@
             </div>
           </div>
           
-          <form id="addRepaymentForm" class="repayment-form">
-            <div class="repayment-entry-unified">
-              <h5 class="entry-section-title">📅 Repayment Timing</h5>
-              <div class="unified-date-week-section">
-                <div class="date-week-inputs">
-                  <div class="input-group">
-                    <label for="repaymentDate">📅 Repayment Date</label>
-                    <input type="date" id="repaymentDate" class="date-input">
-                  </div>
-                  <div class="sync-indicator">
-                    <span class="sync-arrow">↔</span>
-                    <span class="sync-text">synchronized</span>
-                  </div>
-                  <div class="input-group">
-                    <label for="yearSelect">📅 Year</label>
-                    <select id="yearSelect" class="year-input"></select>
-                  </div>
-                  <div class="input-group">
-                    <label for="weekSelect">📊 Week</label>
-                    <select id="weekSelect" class="week-input"></select>
-                  </div>
-                </div>
-                <div id="dateWeekMapping" class="mapping-display">
-                  <span class="mapping-icon">🔗</span>
-                  <span id="mappingText">Select a date or week to see mapping</span>
-                </div>
-              </div>
-              
-              <div class="frequency-option-section">
-                <label class="frequency-toggle">
-                  <input type="checkbox" id="useFrequency" class="frequency-checkbox">
-                  <span class="frequency-label">💫 Use Frequency-Based Repayments</span>
-                </label>
-                <div id="frequencyControls" class="frequency-controls" style="display: none;">
-                  <select id="repaymentFrequency">
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="one-off">One-off</option>
-                  </select>
-                </div>
-              </div>
+          <div class="repayment-table-container">
+            <div class="table-header">
+              <h5>📋 Scheduled Repayments</h5>
+              <button id="addRepaymentRowBtn" class="btn-primary">
+                <span class="btn-icon">➕</span>
+                Add Repayment
+              </button>
             </div>
             
-            <div class="amount-entry-section">
-              <h5 class="entry-section-title">💰 Repayment Amount</h5>
-              <div class="amount-input-group">
-                <div class="currency-symbol">€</div>
-                <input type="number" id="repaymentAmount" placeholder="Enter amount" class="amount-input">
-                <button type="submit" class="btn-primary add-repayment-btn">
-                  <span class="btn-icon">➕</span>
-                  Add Repayment
-                </button>
+            <div class="table-wrapper">
+              <table id="repaymentScheduleTable" class="repayment-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount (€)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="repaymentTableBody">
+                  <!-- Repayment rows will be added here dynamically -->
+                </tbody>
+              </table>
+              <div id="emptyTableMessage" class="empty-message">
+                <div class="empty-icon">📅</div>
+                <p>No repayments scheduled</p>
+                <p class="empty-subtext">Click "Add Repayment" to create your first repayment entry</p>
               </div>
             </div>
-            
-            <div id="repaymentValidation" class="validation-section" style="display: none;">
-              <div class="validation-message">
-                <span class="validation-icon">⚠️</span>
-                <span id="validationText"></span>
-              </div>
-            </div>
-          </form>
+          </div>
           
           <div id="repaymentWarning" class="warning-panel" style="display:none;">
             <strong>⚠️ Warning:</strong> <span id="repaymentWarningText"></span>
           </div>
-          <div id="repaymentRows"></div>
           <div id="repaymentSensitivityResults"></div>
         </div>
       </div>
