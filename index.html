@@ -239,27 +239,60 @@
           </div>
           
           <form id="addRepaymentForm" class="repayment-form">
-            <div class="form-row">
-              <div class="radio-group">
-                <label><input type="radio" name="repaymentType" value="week" checked> Week Selection</label>
-                <select id="weekSelect"></select>
+            <div class="repayment-entry-unified">
+              <h5 class="entry-section-title">📅 Repayment Timing</h5>
+              <div class="unified-date-week-section">
+                <div class="date-week-inputs">
+                  <div class="input-group">
+                    <label for="repaymentDate">📅 Repayment Date</label>
+                    <input type="date" id="repaymentDate" class="date-input">
+                  </div>
+                  <div class="sync-indicator">
+                    <span class="sync-arrow">↔</span>
+                    <span class="sync-text">synchronized</span>
+                  </div>
+                  <div class="input-group">
+                    <label for="weekSelect">📊 Week</label>
+                    <select id="weekSelect" class="week-input"></select>
+                  </div>
+                </div>
+                <div id="dateWeekMapping" class="mapping-display">
+                  <span class="mapping-icon">🔗</span>
+                  <span id="mappingText">Select a date or week to see mapping</span>
+                </div>
               </div>
-              <div class="radio-group">
-                <label><input type="radio" name="repaymentType" value="date"> Repayment Date</label>
-                <input type="date" id="repaymentDate" disabled>
-                <span id="dateWeekMapping" style="margin-left: 8px; font-size: 0.9em; color: #666; font-style: italic;"></span>
+              
+              <div class="frequency-option-section">
+                <label class="frequency-toggle">
+                  <input type="checkbox" id="useFrequency" class="frequency-checkbox">
+                  <span class="frequency-label">💫 Use Frequency-Based Repayments</span>
+                </label>
+                <div id="frequencyControls" class="frequency-controls" style="display: none;">
+                  <select id="repaymentFrequency">
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="one-off">One-off</option>
+                  </select>
+                </div>
               </div>
-              <div class="radio-group">
-                <label><input type="radio" name="repaymentType" value="frequency"> Frequency</label>
-                <select id="repaymentFrequency" disabled>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="one-off">One-off</option>
-                </select>
+            </div>
+            
+            <div class="amount-entry-section">
+              <h5 class="entry-section-title">💰 Repayment Amount</h5>
+              <div class="amount-input-group">
+                <div class="currency-symbol">€</div>
+                <input type="number" id="repaymentAmount" placeholder="Enter amount" class="amount-input">
+                <button type="submit" class="btn-primary add-repayment-btn">
+                  <span class="btn-icon">➕</span>
+                  Add Repayment
+                </button>
               </div>
-              <div class="amount-group">
-                <input type="number" id="repaymentAmount" placeholder="Repayment €">
-                <button type="submit" class="btn-primary">Add Repayment</button>
+            </div>
+            
+            <div id="repaymentValidation" class="validation-section" style="display: none;">
+              <div class="validation-message">
+                <span class="validation-icon">⚠️</span>
+                <span id="validationText"></span>
               </div>
             </div>
           </form>
