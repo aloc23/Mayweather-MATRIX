@@ -413,12 +413,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelectorAll('.subtabs button').forEach(btn => {
       btn.addEventListener('click', function() {
-        document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        document.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
-        var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
-        var subpanel = document.getElementById(subtabId);
-        if (subpanel) subpanel.classList.add('active');
+        // Find the parent tab content to limit scope
+        const parentTab = this.closest('.tab-content');
+        if (parentTab) {
+          // Only affect subtabs within the same parent tab
+          parentTab.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          parentTab.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
+          var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
+          var subpanel = document.getElementById(subtabId);
+          if (subpanel) subpanel.classList.add('active');
+        }
         setTimeout(updateAllTabs, 50);
       });
     });
@@ -1601,6 +1606,10 @@ document.addEventListener('DOMContentLoaded', function() {
           amount: parseFloat(amount), 
           editing: false 
         });
+        
+        // Check for negative bank balance warning
+        checkRepaymentWarning();
+        
         renderRepaymentRows();
         this.reset();
         populateWeekDropdown(weekLabels);
@@ -1616,6 +1625,64 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   setupRepaymentForm();
+
+  // Setup date picker functionality
+  function setupDatePickers() {
+    // Investment start date picker
+    const investmentStartDate = document.getElementById('investmentStartDate');
+    if (investmentStartDate) {
+      investmentStartDate.addEventListener('change', function() {
+        // This date picker is for reference only in ROI calculations
+        // No specific action needed here as it's for user reference
+        updateAllTabs();
+      });
+    }
+
+    // Repayment start date picker  
+    const startDatePicker = document.getElementById('startDatePicker');
+    if (startDatePicker) {
+      startDatePicker.addEventListener('change', function() {
+        // This date picker is for reference only in repayment mapping
+        // No specific action needed here as it's for user reference
+        updateAllTabs();
+      });
+    }
+  }
+  setupDatePickers();
+
+  // Function to check for negative bank balance warnings
+  function checkRepaymentWarning() {
+    const warningDiv = document.getElementById('repaymentWarning');
+    const warningText = document.getElementById('repaymentWarningText');
+    
+    if (!warningDiv || !warningText) return;
+    
+    try {
+      // Calculate rolling bank balance with current repayments
+      const rollingArr = getRollingBankBalanceArr(false);
+      const weekLabels = getRawWeekLabels();
+      
+      // Find any negative balances
+      const negativeWeeks = [];
+      rollingArr.forEach((balance, i) => {
+        if (balance < 0) {
+          const weekLabel = weekLabels[i] || `Week ${i + 1}`;
+          negativeWeeks.push({ week: weekLabel, balance: balance });
+        }
+      });
+      
+      if (negativeWeeks.length > 0) {
+        const warningMsg = `The following weeks would have negative bank balances: ${negativeWeeks.map(w => `${w.week} (€${w.balance.toFixed(2)})`).join(', ')}`;
+        warningText.textContent = warningMsg;
+        warningDiv.style.display = 'block';
+      } else {
+        warningDiv.style.display = 'none';
+      }
+    } catch (error) {
+      // Hide warning if calculation fails
+      warningDiv.style.display = 'none';
+    }
+  }
 
   function renderRepaymentRows() {
     const container = document.getElementById('repaymentRows');
@@ -1677,6 +1744,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         row.editing = !row.editing;
         renderRepaymentRows();
+        checkRepaymentWarning();
         updateAllTabs();
       };
 
@@ -1686,6 +1754,7 @@ document.addEventListener('DOMContentLoaded', function() {
       removeBtn.onclick = function() {
         repaymentRows.splice(i, 1);
         renderRepaymentRows();
+        checkRepaymentWarning();
         updateAllTabs();
       };
 
