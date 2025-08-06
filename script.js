@@ -753,6 +753,102 @@ document.addEventListener('DOMContentLoaded', function() {
     panel.appendChild(balanceDiv);
   }
 
+  /**
+   * Update date mapping preview (placeholder for compatibility)
+   */
+  function updateDateMappingPreview() {
+    // This function provides compatibility for date mapping preview
+    // In the current implementation, we use sequential week mapping
+    // so detailed date mapping preview is not necessary
+    console.log('Date mapping preview updated - using sequential column mapping');
+  }
+
+  /**
+   * Render bank balance table in the mapping panel for immediate feedback
+   */
+  function renderBankBalanceTableInMapping(panel) {
+    if (!weekLabels || weekLabels.length === 0 || !mappingConfigured) return;
+    
+    const balanceDiv = document.createElement('div');
+    balanceDiv.style.cssText = 'background: #fff3cd; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #ffc107;';
+    
+    // Calculate running bank balance for preview
+    const incomeArr = getIncomeArr();
+    const expenditureArr = getExpenditureArr();
+    const repaymentArr = getRepaymentArr();
+    const rollingBalance = getRollingBankBalanceArr();
+    
+    if (rollingBalance.length === 0) {
+      balanceDiv.innerHTML = `
+        <h5 style="margin: 0 0 8px 0; color: #856404;">
+          <i class="icon">💰</i> Week Mapping & Bank Balance Preview
+        </h5>
+        <p style="margin: 0; color: #856404;">Configure your data mapping to see week-by-week bank balance projections.</p>
+      `;
+      panel.appendChild(balanceDiv);
+      return;
+    }
+    
+    // Create summary statistics
+    const totalIncome = incomeArr.reduce((sum, val) => sum + (val || 0), 0);
+    const totalExpenditure = expenditureArr.reduce((sum, val) => sum + (val || 0), 0);
+    const totalRepayments = repaymentArr.reduce((sum, val) => sum + (val || 0), 0);
+    const finalBalance = rollingBalance[rollingBalance.length - 1] || 0;
+    const lowestBalance = Math.min(...rollingBalance);
+    const lowestWeek = rollingBalance.findIndex(bal => bal === lowestBalance) + 1;
+    
+    balanceDiv.innerHTML = `
+      <h5 style="margin: 0 0 12px 0; color: #856404;">
+        <i class="icon">💰</i> Week Mapping & Bank Balance Preview
+      </h5>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px;">
+        <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+          <div style="font-size: 0.8em; color: #856404; font-weight: 500;">WEEKS MAPPED</div>
+          <div style="font-size: 1.2em; font-weight: bold; color: #1976d2;">${weekLabels.length}</div>
+        </div>
+        <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+          <div style="font-size: 0.8em; color: #856404; font-weight: 500;">FINAL BALANCE</div>
+          <div style="font-size: 1.2em; font-weight: bold; color: ${finalBalance >= 0 ? '#4caf50' : '#f44336'};">€${Math.round(finalBalance).toLocaleString()}</div>
+        </div>
+        <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+          <div style="font-size: 0.8em; color: #856404; font-weight: 500;">LOWEST BALANCE</div>
+          <div style="font-size: 1.2em; font-weight: bold; color: ${lowestBalance >= 0 ? '#4caf50' : '#f44336'};">€${Math.round(lowestBalance).toLocaleString()}</div>
+        </div>
+        <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+          <div style="font-size: 0.8em; color: #856404; font-weight: 500;">NET CASHFLOW</div>
+          <div style="font-size: 1.2em; font-weight: bold; color: ${(totalIncome - totalExpenditure - totalRepayments) >= 0 ? '#4caf50' : '#f44336'};">€${Math.round(totalIncome - totalExpenditure - totalRepayments).toLocaleString()}</div>
+        </div>
+      </div>
+      
+      <div style="background: white; border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto;">
+        <h6 style="margin: 0 0 8px 0; color: #495057;">Weekly Balance Progression</h6>
+        <div style="font-size: 0.85em; color: #6c757d; margin-bottom: 8px;">
+          Shows bank balance at the end of each week based on your sequential column mapping
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 4px; font-size: 0.8em;">
+          ${rollingBalance.slice(0, 12).map((balance, index) => `
+            <div style="padding: 4px 6px; background: ${balance >= 0 ? '#e8f5e8' : '#ffebee'}; border-radius: 3px; text-align: center;">
+              <strong>W${index + 1}:</strong><br>€${Math.round(balance).toLocaleString()}
+            </div>
+          `).join('')}
+          ${rollingBalance.length > 12 ? `
+            <div style="padding: 4px 6px; color: #6c757d; border-radius: 3px; text-align: center;">
+              ... ${rollingBalance.length - 12} more weeks
+            </div>
+          ` : ''}
+        </div>
+        ${lowestBalance < 0 ? `
+          <div style="margin-top: 8px; padding: 6px; background: #ffebee; border-radius: 4px; color: #c62828; font-size: 0.85em;">
+            ⚠️ <strong>Cash Flow Warning:</strong> Lowest balance of €${Math.round(lowestBalance).toLocaleString()} occurs in Week ${lowestWeek}
+          </div>
+        ` : ''}
+      </div>
+    `;
+    
+    panel.appendChild(balanceDiv);
+  }
+
   function renderMappingPanel(allRows) {
     const panel = document.getElementById('mappingPanel');
     if (!panel) return;
@@ -1166,9 +1262,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function calculateSequentialWeekDates(weekLabels) {
     const dates = [];
     
-    // Determine starting date - use base year if provided, otherwise current date
+    // Determine starting date - prioritize user inputs
     let startDate;
-    if (userSpecifiedBaseYear) {
+    
+    // Check if investment start date is provided
+    const investmentStartDateInput = document.getElementById('investmentStartDate');
+    if (investmentStartDateInput && investmentStartDateInput.value) {
+      startDate = new Date(investmentStartDateInput.value);
+    } else if (userSpecifiedBaseYear) {
       // If user provided a base year, start from January 1st of that year
       startDate = new Date(userSpecifiedBaseYear, 0, 1);
     } else if (window.firstWeekDate) {
@@ -1632,8 +1733,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const investmentStartDate = document.getElementById('investmentStartDate');
     if (investmentStartDate) {
       investmentStartDate.addEventListener('change', function() {
-        // This date picker is for reference only in ROI calculations
-        // No specific action needed here as it's for user reference
+        // Recalculate week start dates when investment start date changes
+        if (weekLabels && weekLabels.length > 0) {
+          weekStartDates = calculateSequentialWeekDates(weekLabels);
+        }
         updateAllTabs();
       });
     }
