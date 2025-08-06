@@ -397,6 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let weekLabels = [];
   let weekCheckboxStates = [];
   let repaymentRows = [];
+  let repaymentIdCounter = 0; // Counter for unique repayment IDs
   let openingBalance = 0;
   let loanOutstanding = 0;
   let roiInvestment = 120000;
@@ -1734,19 +1735,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const repaymentDateInput = document.getElementById('repaymentDate');
     const dateWeekMapping = document.getElementById('dateWeekMapping');
     
+    // Function to update week/date synchronization with clear visual feedback
+    function updateWeekDateSync() {
+      const currentType = document.querySelector('input[name="repaymentType"]:checked')?.value;
+      let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+      let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+      
+      if (currentType === 'week' && weekSelect.value) {
+        // Update date field to show corresponding date for selected week
+        let weekIdx = mapWeekLabelToIndex(weekSelect.value, actualWeekLabels);
+        let weekDate = actualWeekStartDates[weekIdx];
+        if (weekDate && repaymentDateInput) {
+          repaymentDateInput.value = weekDate.toISOString().split('T')[0];
+        }
+        if (dateWeekMapping) {
+          dateWeekMapping.textContent = `→ Week ${weekSelect.value} starts ${weekDate ? weekDate.toLocaleDateString() : 'Invalid date'}`;
+          dateWeekMapping.style.color = '#1976d2';
+          dateWeekMapping.style.fontWeight = 'normal';
+        }
+      } else if (currentType === 'date' && repaymentDateInput && repaymentDateInput.value) {
+        // Update week display to show corresponding week for selected date
+        let mappedWeekIdx = mapDateToWeekIndex(repaymentDateInput.value, actualWeekStartDates);
+        let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+        weekSelect.value = mappedWeekLabel;
+        if (dateWeekMapping) {
+          let selectedDate = new Date(repaymentDateInput.value);
+          dateWeekMapping.textContent = `→ ${selectedDate.toLocaleDateString()} falls in ${mappedWeekLabel}`;
+          dateWeekMapping.style.color = '#1976d2';
+          dateWeekMapping.style.fontWeight = 'normal';
+        }
+      } else if (dateWeekMapping) {
+        dateWeekMapping.textContent = '';
+      }
+    }
+
+    // Setup week selection change handler for real-time date mapping
+    if (weekSelect) {
+      weekSelect.addEventListener('change', updateWeekDateSync);
+    }
+    
     // Real-time date to week mapping feedback
     if (repaymentDateInput && dateWeekMapping) {
-      repaymentDateInput.addEventListener('input', function() {
-        if (this.value) {
-          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
-          let mappedWeekIdx = mapDateToWeekIndex(this.value, actualWeekStartDates);
-          let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
-          dateWeekMapping.textContent = `→ ${mappedWeekLabel}`;
-        } else {
-          dateWeekMapping.textContent = '';
-        }
-      });
+      repaymentDateInput.addEventListener('input', updateWeekDateSync);
     }
     
     document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
@@ -1754,16 +1784,38 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.value === "week") {
           weekSelect.disabled = false;
           repaymentFrequency.disabled = true;
-          if (repaymentDateInput) repaymentDateInput.disabled = true;
+          if (repaymentDateInput) {
+            repaymentDateInput.disabled = true;
+            // Make date field visible but read-only to show corresponding date
+            repaymentDateInput.style.opacity = '0.7';
+            repaymentDateInput.style.backgroundColor = '#f5f5f5';
+          }
+          weekSelect.style.opacity = '1';
+          weekSelect.style.backgroundColor = '';
         } else if (this.value === "date") {
           weekSelect.disabled = true;
           repaymentFrequency.disabled = true;
-          if (repaymentDateInput) repaymentDateInput.disabled = false;
+          if (repaymentDateInput) {
+            repaymentDateInput.disabled = false;
+            repaymentDateInput.style.opacity = '1';
+            repaymentDateInput.style.backgroundColor = '';
+          }
+          // Make week field visible but read-only to show corresponding week
+          weekSelect.style.opacity = '0.7';
+          weekSelect.style.backgroundColor = '#f5f5f5';
         } else {
           weekSelect.disabled = true;
           repaymentFrequency.disabled = false;
-          if (repaymentDateInput) repaymentDateInput.disabled = true;
+          if (repaymentDateInput) {
+            repaymentDateInput.disabled = true;
+            repaymentDateInput.style.opacity = '0.7';
+            repaymentDateInput.style.backgroundColor = '#f5f5f5';
+          }
+          weekSelect.style.opacity = '0.7';
+          weekSelect.style.backgroundColor = '#f5f5f5';
         }
+        // Update synchronization after mode change
+        setTimeout(updateWeekDateSync, 10);
       });
     });
 
@@ -1788,6 +1840,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!amount) return;
         
         const newRepayment = { 
+          id: ++repaymentIdCounter, // Assign unique ID
           type, 
           week, 
           frequency, 
@@ -2002,22 +2055,39 @@ document.addEventListener('DOMContentLoaded', function() {
         modeLabel.textContent = "Week";
         div.appendChild(modeLabel);
         div.appendChild(weekSelectElem);
+        
+        // Show corresponding date for week-based repayments  
+        if (row.week) {
+          const weekDateInfo = document.createElement('span');
+          weekDateInfo.style.cssText = 'margin-left: 8px; font-size: 0.9em; color: #1976d2; font-weight: 500;';
+          
+          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+          let weekIdx = mapWeekLabelToIndex(row.week, actualWeekLabels);
+          let weekDate = actualWeekStartDates[weekIdx];
+          
+          if (weekDate) {
+            weekDateInfo.textContent = `→ ${row.week} starts ${weekDate.toLocaleDateString()}`;
+            div.appendChild(weekDateInfo);
+          }
+        }
       } else if (row.type === "date") {
         modeLabel.textContent = "Date";
         div.appendChild(modeLabel);
         div.appendChild(dateInput);
         
         // Show mapped week information for date-based repayments
-        if (row.explicitDate && !row.editing) {
+        if (row.explicitDate) {
           const mappedWeekInfo = document.createElement('span');
-          mappedWeekInfo.style.cssText = 'margin-left: 8px; font-size: 0.9em; color: #666; font-style: italic;';
+          mappedWeekInfo.style.cssText = 'margin-left: 8px; font-size: 0.9em; color: #1976d2; font-weight: 500;';
           
           let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
           let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
           let mappedWeekIdx = mapDateToWeekIndex(row.explicitDate, actualWeekStartDates);
           let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
           
-          mappedWeekInfo.textContent = `→ ${mappedWeekLabel}`;
+          let selectedDate = new Date(row.explicitDate);
+          mappedWeekInfo.textContent = `→ ${selectedDate.toLocaleDateString()} (${mappedWeekLabel})`;
           div.appendChild(mappedWeekInfo);
         }
       } else {
