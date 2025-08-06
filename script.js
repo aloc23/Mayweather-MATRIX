@@ -3296,6 +3296,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // If no filtered weeks (no data loaded), use default 52-week timeline
     const actualFilteredWeeks = filteredWeeks.length > 0 ? filteredWeeks : Array.from({length: 52}, (_, i) => i);
     
+    // Calculate actual week start dates
+    const actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
+      Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    
     // Use GROUPED data for ROI calculations (proper time-based intervals)
     const incomeArr = getIncomeArr ? getIncomeArr(true) : Array(52).fill(0);
     const expenditureArr = getExpenditureArr ? getExpenditureArr(true) : Array(52).fill(0);
@@ -3881,10 +3885,13 @@ function renderRoiSection() {
   // Update spreadsheet date mapping summary in ROI tab
   updateSpreadsheetDateSummary();
 
-  // Charts
-  renderRoiCharts(investment, repayments);
+  // Charts - get repayments data for chart rendering
+  const chartRepayments = hasExplicitDates && explicitSchedule.length > 0 
+    ? explicitSchedule.map(item => item.amount)
+    : (tableRepayments ? tableRepayments : []);
+  renderRoiCharts(investment, chartRepayments);
 
-  if (!repayments.length || repayments.reduce((a, b) => a + b, 0) === 0) {
+  if (!chartRepayments.length || chartRepayments.reduce((a, b) => a + b, 0) === 0) {
     document.getElementById('roiSummary').innerHTML += '<div class="alert alert-warning">No repayments scheduled. ROI cannot be calculated.</div>';
   }
 }
