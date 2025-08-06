@@ -1632,6 +1632,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     return rolling;
   }
+
+  /**
+   * Shared utility to get negative balance weeks using filtered week indices
+   * This ensures both warning and P&L table rendering use the same logic
+   */
+  function getNegativeBalanceWeeks(useGrouping = false) {
+    const rollingArr = getRollingBankBalanceArr(useGrouping);
+    const weekLabels = getRawWeekLabels();
+    const weekIndices = getRawFilteredWeekIndices();
+    const negativeWeeks = [];
+    
+    weekIndices.forEach((weekIdx, i) => {
+      const balance = rollingArr[i];
+      if (balance < 0) {
+        const weekLabel = weekLabels[weekIdx] || `Week ${weekIdx + 1}`;
+        negativeWeeks.push({ week: weekLabel, balance: balance, weekIndex: weekIdx });
+      }
+    });
+    
+    return negativeWeeks;
+  }
+
   function getMonthAgg(arr, months=12) {
     let filtered = arr.filter((_,i)=>getFilteredWeekIndices().includes(i));
     let perMonth = Math.ceil(filtered.length/months);
@@ -1761,18 +1783,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!warningDiv || !warningText) return;
     
     try {
-      // Calculate rolling bank balance with current repayments
-      const rollingArr = getRollingBankBalanceArr(false);
-      const weekLabels = getRawWeekLabels();
-      
-      // Find any negative balances
-      const negativeWeeks = [];
-      rollingArr.forEach((balance, i) => {
-        if (balance < 0) {
-          const weekLabel = weekLabels[i] || `Week ${i + 1}`;
-          negativeWeeks.push({ week: weekLabel, balance: balance });
-        }
-      });
+      // Use shared utility to get negative balance weeks with same filtering as P&L tables
+      const negativeWeeks = getNegativeBalanceWeeks(false);
       
       if (negativeWeeks.length > 0) {
         const warningMsg = `The following weeks would have negative bank balances: ${negativeWeeks.map(w => `${w.week} (€${w.balance.toFixed(2)})`).join(', ')}`;
