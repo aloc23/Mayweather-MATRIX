@@ -1452,6 +1452,10 @@ document.addEventListener('DOMContentLoaded', function() {
     return arr;
   }
   function getRepaymentArr() {
+    // Always rebuild fresh from current repaymentRows state - no caching
+    console.log('[DEBUG] getRepaymentArr: Building fresh repayment array from current state');
+    console.log('[DEBUG] Current repaymentRows:', JSON.parse(JSON.stringify(repaymentRows)));
+    
     // If no mapping is configured, use default week labels for repayment calculations
     let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
     let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
@@ -1509,13 +1513,18 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
+    let finalResult;
     // If mapping is configured, return filtered results. Otherwise, return all results.
     if (mappingConfigured && weekLabels.length > 0) {
-      return getFilteredWeekIndices().map(idx => arr[idx]);
+      finalResult = getFilteredWeekIndices().map(idx => arr[idx]);
     } else {
       // Return all weeks when no mapping is configured
-      return arr;
+      finalResult = arr;
     }
+    
+    console.log('[DEBUG] getRepaymentArr: Final repayment array:', finalResult);
+    console.log('[DEBUG] getRepaymentArr: Non-zero repayments:', finalResult.map((val, idx) => val > 0 ? {week: idx, amount: val} : null).filter(x => x));
+    return finalResult;
   }
   
   // Helper functions to get raw (ungrouped) data for Weekly Cashflow and P&L tabs
@@ -1604,9 +1613,12 @@ document.addEventListener('DOMContentLoaded', function() {
     return incomeArr.map((inc, i) => (inc || 0) - (expenditureArr[i] || 0) - (repaymentArr[i] || 0));
   }
   function getRollingBankBalanceArr(useGrouping = false) {
+    console.log('[DEBUG] getRollingBankBalanceArr: Starting calculation with useGrouping =', useGrouping);
     let incomeArr = getIncomeArr(useGrouping);
     let expenditureArr = getExpenditureArr(useGrouping);
-    let repaymentArr = getRepaymentArr();
+    let repaymentArr = getRepaymentArr(); // This will rebuild fresh from current state
+    console.log('[DEBUG] getRollingBankBalanceArr: Got repayment array length:', repaymentArr.length);
+    console.log('[DEBUG] getRollingBankBalanceArr: Repayment array:', repaymentArr);
     let rolling = [];
     let ob = openingBalance;
     
@@ -1630,6 +1642,8 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
     
+    console.log('[DEBUG] getRollingBankBalanceArr: Final rolling balance array:', rolling);
+    console.log('[DEBUG] getRollingBankBalanceArr: Negative balances found:', rolling.map((bal, idx) => bal < 0 ? {week: idx, balance: bal} : null).filter(x => x));
     return rolling;
   }
 
@@ -1638,19 +1652,26 @@ document.addEventListener('DOMContentLoaded', function() {
    * This ensures both warning and P&L table rendering use the same logic
    */
   function getNegativeBalanceWeeks(useGrouping = false) {
+    console.log('[DEBUG] getNegativeBalanceWeeks: Starting with useGrouping =', useGrouping);
     const rollingArr = getRollingBankBalanceArr(useGrouping);
     const weekLabels = getRawWeekLabels();
     const weekIndices = getRawFilteredWeekIndices();
     const negativeWeeks = [];
     
+    console.log('[DEBUG] getNegativeBalanceWeeks: Week indices:', weekIndices);
+    console.log('[DEBUG] getNegativeBalanceWeeks: Rolling array length:', rollingArr.length);
+    
     weekIndices.forEach((weekIdx, i) => {
       const balance = rollingArr[i];
       if (balance < 0) {
         const weekLabel = weekLabels[weekIdx] || `Week ${weekIdx + 1}`;
-        negativeWeeks.push({ week: weekLabel, balance: balance, weekIndex: weekIdx });
+        const negWeek = { week: weekLabel, balance: balance, weekIndex: weekIdx };
+        console.log('[DEBUG] getNegativeBalanceWeeks: Found negative balance:', negWeek);
+        negativeWeeks.push(negWeek);
       }
     });
     
+    console.log('[DEBUG] getNegativeBalanceWeeks: Total negative weeks found:', negativeWeeks.length);
     return negativeWeeks;
   }
 
@@ -1721,14 +1742,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const amount = document.getElementById('repaymentAmount').value;
         if (!amount) return;
-        repaymentRows.push({ 
+        
+        const newRepayment = { 
           type, 
           week, 
           frequency, 
           explicitDate, 
           amount: parseFloat(amount), 
           editing: false 
-        });
+        };
+        
+        console.log('[DEBUG] Adding new repayment:', JSON.parse(JSON.stringify(newRepayment)));
+        repaymentRows.push(newRepayment);
+        console.log('[DEBUG] After addition - repaymentRows length:', repaymentRows.length);
         
         // Check for negative bank balance warning
         checkRepaymentWarning();
@@ -1775,25 +1801,55 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   setupDatePickers();
 
+  // Function to ensure all calculations use fresh data - clear any potential caching
+  function clearCalculationCache() {
+    console.log('[DEBUG] clearCalculationCache: Ensuring fresh calculations by clearing any cached state');
+    // Note: This project doesn't seem to have explicit caching, but this function ensures 
+    // that we're calling functions that rebuild from current state
+    
+    // Force a fresh rebuild of any arrays that might be cached elsewhere
+    // The main arrays are rebuilt from global state each time, but this provides a clear entry point
+    // for future caching implementations or to debug stale data issues
+  }
+
   // Function to check for negative bank balance warnings
   function checkRepaymentWarning() {
+    console.log('[DEBUG] checkRepaymentWarning: Starting warning calculation');
+    
+    // Explicitly clear any cached calculation state
+    clearCalculationCache();
+    
     const warningDiv = document.getElementById('repaymentWarning');
     const warningText = document.getElementById('repaymentWarningText');
     
     if (!warningDiv || !warningText) return;
     
     try {
+      // Clear any potential cached data by ensuring fresh calculation
+      console.log('[DEBUG] checkRepaymentWarning: Getting fresh negative balance weeks');
+      
       // Use shared utility to get negative balance weeks with same filtering as P&L tables
       const negativeWeeks = getNegativeBalanceWeeks(false);
       
+      console.log('[DEBUG] checkRepaymentWarning: Found negative balance weeks:', negativeWeeks);
+      
       if (negativeWeeks.length > 0) {
+        // Get the repayment array being used for transparency
+        const repaymentArr = getRepaymentArr();
+        const repaymentDebugInfo = repaymentArr.map((amount, idx) => amount > 0 ? `Week ${idx + 1}: €${amount.toFixed(2)}` : null).filter(x => x);
+        
         const warningMsg = `The following weeks would have negative bank balances: ${negativeWeeks.map(w => `${w.week} (€${w.balance.toFixed(2)})`).join(', ')}`;
-        warningText.textContent = warningMsg;
+        const debugMsg = repaymentDebugInfo.length > 0 ? `\n\nRepayments being used: ${repaymentDebugInfo.join(', ')}` : '\n\nNo repayments currently configured.';
+        
+        console.log('[DEBUG] checkRepaymentWarning: Displaying warning:', warningMsg);
+        warningText.textContent = warningMsg + debugMsg;
         warningDiv.style.display = 'block';
       } else {
+        console.log('[DEBUG] checkRepaymentWarning: No negative balance weeks found, hiding warning');
         warningDiv.style.display = 'none';
       }
     } catch (error) {
+      console.error('[DEBUG] checkRepaymentWarning: Error during calculation:', error);
       // Hide warning if calculation fails
       warningDiv.style.display = 'none';
     }
@@ -1847,6 +1903,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const editBtn = document.createElement('button');
       editBtn.textContent = row.editing ? 'Save' : 'Edit';
       editBtn.onclick = function() {
+        console.log('[DEBUG] Edit button clicked for repayment row', i);
+        console.log('[DEBUG] Before edit - row state:', JSON.parse(JSON.stringify(row)));
         if (row.editing) {
           if (row.type === "week") {
             row.week = weekSelectElem.value;
@@ -1856,8 +1914,10 @@ document.addEventListener('DOMContentLoaded', function() {
             row.frequency = freqSelect.value;
           }
           row.amount = parseFloat(amountInput.value);
+          console.log('[DEBUG] After edit - row state:', JSON.parse(JSON.stringify(row)));
         }
         row.editing = !row.editing;
+        console.log('[DEBUG] Re-rendering repayment rows and checking warnings');
         renderRepaymentRows();
         checkRepaymentWarning();
         updateAllTabs();
@@ -1867,7 +1927,10 @@ document.addEventListener('DOMContentLoaded', function() {
       const removeBtn = document.createElement('button');
       removeBtn.textContent = 'Remove';
       removeBtn.onclick = function() {
+        console.log('[DEBUG] Remove button clicked for repayment row', i);
+        console.log('[DEBUG] Removing row:', JSON.parse(JSON.stringify(row)));
         repaymentRows.splice(i, 1);
+        console.log('[DEBUG] After removal - repaymentRows length:', repaymentRows.length);
         renderRepaymentRows();
         checkRepaymentWarning();
         updateAllTabs();
@@ -3738,6 +3801,11 @@ setupExcelExport();
   }
 
   function updateAllTabs() {
+    console.log('[DEBUG] updateAllTabs: Starting update of all tabs');
+    
+    // Clear any cached calculation state to ensure fresh data
+    clearCalculationCache();
+    
     clearRoiSuggestions(); // Clear suggestions when data changes
     renderRepaymentRows();
     updateLoanSummary();
