@@ -241,13 +241,13 @@
           <form id="addRepaymentForm" class="repayment-form">
             <div class="form-row">
               <div class="radio-group">
-                <label><input type="radio" name="repaymentType" value="week" checked> Specific Week</label>
+                <label><input type="radio" name="repaymentType" value="week" checked> Week Selection</label>
                 <select id="weekSelect"></select>
-                <label>Start Date: <input type="date" id="startDatePicker"></label>
               </div>
               <div class="radio-group">
-                <label><input type="radio" name="repaymentType" value="date"> Explicit Date</label>
+                <label><input type="radio" name="repaymentType" value="date"> Repayment Date</label>
                 <input type="date" id="repaymentDate" disabled>
+                <span id="dateWeekMapping" style="margin-left: 8px; font-size: 0.9em; color: #666; font-style: italic;"></span>
               </div>
               <div class="radio-group">
                 <label><input type="radio" name="repaymentType" value="frequency"> Frequency</label>

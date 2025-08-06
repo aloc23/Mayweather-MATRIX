@@ -1732,6 +1732,22 @@ document.addEventListener('DOMContentLoaded', function() {
   function setupRepaymentForm() {
     if (!weekSelect || !repaymentFrequency) return;
     const repaymentDateInput = document.getElementById('repaymentDate');
+    const dateWeekMapping = document.getElementById('dateWeekMapping');
+    
+    // Real-time date to week mapping feedback
+    if (repaymentDateInput && dateWeekMapping) {
+      repaymentDateInput.addEventListener('input', function() {
+        if (this.value) {
+          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+          let mappedWeekIdx = mapDateToWeekIndex(this.value, actualWeekStartDates);
+          let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+          dateWeekMapping.textContent = `→ ${mappedWeekLabel}`;
+        } else {
+          dateWeekMapping.textContent = '';
+        }
+      });
+    }
     
     document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
       radio.addEventListener('change', function() {
