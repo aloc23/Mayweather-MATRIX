@@ -1504,14 +1504,18 @@ document.addEventListener('DOMContentLoaded', function() {
       let canonicalWeekIdx = 0;
       
       if (r.type === "week") {
-        // Map week label to canonical week index
+        // Legacy week repayment type
         canonicalWeekIdx = mapWeekLabelToIndex(r.week, actualWeekLabels);
         console.log('[DEBUG] Week repayment:', r.week, '-> week index:', canonicalWeekIdx);
+      } else if (r.type === "unified") {
+        // New unified repayment type with both date and week info
+        canonicalWeekIdx = r.weekIndex;
+        console.log('[DEBUG] Unified repayment:', r.explicitDate, '-> week:', r.weekLabel, '-> week index:', canonicalWeekIdx);
       } else if (r.type === "date" && r.explicitDate) {
-        // Map explicit date to canonical week index
+        // Legacy date repayment type
         canonicalWeekIdx = mapDateToWeekIndex(r.explicitDate, actualWeekStartDates);
         console.log('[DEBUG] Date repayment:', r.explicitDate, '-> week index:', canonicalWeekIdx, 'week label:', actualWeekLabels[canonicalWeekIdx]);
-      } else {
+      } else if (r.type === "frequency") {
         // Handle frequency-based repayments
         if (r.frequency === "monthly") {
           let perMonth = Math.ceil(arr.length/12);
@@ -1593,10 +1597,14 @@ document.addEventListener('DOMContentLoaded', function() {
       let date, amount = r.amount;
       
       if (r.type === "week") {
-        // Map week label to canonical index, then get the date for that week
+        // Legacy week repayment type
         let canonicalWeekIdx = mapWeekLabelToIndex(r.week, actualWeekLabels);
         date = actualWeekStartDates[canonicalWeekIdx] || new Date(2025, 0, 1 + canonicalWeekIdx * 7);
-        schedule.push({ date, amount });
+        schedule.push({ date, amount, weekIndex: canonicalWeekIdx });
+      } else if (r.type === "unified") {
+        // New unified repayment type - use the stored date and weekIndex
+        date = new Date(r.explicitDate);
+        schedule.push({ date, amount, weekIndex: r.weekIndex });
       } else if (r.type === "date" && r.explicitDate) {
         // Use the explicit date directly
         date = new Date(r.explicitDate);
@@ -1731,158 +1739,287 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function setupRepaymentForm() {
-    if (!weekSelect || !repaymentFrequency) return;
+    const weekSelect = document.getElementById('weekSelect');
     const repaymentDateInput = document.getElementById('repaymentDate');
     const dateWeekMapping = document.getElementById('dateWeekMapping');
+    const mappingText = document.getElementById('mappingText');
+    const useFrequencyCheckbox = document.getElementById('useFrequency');
+    const frequencyControls = document.getElementById('frequencyControls');
+    const repaymentFrequency = document.getElementById('repaymentFrequency');
+    const validationSection = document.getElementById('repaymentValidation');
+    const validationText = document.getElementById('validationText');
     
-    // Function to update week/date synchronization with clear visual feedback
-    function updateWeekDateSync() {
-      const currentType = document.querySelector('input[name="repaymentType"]:checked')?.value;
+    if (!weekSelect || !repaymentDateInput) return;
+    
+    // Enhanced date/week synchronization with validation
+    function updateDateWeekSync(source = 'auto') {
       let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
       let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
       
-      if (currentType === 'week' && weekSelect.value) {
-        // Update date field to show corresponding date for selected week
-        let weekIdx = mapWeekLabelToIndex(weekSelect.value, actualWeekLabels);
-        let weekDate = actualWeekStartDates[weekIdx];
-        if (weekDate && repaymentDateInput) {
+      // If no week data available, use fallback calculation
+      const hasWeekData = weekLabels && weekLabels.length > 0;
+      
+      if (source === 'date' && repaymentDateInput.value) {
+        // Date changed - update week selection and mapping
+        const selectedDate = new Date(repaymentDateInput.value);
+        let mappedWeekIdx, mappedWeekLabel;
+        
+        if (hasWeekData) {
+          mappedWeekIdx = mapDateToWeekIndex(selectedDate, actualWeekStartDates);
+          mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+        } else {
+          // Fallback calculation when no spreadsheet data available
+          const baseDate = new Date(2025, 0, 1); // Jan 1, 2025
+          const daysDiff = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+          mappedWeekIdx = Math.floor(daysDiff / 7);
+          mappedWeekLabel = `Week ${mappedWeekIdx + 1}`;
+        }
+        
+        // Update week selector if available
+        if (weekSelect && hasWeekData) {
+          weekSelect.value = mappedWeekLabel;
+        }
+        
+        // Calculate week range for display
+        let weekStartDate, weekEndDate;
+        if (hasWeekData) {
+          weekStartDate = actualWeekStartDates[mappedWeekIdx];
+          weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekStartDate.getDate() + 6);
+        } else {
+          // Fallback week range calculation
+          const baseDate = new Date(2025, 0, 1);
+          weekStartDate = new Date(baseDate);
+          weekStartDate.setDate(baseDate.getDate() + (mappedWeekIdx * 7));
+          weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekStartDate.getDate() + 6);
+        }
+        
+        // Update mapping display with enhanced information
+        if (mappingText) {
+          const dateStr = selectedDate.toLocaleDateString('en-GB');
+          const weekRange = `${weekStartDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})} - ${weekEndDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})}`;
+          mappingText.innerHTML = `<strong>${dateStr}</strong> falls in <strong>${mappedWeekLabel}</strong>: ${weekRange}`;
+          dateWeekMapping.style.background = 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)';
+          dateWeekMapping.style.borderColor = '#4caf50';
+        }
+        
+        // Validate date only if week data is available
+        if (hasWeekData) {
+          validateRepaymentTiming(selectedDate, mappedWeekIdx);
+        } else {
+          clearValidation();
+        }
+        
+      } else if (source === 'week' && weekSelect.value && hasWeekData) {
+        // Week changed - update date and mapping
+        const weekIdx = mapWeekLabelToIndex(weekSelect.value, actualWeekLabels);
+        const weekDate = actualWeekStartDates[weekIdx];
+        
+        if (weekDate) {
+          // Update date input
           repaymentDateInput.value = weekDate.toISOString().split('T')[0];
+          
+          // Calculate week range for display
+          const weekEndDate = new Date(weekDate);
+          weekEndDate.setDate(weekDate.getDate() + 6);
+          
+          // Update mapping display
+          if (mappingText) {
+            const dateStr = weekDate.toLocaleDateString('en-GB');
+            const weekRange = `${weekDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})} - ${weekEndDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})}`;
+            mappingText.innerHTML = `<strong>${weekSelect.value}</strong> starts on <strong>${dateStr}</strong>: ${weekRange}`;
+            dateWeekMapping.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #f1f8e9 100%)';
+            dateWeekMapping.style.borderColor = '#1976d2';
+          }
+          
+          // Validate week selection
+          validateRepaymentTiming(weekDate, weekIdx);
         }
-        if (dateWeekMapping) {
-          dateWeekMapping.textContent = `→ Week ${weekSelect.value} starts ${weekDate ? weekDate.toLocaleDateString() : 'Invalid date'}`;
-          dateWeekMapping.style.color = '#1976d2';
-          dateWeekMapping.style.fontWeight = 'normal';
+      } else {
+        // Clear mapping display
+        if (mappingText) {
+          const displayText = hasWeekData ? 
+            'Select a date or week to see mapping' : 
+            'Select a date to see mapping (Upload spreadsheet for week synchronization)';
+          mappingText.textContent = displayText;
+          dateWeekMapping.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #f1f8e9 100%)';
+          dateWeekMapping.style.borderColor = '#bbdefb';
         }
-      } else if (currentType === 'date' && repaymentDateInput && repaymentDateInput.value) {
-        // Update week display to show corresponding week for selected date
-        let mappedWeekIdx = mapDateToWeekIndex(repaymentDateInput.value, actualWeekStartDates);
-        let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
-        weekSelect.value = mappedWeekLabel;
-        if (dateWeekMapping) {
-          let selectedDate = new Date(repaymentDateInput.value);
-          dateWeekMapping.textContent = `→ ${selectedDate.toLocaleDateString()} falls in ${mappedWeekLabel}`;
-          dateWeekMapping.style.color = '#1976d2';
-          dateWeekMapping.style.fontWeight = 'normal';
-        }
-      } else if (dateWeekMapping) {
-        dateWeekMapping.textContent = '';
+        clearValidation();
       }
     }
-
-    // Setup week selection change handler for real-time date mapping
-    if (weekSelect) {
-      weekSelect.addEventListener('change', updateWeekDateSync);
-    }
     
-    // Real-time date to week mapping feedback
-    if (repaymentDateInput && dateWeekMapping) {
-      repaymentDateInput.addEventListener('input', updateWeekDateSync);
-    }
-    
-    document.querySelectorAll('input[name="repaymentType"]').forEach(radio => {
-      radio.addEventListener('change', function() {
-        if (this.value === "week") {
-          weekSelect.disabled = false;
-          repaymentFrequency.disabled = true;
-          if (repaymentDateInput) {
-            repaymentDateInput.disabled = true;
-            // Make date field visible but read-only to show corresponding date
-            repaymentDateInput.style.opacity = '0.7';
-            repaymentDateInput.style.backgroundColor = '#f5f5f5';
-          }
-          weekSelect.style.opacity = '1';
-          weekSelect.style.backgroundColor = '';
-        } else if (this.value === "date") {
-          weekSelect.disabled = true;
-          repaymentFrequency.disabled = true;
-          if (repaymentDateInput) {
-            repaymentDateInput.disabled = false;
-            repaymentDateInput.style.opacity = '1';
-            repaymentDateInput.style.backgroundColor = '';
-          }
-          // Make week field visible but read-only to show corresponding week
-          weekSelect.style.opacity = '0.7';
-          weekSelect.style.backgroundColor = '#f5f5f5';
-        } else {
-          weekSelect.disabled = true;
-          repaymentFrequency.disabled = false;
-          if (repaymentDateInput) {
-            repaymentDateInput.disabled = true;
-            repaymentDateInput.style.opacity = '0.7';
-            repaymentDateInput.style.backgroundColor = '#f5f5f5';
-          }
-          weekSelect.style.opacity = '0.7';
-          weekSelect.style.backgroundColor = '#f5f5f5';
+    // Enhanced validation function
+    function validateRepaymentTiming(date, weekIndex) {
+      if (!validationSection || !validationText) return true;
+      
+      let isValid = true;
+      let validationMessage = '';
+      
+      // If no week data is available, allow any date selection
+      if (!weekLabels || weekLabels.length === 0) {
+        clearValidation();
+        return true;
+      }
+      
+      // Check if date/week is within available range
+      if (weekIndex < 0 || weekIndex >= weekLabels.length) {
+        isValid = false;
+        validationMessage = `Selected date falls outside available week range (Weeks 1-${weekLabels.length})`;
+      }
+      
+      // Check for duplicate repayments in same week
+      const existingRepayment = repaymentRows.find(row => {
+        if (row.type === 'week') {
+          return mapWeekLabelToIndex(row.week, weekLabels) === weekIndex;
+        } else if (row.type === 'date') {
+          return mapDateToWeekIndex(row.explicitDate, weekStartDates) === weekIndex;
+        } else if (row.type === 'unified') {
+          return row.weekIndex === weekIndex;
         }
-        // Update synchronization after mode change
-        setTimeout(updateWeekDateSync, 10);
+        return false;
       });
-    });
-
-    let addRepaymentForm = document.getElementById('addRepaymentForm');
+      
+      if (existingRepayment) {
+        isValid = false;
+        validationMessage = `A repayment already exists for this week (${weekLabels[weekIndex] || `Week ${weekIndex + 1}`})`;
+      }
+      
+      // Show/hide validation
+      if (!isValid) {
+        validationText.textContent = validationMessage;
+        validationSection.style.display = 'block';
+      } else {
+        clearValidation();
+      }
+      
+      return isValid;
+    }
+    
+    function clearValidation() {
+      if (validationSection) {
+        validationSection.style.display = 'none';
+      }
+    }
+    
+    // Event listeners for real-time synchronization
+    if (repaymentDateInput) {
+      repaymentDateInput.addEventListener('change', () => updateDateWeekSync('date'));
+      repaymentDateInput.addEventListener('input', () => updateDateWeekSync('date'));
+    }
+    
+    if (weekSelect) {
+      weekSelect.addEventListener('change', () => updateDateWeekSync('week'));
+    }
+    
+    // Frequency toggle handling
+    if (useFrequencyCheckbox && frequencyControls) {
+      useFrequencyCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          frequencyControls.style.display = 'block';
+          // Disable date/week inputs when using frequency
+          repaymentDateInput.style.opacity = '0.5';
+          weekSelect.style.opacity = '0.5';
+          repaymentDateInput.disabled = true;
+          weekSelect.disabled = true;
+        } else {
+          frequencyControls.style.display = 'none';
+          // Re-enable date/week inputs
+          repaymentDateInput.style.opacity = '1';
+          weekSelect.style.opacity = '1';
+          repaymentDateInput.disabled = false;
+          weekSelect.disabled = false;
+        }
+        clearValidation();
+      });
+    }
+    
+    // Enhanced form submission with improved data structure
+    const addRepaymentForm = document.getElementById('addRepaymentForm');
     if (addRepaymentForm) {
       addRepaymentForm.onsubmit = function(e) {
         e.preventDefault();
-        const type = document.querySelector('input[name="repaymentType"]:checked').value;
-        let week = null, frequency = null, explicitDate = null;
-        if (type === "week") {
-          week = weekSelect.value;
-        } else if (type === "date") {
-          explicitDate = repaymentDateInput ? repaymentDateInput.value : null;
-          if (!explicitDate) {
-            alert('Please select a date for the repayment.');
-            return;
-          }
-        } else {
-          frequency = repaymentFrequency.value;
-        }
+        
         const amount = document.getElementById('repaymentAmount').value;
-        if (!amount) return;
+        if (!amount || parseFloat(amount) <= 0) {
+          alert('Please enter a valid repayment amount.');
+          return;
+        }
         
-        const newRepayment = { 
-          id: ++repaymentIdCounter, // Assign unique ID
-          type, 
-          week, 
-          frequency, 
-          explicitDate, 
-          amount: parseFloat(amount), 
-          editing: false 
-        };
+        const isFrequencyMode = useFrequencyCheckbox && useFrequencyCheckbox.checked;
+        let newRepayment;
         
-        // Show user which week their repayment maps to for better clarity
-        if (type === "date" && explicitDate) {
-          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
-          let mappedWeekIdx = mapDateToWeekIndex(explicitDate, actualWeekStartDates);
-          let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
+        if (isFrequencyMode) {
+          // Frequency-based repayment
+          const frequency = repaymentFrequency.value;
+          newRepayment = { 
+            id: ++repaymentIdCounter,
+            type: 'frequency', 
+            frequency, 
+            amount: parseFloat(amount), 
+            editing: false 
+          };
+        } else {
+          // Date/week-based repayment with enhanced data structure
+          const selectedDate = new Date(repaymentDateInput.value);
           
-          // Store the mapped week information for display purposes
-          newRepayment.mappedWeek = mappedWeekLabel;
-          newRepayment.mappedWeekIndex = mappedWeekIdx;
+          // For cases where no week data is available, use a default week calculation
+          let weekIndex, weekLabel;
+          if (weekLabels && weekLabels.length > 0) {
+            weekIndex = mapDateToWeekIndex(selectedDate, weekStartDates);
+            weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
+            
+            // Validate before adding
+            if (!validateRepaymentTiming(selectedDate, weekIndex)) {
+              return; // Don't add if validation fails
+            }
+          } else {
+            // Fallback calculation when no spreadsheet data available
+            const baseDate = new Date(2025, 0, 1); // Jan 1, 2025
+            const daysDiff = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+            weekIndex = Math.floor(daysDiff / 7);
+            weekLabel = `Week ${weekIndex + 1}`;
+          }
           
-          console.log('[INFO] Date repayment mapped to week:', mappedWeekLabel, 'at index:', mappedWeekIdx);
+          newRepayment = { 
+            id: ++repaymentIdCounter,
+            type: 'unified', // New unified type that contains both date and week info
+            explicitDate: repaymentDateInput.value,
+            weekIndex: weekIndex,
+            weekLabel: weekLabel,
+            amount: parseFloat(amount), 
+            editing: false 
+          };
+          
+          console.log('[INFO] Adding unified repayment:', {
+            date: selectedDate.toLocaleDateString(),
+            week: weekLabel,
+            weekIndex: weekIndex,
+            amount: parseFloat(amount)
+          });
         }
         
         console.log('[DEBUG] Adding new repayment:', JSON.parse(JSON.stringify(newRepayment)));
         repaymentRows.push(newRepayment);
-        console.log('[DEBUG] After addition - repaymentRows length:', repaymentRows.length);
         
-        // Check for negative bank balance warning
+        // Check for cash flow warnings
         checkRepaymentWarning();
         
         renderRepaymentRows();
         this.reset();
+        clearValidation();
+        
+        // Re-populate dropdowns and reset UI state
         populateWeekDropdown(weekLabels);
-        document.getElementById('weekSelect').selectedIndex = 0;
-        document.getElementById('repaymentFrequency').selectedIndex = 0;
-        if (repaymentDateInput) repaymentDateInput.value = '';
-        document.querySelector('input[name="repaymentType"][value="week"]').checked = true;
-        weekSelect.disabled = false;
-        repaymentFrequency.disabled = true;
-        if (repaymentDateInput) repaymentDateInput.disabled = true;
+        updateDateWeekSync('auto');
+        
         updateAllTabs();
       };
     }
+    
+    // Initialize the form state
+    updateDateWeekSync('auto');
   }
   setupRepaymentForm();
 
@@ -1970,136 +2107,178 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('repaymentRows');
     if (!container) return;
     container.innerHTML = "";
+    
     repaymentRows.forEach((row, i) => {
       const div = document.createElement('div');
       div.className = 'repayment-row';
       
-      // Week selector
-      const weekSelectElem = document.createElement('select');
-      (weekLabels.length ? weekLabels : Array.from({length:52}, (_,i)=>`Week ${i+1}`)).forEach(label => {
-        const opt = document.createElement('option');
-        opt.value = label;
-        opt.textContent = label;
-        weekSelectElem.appendChild(opt);
-      });
-      weekSelectElem.value = row.week || "";
-      weekSelectElem.disabled = !row.editing || row.type !== "week";
-
-      // Date selector
-      const dateInput = document.createElement('input');
-      dateInput.type = 'date';
-      dateInput.value = row.explicitDate || "";
-      dateInput.disabled = !row.editing || row.type !== "date";
-      dateInput.style.width = '140px';
-
-      // Frequency selector
-      const freqSelect = document.createElement('select');
-      ["monthly", "quarterly", "one-off"].forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = f.charAt(0).toUpperCase() + f.slice(1);
-        freqSelect.appendChild(opt);
-      });
-      freqSelect.value = row.frequency || "monthly";
-      freqSelect.disabled = !row.editing || row.type !== "frequency";
-
+      // Enhanced repayment row header
+      const headerDiv = document.createElement('div');
+      headerDiv.className = 'repayment-row-header';
+      
+      // Type badge
+      const typeBadge = document.createElement('span');
+      typeBadge.className = 'repayment-type-badge';
+      if (row.type === 'unified') {
+        typeBadge.textContent = 'Date & Week Synchronized';
+      } else if (row.type === 'frequency') {
+        typeBadge.textContent = `Frequency: ${row.frequency}`;
+      } else {
+        typeBadge.textContent = row.type;
+      }
+      headerDiv.appendChild(typeBadge);
+      
+      // Action buttons
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'repayment-actions';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn-edit';
+      editBtn.textContent = row.editing ? 'Save' : 'Edit';
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn-remove';
+      removeBtn.textContent = 'Remove';
+      
+      actionsDiv.appendChild(editBtn);
+      actionsDiv.appendChild(removeBtn);
+      headerDiv.appendChild(actionsDiv);
+      
+      div.appendChild(headerDiv);
+      
+      // Repayment details section
+      const detailsDiv = document.createElement('div');
+      detailsDiv.className = 'repayment-details';
+      
+      if (row.type === 'unified') {
+        // Unified date/week display
+        const dateWeekInfo = document.createElement('div');
+        dateWeekInfo.className = 'date-week-info';
+        dateWeekInfo.style.cssText = 'display: flex; gap: 20px; align-items: center; margin-bottom: 12px; padding: 12px; background: #f8fafc; border-radius: 8px;';
+        
+        if (row.editing) {
+          // Editable unified date/week inputs
+          const dateInput = document.createElement('input');
+          dateInput.type = 'date';
+          dateInput.value = row.explicitDate || "";
+          dateInput.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
+          
+          const weekSelect = document.createElement('select');
+          weekSelect.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
+          (weekLabels.length ? weekLabels : Array.from({length:52}, (_,i)=>`Week ${i+1}`)).forEach(label => {
+            const opt = document.createElement('option');
+            opt.value = label;
+            opt.textContent = label;
+            weekSelect.appendChild(opt);
+          });
+          weekSelect.value = row.weekLabel || "";
+          
+          dateWeekInfo.innerHTML = '<strong>📅 Date:</strong> ';
+          dateWeekInfo.appendChild(dateInput);
+          dateWeekInfo.innerHTML += ' <strong>📊 Week:</strong> ';
+          dateWeekInfo.appendChild(weekSelect);
+          
+          // Store references for save operation
+          row._editingElements = { dateInput, weekSelect };
+        } else {
+          // Display unified date/week info
+          const formattedDate = row.explicitDate ? new Date(row.explicitDate).toLocaleDateString('en-GB') : 'Not set';
+          const weekLabel = row.weekLabel || 'Not set';
+          
+          dateWeekInfo.innerHTML = `
+            <div><strong>📅 Date:</strong> ${formattedDate}</div>
+            <div><strong>📊 Week:</strong> ${weekLabel}</div>
+            <div style="color: #1976d2; font-size: 0.9em;">🔗 Synchronized</div>
+          `;
+        }
+        
+        detailsDiv.appendChild(dateWeekInfo);
+      } else if (row.type === 'frequency') {
+        // Frequency display
+        const freqInfo = document.createElement('div');
+        freqInfo.style.cssText = 'margin-bottom: 12px; padding: 12px; background: #f0f9ff; border-radius: 8px;';
+        
+        if (row.editing) {
+          const freqSelect = document.createElement('select');
+          freqSelect.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
+          ["monthly", "quarterly", "one-off"].forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = f.charAt(0).toUpperCase() + f.slice(1);
+            freqSelect.appendChild(opt);
+          });
+          freqSelect.value = row.frequency || "monthly";
+          
+          freqInfo.innerHTML = '<strong>💫 Frequency:</strong> ';
+          freqInfo.appendChild(freqSelect);
+          
+          row._editingElements = { freqSelect };
+        } else {
+          freqInfo.innerHTML = `<strong>💫 Frequency:</strong> ${row.frequency ? row.frequency.charAt(0).toUpperCase() + row.frequency.slice(1) : 'Not set'}`;
+        }
+        
+        detailsDiv.appendChild(freqInfo);
+      } else {
+        // Legacy week/date display
+        const legacyInfo = document.createElement('div');
+        legacyInfo.style.cssText = 'margin-bottom: 12px; padding: 12px; background: #fef7cd; border-radius: 8px;';
+        legacyInfo.innerHTML = `<strong>Legacy ${row.type}:</strong> ${row.week || row.explicitDate || 'Not set'}`;
+        detailsDiv.appendChild(legacyInfo);
+      }
+      
       // Amount input
+      const amountDiv = document.createElement('div');
+      amountDiv.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+      
       const amountInput = document.createElement('input');
       amountInput.type = 'number';
       amountInput.value = row.amount;
       amountInput.placeholder = 'Repayment €';
       amountInput.disabled = !row.editing;
-
-      // Edit button
-      const editBtn = document.createElement('button');
-      editBtn.textContent = row.editing ? 'Save' : 'Edit';
+      amountInput.style.cssText = 'flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;';
+      
+      amountDiv.innerHTML = '<strong>💰 Amount: €</strong>';
+      amountDiv.appendChild(amountInput);
+      
+      detailsDiv.appendChild(amountDiv);
+      div.appendChild(detailsDiv);
+      
+      // Event handlers
       editBtn.onclick = function() {
         console.log('[DEBUG] Edit button clicked for repayment row', i);
-        console.log('[DEBUG] Before edit - row state:', JSON.parse(JSON.stringify(row)));
         if (row.editing) {
-          if (row.type === "week") {
-            row.week = weekSelectElem.value;
-          } else if (row.type === "date") {
-            row.explicitDate = dateInput.value;
-          } else {
-            row.frequency = freqSelect.value;
+          // Save changes
+          if (row.type === 'unified' && row._editingElements) {
+            const newDate = row._editingElements.dateInput.value;
+            const newWeekLabel = row._editingElements.weekSelect.value;
+            
+            if (newDate) {
+              row.explicitDate = newDate;
+              row.weekIndex = mapDateToWeekIndex(newDate, weekStartDates);
+              row.weekLabel = newWeekLabel;
+            }
+          } else if (row.type === 'frequency' && row._editingElements) {
+            row.frequency = row._editingElements.freqSelect.value;
           }
+          
           row.amount = parseFloat(amountInput.value);
-          console.log('[DEBUG] After edit - row state:', JSON.parse(JSON.stringify(row)));
+          delete row._editingElements; // Clean up temporary references
         }
         row.editing = !row.editing;
-        console.log('[DEBUG] Re-rendering repayment rows and checking warnings');
         renderRepaymentRows();
         checkRepaymentWarning();
         updateAllTabs();
       };
 
-      // Remove button
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = 'Remove';
       removeBtn.onclick = function() {
         console.log('[DEBUG] Remove button clicked for repayment row', i);
-        console.log('[DEBUG] Removing row:', JSON.parse(JSON.stringify(row)));
         repaymentRows.splice(i, 1);
-        console.log('[DEBUG] After removal - repaymentRows length:', repaymentRows.length);
         renderRepaymentRows();
         checkRepaymentWarning();
         updateAllTabs();
       };
-
-      // Mode label and appropriate control
-      const modeLabel = document.createElement('span');
-      modeLabel.style.marginRight = "10px";
       
-      if (row.type === "week") {
-        modeLabel.textContent = "Week";
-        div.appendChild(modeLabel);
-        div.appendChild(weekSelectElem);
-        
-        // Show corresponding date for week-based repayments  
-        if (row.week) {
-          const weekDateInfo = document.createElement('span');
-          weekDateInfo.style.cssText = 'margin-left: 8px; font-size: 0.9em; color: #1976d2; font-weight: 500;';
-          
-          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
-          let weekIdx = mapWeekLabelToIndex(row.week, actualWeekLabels);
-          let weekDate = actualWeekStartDates[weekIdx];
-          
-          if (weekDate) {
-            weekDateInfo.textContent = `→ ${row.week} starts ${weekDate.toLocaleDateString()}`;
-            div.appendChild(weekDateInfo);
-          }
-        }
-      } else if (row.type === "date") {
-        modeLabel.textContent = "Date";
-        div.appendChild(modeLabel);
-        div.appendChild(dateInput);
-        
-        // Show mapped week information for date-based repayments
-        if (row.explicitDate) {
-          const mappedWeekInfo = document.createElement('span');
-          mappedWeekInfo.style.cssText = 'margin-left: 8px; font-size: 0.9em; color: #1976d2; font-weight: 500;';
-          
-          let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-          let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
-          let mappedWeekIdx = mapDateToWeekIndex(row.explicitDate, actualWeekStartDates);
-          let mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
-          
-          let selectedDate = new Date(row.explicitDate);
-          mappedWeekInfo.textContent = `→ ${selectedDate.toLocaleDateString()} (${mappedWeekLabel})`;
-          div.appendChild(mappedWeekInfo);
-        }
-      } else {
-        modeLabel.textContent = "Frequency";
-        div.appendChild(modeLabel);
-        div.appendChild(freqSelect);
-      }
-      
-      div.appendChild(amountInput);
-      div.appendChild(editBtn);
-      div.appendChild(removeBtn);
-
+      // Add the row to the container
       container.appendChild(div);
     });
   }
