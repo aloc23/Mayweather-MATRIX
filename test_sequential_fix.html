@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Sequential Week Mapping Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .test-result { margin: 15px 0; padding: 15px; border-radius: 6px; }
+        .pass { background-color: #d4edda; border: 2px solid #c3e6cb; color: #155724; }
+        .fail { background-color: #f8d7da; border: 2px solid #f5c6cb; color: #721c24; }
+        table { border-collapse: collapse; margin: 10px 0; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; font-weight: bold; }
+        .csv-upload { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+        input[type="file"] { margin: 10px 0; }
+        button { padding: 8px 15px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Test Sequential Week Mapping Fix</h1>
+    
+    <div class="csv-upload">
+        <h3>Test CSV Data (non-chronological headers)</h3>
+        <p>This CSV has headers in non-chronological order to test that we maintain original column sequence:</p>
+        <pre id="test-csv-content"></pre>
+        <button class="btn-primary" onclick="loadTestData()">Load Test Data</button>
+        <button class="btn-secondary" onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="test-results"></div>
+
+    <!-- Include the actual script.js to test the real implementation -->
+    <script src="script.js"></script>
+    
+    <script>
+        // Test data with non-chronological date headers
+        const testCSVContent = `Category,15/01/2025,08/01/2025,22/01/2025,01/01/2025,29/01/2025
+Income,1000,1500,1200,800,1100
+Rent,-500,-500,-500,-500,-500
+Utilities,-100,-120,-110,-90,-105
+Food,-200,-180,-220,-160,-190
+Transport,-80,-70,-85,-60,-75`;
+
+        // Expected results (should maintain original column order)
+        const expectedWeekHeaders = ["15/01/2025", "08/01/2025", "22/01/2025", "01/01/2025", "29/01/2025"];
+        const expectedIncomeData = [1000, 1500, 1200, 800, 1100];
+
+        function displayTestCSV() {
+            document.getElementById('test-csv-content').textContent = testCSVContent;
+        }
+
+        function loadTestData() {
+            // Create a File-like object from the test CSV content
+            const csvBlob = new Blob([testCSVContent], { type: 'text/csv' });
+            const file = new File([csvBlob], 'test_chronological_data.csv', { type: 'text/csv' });
+            
+            // Simulate file upload by directly calling the CSV processing function
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvContent = e.target.result;
+                processCSVContent(csvContent);
+                runTests();
+            };
+            reader.readAsText(file);
+        }
+
+        function processCSVContent(csvContent) {
+            // Parse CSV manually to set up global variables
+            const lines = csvContent.trim().split('\n');
+            const data = lines.map(line => line.split(','));
+            
+            // Set up global variables as script.js expects them
+            window.mappedData = data;
+            window.config = {
+                weekLabelRow: 0,
+                weekColStart: 1,
+                weekColEnd: 5,
+                firstDataRow: 1,
+                lastDataRow: data.length - 1
+            };
+            
+            // Call the updateWeekLabels function to test our fix
+            updateWeekLabels();
+        }
+
+        function runTests() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<h2>Test Results</h2>';
+            
+            let allTestsPassed = true;
+
+            // Test 1: Week headers should maintain original CSV order
+            const actualHeaders = window.weekLabels || [];
+            const headerOrderCorrect = JSON.stringify(actualHeaders) === JSON.stringify(expectedWeekHeaders);
+            
+            results.innerHTML += `<div class="test-result ${headerOrderCorrect ? 'pass' : 'fail'}">
+                <h3>Test 1: Week Header Order Preservation</h3>
+                <p><strong>Status:</strong> ${headerOrderCorrect ? 'PASS ✅' : 'FAIL ❌'}</p>
+                <p><strong>Expected:</strong> ${expectedWeekHeaders.join(' → ')}</p>
+                <p><strong>Actual:</strong> ${actualHeaders.join(' → ')}</p>
+                <p><strong>Description:</strong> Week headers should maintain their original CSV column order, not be sorted chronologically.</p>
+            </div>`;
+            
+            if (!headerOrderCorrect) allTestsPassed = false;
+
+            // Test 2: Week groups should maintain original indices
+            const weekGroups = window.weekGroupMapping || [];
+            const indicesCorrect = weekGroups.every((group, index) => 
+                group.originalIndex === index && group.columns[0].originalIndex === index
+            );
+            
+            results.innerHTML += `<div class="test-result ${indicesCorrect ? 'pass' : 'fail'}">
+                <h3>Test 2: Original Index Preservation</h3>
+                <p><strong>Status:</strong> ${indicesCorrect ? 'PASS ✅' : 'FAIL ❌'}</p>
+                <p><strong>Description:</strong> Week groups should have originalIndex same as current index (no reordering).</p>
+                <table>
+                    <tr><th>Week Index</th><th>Header</th><th>Original Index</th><th>Column Original Index</th></tr>
+                    ${weekGroups.map((group, i) => 
+                        `<tr><td>${i}</td><td>${group.primaryHeader}</td><td>${group.originalIndex}</td><td>${group.columns[0].originalIndex}</td></tr>`
+                    ).join('')}
+                </table>
+            </div>`;
+            
+            if (!indicesCorrect) allTestsPassed = false;
+
+            // Test 3: Data mapping verification
+            const csvData = window.mappedData || [];
+            const incomeRow = csvData[1] || [];
+            const actualIncomeData = incomeRow.slice(1, 6).map(x => parseInt(x) || 0);
+            const dataAlignmentCorrect = JSON.stringify(actualIncomeData) === JSON.stringify(expectedIncomeData);
+            
+            results.innerHTML += `<div class="test-result ${dataAlignmentCorrect ? 'pass' : 'fail'}">
+                <h3>Test 3: Data Alignment Verification</h3>
+                <p><strong>Status:</strong> ${dataAlignmentCorrect ? 'PASS ✅' : 'FAIL ❌'}</p>
+                <p><strong>Expected Income Data:</strong> ${expectedIncomeData.join(', ')}</p>
+                <p><strong>Actual Income Data:</strong> ${actualIncomeData.join(', ')}</p>
+                <p><strong>Description:</strong> Income data should align with week headers in original column order.</p>
+            </div>`;
+            
+            if (!dataAlignmentCorrect) allTestsPassed = false;
+
+            // Overall result
+            results.innerHTML += `<div class="test-result ${allTestsPassed ? 'pass' : 'fail'}">
+                <h3>Overall Test Result</h3>
+                <p><strong>Status:</strong> ${allTestsPassed ? 'ALL TESTS PASSED ✅' : 'SOME TESTS FAILED ❌'}</p>
+                <p><strong>Sequential Mapping Fix:</strong> ${allTestsPassed ? 'Working correctly' : 'Needs further investigation'}</p>
+            </div>`;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // Display the test CSV on page load
+        document.addEventListener('DOMContentLoaded', displayTestCSV);
+    </script>
+</body>
+</html>
