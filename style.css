@@ -48,6 +48,216 @@ h1 {
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 20px;
+}
+
+/* Modern Form Controls */
+.modern-select, .modern-input {
+  padding: 12px 16px;
+  border: 2px solid #e0e7ef;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Montserrat', sans-serif;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.modern-select:focus, .modern-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+  transform: translateY(-1px);
+}
+
+.modern-select:hover, .modern-input:hover {
+  border-color: #1976d2;
+  transform: translateY(-1px);
+}
+
+/* Modern Button Styles */
+.modern-btn-primary {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-btn-primary:hover {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
+}
+
+.modern-btn-secondary {
+  background: linear-gradient(135deg, #757575 0%, #616161 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(117, 117, 117, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modern-btn-secondary:hover {
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(117, 117, 117, 0.4);
+}
+
+.modern-btn-outline {
+  background: transparent;
+  color: #1976d2;
+  border: 2px solid #1976d2;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modern-btn-outline:hover {
+  background: #1976d2;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+
+.modern-btn-danger {
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modern-btn-danger:hover {
+  background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(211, 47, 47, 0.4);
+}
+
+/* Button Icons */
+.btn-icon {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Enhanced Table Styling */
+.repayment-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.repayment-table thead {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+}
+
+.repayment-table thead th {
+  padding: 16px 20px;
+  font-weight: 600;
+  text-align: left;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.repayment-table tbody tr {
+  border-bottom: 1px solid #f0f4f8;
+  transition: all 0.2s ease;
+}
+
+.repayment-table tbody tr:hover {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+  transform: scale(1.01);
+}
+
+.repayment-table tbody td {
+  padding: 16px 20px;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+/* Table Actions */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Week Display Styling */
+.repayment-week-display {
+  font-weight: 600;
+  color: #1976d2;
+  padding: 4px 8px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.repayment-amount-display {
+  font-weight: 600;
+  color: #2e7d32;
+  font-size: 15px;
+}
+
+/* Enhanced Empty State */
+.empty-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
+  border-radius: 12px;
+  border: 2px dashed #cbd5e1;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.empty-message p {
+  margin: 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.empty-subtext {
+  font-size: 14px !important;
+  opacity: 0.8;
+}
   box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
 }
 
