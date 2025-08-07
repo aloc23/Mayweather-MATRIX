@@ -933,16 +933,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // Step 1: Auto-detected mapping summary (always visible)
     const mappingSummaryDiv = document.createElement('div');
     mappingSummaryDiv.style.cssText = 'background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #4caf50;';
-    mappingSummaryDiv.innerHTML = `
-      <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Week Columns Mapped in Order as per Spreadsheet</h4>
-      <div style="font-size: 0.9em; margin-bottom: 6px;">
-        <strong>Sequential Mapping:</strong> ${weekLabels ? weekLabels.length : 0} columns mapped as Week 1, Week 2, Week 3, etc. |
-        <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
-      </div>
-      <div style="font-size: 0.85em; color: #2e7d32;">
-        Each spreadsheet column is treated as a sequential week regardless of column labels. All downstream calculations use this column-based mapping.
-      </div>
-    `;
+    
+    // Determine mapping type and create appropriate summary
+    let mappingType = 'sequential';
+    let parsedDateCount = 0;
+    let totalColumns = weekLabels ? weekLabels.length : 0;
+    
+    if (window.weekGroupMapping && window.weekGroupMapping.length > 0) {
+      parsedDateCount = window.weekGroupMapping.filter(group => group.parsedDate).length;
+      if (parsedDateCount > 0) {
+        mappingType = parsedDateCount === totalColumns ? 'chronological' : 'hybrid';
+      }
+    }
+    
+    let summaryHTML = '';
+    if (mappingType === 'chronological') {
+      summaryHTML = `
+        <h4 style="margin: 0 0 8px 0; color: #2e7d32;">✅ Week Columns Mapped in Chronological Order</h4>
+        <div style="font-size: 0.9em; margin-bottom: 6px;">
+          <strong>Chronological Mapping:</strong> ${totalColumns} columns sorted by parsed dates |
+          <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
+        </div>
+        <div style="font-size: 0.85em; color: #2e7d32;">
+          All column headers were parsed as dates and sorted chronologically. Calculations now reflect true calendar order.
+        </div>
+      `;
+    } else if (mappingType === 'hybrid') {
+      summaryHTML = `
+        <h4 style="margin: 0 0 8px 0; color: #ff9800;">⚠️ Week Columns Mapped with Mixed Chronological Order</h4>
+        <div style="font-size: 0.9em; margin-bottom: 6px;">
+          <strong>Hybrid Mapping:</strong> ${parsedDateCount}/${totalColumns} columns parsed as dates, sorted chronologically |
+          <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
+        </div>
+        <div style="font-size: 0.85em; color: #ff6f00;">
+          Some headers could not be parsed as dates and use fallback sequential positioning. Calculations use best available chronological order.
+        </div>
+      `;
+    } else {
+      summaryHTML = `
+        <h4 style="margin: 0 0 8px 0; color: #2196f3;">📋 Week Columns Mapped in Sequential Order</h4>
+        <div style="font-size: 0.9em; margin-bottom: 6px;">
+          <strong>Sequential Mapping:</strong> ${totalColumns} columns mapped as Week 1, Week 2, Week 3, etc. |
+          <strong>Data Rows:</strong> ${config.firstDataRow + 1} to ${config.lastDataRow + 1}
+        </div>
+        <div style="font-size: 0.85em; color: #1976d2;">
+          Column headers could not be parsed as dates. Using column-based sequential mapping as fallback.
+        </div>
+      `;
+    }
+    
+    mappingSummaryDiv.innerHTML = summaryHTML;
     panel.appendChild(mappingSummaryDiv);
 
     // Step 2: Essential inputs (always visible)
@@ -969,17 +1009,53 @@ document.addEventListener('DOMContentLoaded', function() {
     if (weekLabels && weekLabels.length > 0) {
       const previewDiv = document.createElement('div');
       previewDiv.style.cssText = 'background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid #6c757d;';
-      previewDiv.innerHTML = `
-        <h5 style="margin: 0 0 8px 0; color: #495057;">📋 Column Mapping Preview</h5>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 0.9em;">
-          ${weekLabels.slice(0, 8).map((label, index) => 
-            `<div style="padding: 4px 8px; background: white; border-radius: 4px; border: 1px solid #dee2e6;">
-              <strong>Week ${index + 1}:</strong> ${label}
-            </div>`
-          ).join('')}
-          ${weekLabels.length > 8 ? `<div style="padding: 4px 8px; color: #6c757d;">... and ${weekLabels.length - 8} more weeks</div>` : ''}
-        </div>
-      `;
+      
+      // Create enhanced preview showing dates and original positions
+      let previewHTML = `<h5 style="margin: 0 0 8px 0; color: #495057;">📋 Column Mapping Preview (${mappingType === 'chronological' ? 'Sorted by Date' : mappingType === 'hybrid' ? 'Partially Sorted by Date' : 'Sequential Order'})</h5>`;
+      
+      previewHTML += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9em;">';
+      
+      weekLabels.slice(0, 8).forEach((label, index) => {
+        let extraInfo = '';
+        let bgColor = 'white';
+        
+        // Add date and original position info if available
+        if (window.weekGroupMapping && window.weekGroupMapping[index]) {
+          const group = window.weekGroupMapping[index];
+          if (group.parsedDate) {
+            extraInfo = `<br><small style="color: #666;">📅 ${group.parsedDate.toLocaleDateString('en-GB')}</small>`;
+            bgColor = '#e8f5e8'; // Light green for parsed dates
+          }
+          if (group.originalIndex !== undefined && group.originalIndex !== index) {
+            extraInfo += `<br><small style="color: #999;">📊 Originally column ${group.originalIndex + 1}</small>`;
+            bgColor = '#fff3cd'; // Light yellow for reordered columns
+          }
+        }
+        
+        previewHTML += `
+          <div style="padding: 6px 8px; background: ${bgColor}; border-radius: 4px; border: 1px solid #dee2e6;">
+            <strong>Week ${index + 1}:</strong> ${label}${extraInfo}
+          </div>
+        `;
+      });
+      
+      if (weekLabels.length > 8) {
+        previewHTML += `<div style="padding: 4px 8px; color: #6c757d;">... and ${weekLabels.length - 8} more weeks</div>`;
+      }
+      
+      previewHTML += '</div>';
+      
+      // Add legend for color coding
+      if (mappingType !== 'sequential') {
+        previewHTML += `
+          <div style="margin-top: 8px; font-size: 0.8em; color: #666;">
+            <span style="background: #e8f5e8; padding: 2px 4px; border-radius: 2px; margin-right: 8px;">📅 Chronologically sorted</span>
+            <span style="background: #fff3cd; padding: 2px 4px; border-radius: 2px;">📊 Reordered from original position</span>
+          </div>
+        `;
+      }
+      
+      previewDiv.innerHTML = previewHTML;
       panel.appendChild(previewDiv);
     }
 
@@ -1277,31 +1353,37 @@ document.addEventListener('DOMContentLoaded', function() {
     let weekRow = mappedData[config.weekLabelRow] || [];
     let rawHeaders = weekRow.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
     
-    // Use sequential column mapping as the primary approach
     if (rawHeaders.length > 0) {
-      // For user display, always use the original raw headers (sequential mapping)
-      weekLabels = rawHeaders;
+      // Enhanced week mapping: Parse dates from headers and sort chronologically
+      const columnMappings = parseAndSortWeekColumns(rawHeaders);
       
-      // Create sequential week mapping for downstream calculations
-      // Each column is treated as a sequential week regardless of label content
-      const sequentialGroups = rawHeaders.map((header, index) => ({
+      // Update global arrays with sorted data
+      weekLabels = columnMappings.map(mapping => mapping.header);
+      weekStartDates = columnMappings.map(mapping => mapping.parsedDate || mapping.fallbackDate);
+      
+      // Create sorted week groups for downstream calculations
+      const sortedGroups = columnMappings.map((mapping, index) => ({
         weekKey: `week-${index + 1}`,
-        year: null,
+        year: mapping.parsedDate ? mapping.parsedDate.getFullYear() : null,
         week: index + 1,
+        originalIndex: mapping.originalIndex, // Track original column position
         columns: [{
-          index: index,
-          header: header,
-          parsedDate: null,
+          index: index, // New sorted index
+          originalIndex: mapping.originalIndex, // Original column position for data access
+          header: mapping.header,
+          parsedDate: mapping.parsedDate,
           weekNumber: index + 1,
           weekKey: `week-${index + 1}`
         }],
-        primaryHeader: header
+        primaryHeader: mapping.header,
+        parsedDate: mapping.parsedDate,
+        sortKey: mapping.sortKey
       }));
       
-      // Store sequential mapping for all calculations
-      weekGroups = sequentialGroups;
+      // Store sorted mapping for all calculations
+      weekGroups = sortedGroups;
       ungroupedColumns = [];
-      window.weekGroupMapping = sequentialGroups;
+      window.weekGroupMapping = sortedGroups;
       
     } else {
       // No data available
@@ -1309,6 +1391,7 @@ document.addEventListener('DOMContentLoaded', function() {
       weekGroups = [];
       ungroupedColumns = [];
       window.weekGroupMapping = null;
+      weekStartDates = [];
     }
     
     window.weekLabels = weekLabels; // make global for charts
@@ -1316,24 +1399,103 @@ document.addEventListener('DOMContentLoaded', function() {
       weekCheckboxStates = weekLabels.map(() => true);
     }
     populateYearWeekDropdowns(weekLabels);
-
-    // Calculate week start dates - use simple sequential approach
-    if (weekLabels.length > 0) {
-      weekStartDates = calculateSequentialWeekDates(weekLabels);
-    } else {
-      weekStartDates = [];
-    }
     populateInvestmentWeekDropdown();
     
     // Update date mapping preview (optional)
     updateDateMappingPreview();
   }
+
+  /**
+   * Parse dates from week column headers and sort chronologically
+   * Returns array of column mappings sorted by date, with fallbacks for unparseable headers
+   */
+  function parseAndSortWeekColumns(rawHeaders) {
+    const currentYear = new Date().getFullYear();
+    const baseYear = userSpecifiedBaseYear || currentYear;
+    
+    // Step 1: Parse dates from each header
+    const columnMappings = rawHeaders.map((header, originalIndex) => {
+      let parsedDate = null;
+      let sortKey = null;
+      
+      // Try multiple parsing methods in order of preference
+      
+      // Method 1: parseColumnDate (supports DD/MM/YYYY, DD-MM-YYYY, DD MMM YYYY)
+      parsedDate = parseColumnDate(header);
+      
+      // Method 2: parseWeekLabelAsDate (supports "1 Jan", "Jan 1", "1/1")
+      if (!parsedDate) {
+        parsedDate = parseWeekLabelAsDate(header, baseYear);
+      }
+      
+      // Method 3: Try to extract week number and convert to date
+      if (!parsedDate) {
+        const weekNumber = parseColumnWeekNumber(header);
+        if (weekNumber && weekNumber >= 1 && weekNumber <= 53) {
+          parsedDate = getDateFromISOWeek(baseYear, weekNumber);
+        }
+      }
+      
+      // Create sort key for chronological ordering
+      if (parsedDate) {
+        sortKey = parsedDate.getTime(); // Use timestamp for precise sorting
+      } else {
+        // For unparseable headers, use original order with a far future timestamp
+        // This ensures they sort after all parseable dates but maintain relative order
+        sortKey = new Date(2099, 11, 31).getTime() + originalIndex;
+      }
+      
+      // Calculate fallback date for columns that couldn't be parsed
+      const fallbackDate = calculateFallbackDate(originalIndex, baseYear);
+      
+      return {
+        originalIndex,
+        header,
+        parsedDate,
+        fallbackDate,
+        sortKey,
+        isParsed: !!parsedDate
+      };
+    });
+    
+    // Step 2: Sort by chronological order (parsed dates first, then unparseable in original order)
+    columnMappings.sort((a, b) => a.sortKey - b.sortKey);
+    
+    // Step 3: Validate sorted order and detect issues
+    const parseSuccessCount = columnMappings.filter(m => m.isParsed).length;
+    const totalColumns = columnMappings.length;
+    
+    // Log parsing results for debugging
+    console.log(`[Week Mapping] Parsed ${parseSuccessCount}/${totalColumns} column headers as dates`);
+    
+    if (parseSuccessCount === 0) {
+      console.warn('[Week Mapping] No dates could be parsed from headers. Using sequential fallback mapping.');
+    } else if (parseSuccessCount < totalColumns) {
+      console.warn(`[Week Mapping] ${totalColumns - parseSuccessCount} headers could not be parsed as dates. These will use fallback dates.`);
+    }
+    
+    return columnMappings;
+  }
+  
+  /**
+   * Calculate fallback date for columns that couldn't be parsed as dates
+   */
+  function calculateFallbackDate(columnIndex, baseYear) {
+    // Start from January 1st of base year and add 7 days per column
+    const startDate = new Date(baseYear, 0, 1);
+    const fallbackDate = new Date(startDate);
+    fallbackDate.setDate(startDate.getDate() + (columnIndex * 7));
+    return fallbackDate;
+  }
   
   /**
    * Calculate sequential week dates for column-based mapping
-   * Optionally uses base year if provided, otherwise defaults to current date
+   * DEPRECATED: This function is now largely obsolete as dates are parsed directly 
+   * from column headers in updateWeekLabels(). Kept for compatibility.
    */
   function calculateSequentialWeekDates(weekLabels) {
+    console.warn('[calculateSequentialWeekDates] This function is deprecated. Dates should be calculated in updateWeekLabels().');
+    
     const dates = [];
     
     // Determine starting date - prioritize user inputs
@@ -1446,7 +1608,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Aggregate values from all columns in this group
         group.columns.forEach(col => {
-          const absCol = config.weekColStart + col.index;
+          // Use originalIndex to access the correct column in the original spreadsheet data
+          const absCol = config.weekColStart + (col.originalIndex !== undefined ? col.originalIndex : col.index);
           for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
             let val = mappedData[r][absCol];
             if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
@@ -1458,14 +1621,17 @@ document.addEventListener('DOMContentLoaded', function() {
         arr[g] = groupSum;
       }
     } else {
-      // Use original logic for individual columns (Weekly Cashflow, P&L tabs)
-      const rawHeaders = mappedData[config.weekLabelRow] || [];
-      const rawWeekLabels = rawHeaders.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
-      
-      for (let w = 0; w < rawWeekLabels.length; w++) {
+      // Use sorted week mapping for individual columns (Weekly Cashflow, P&L tabs)
+      for (let w = 0; w < weekLabels.length; w++) {
         if (weekCheckboxStates && !weekCheckboxStates[w]) continue;
-        let absCol = config.weekColStart + w;
+        
         let sum = 0;
+        
+        // Get the original column index for this sorted week
+        const group = groupMapping && groupMapping[w];
+        const originalIndex = group && group.originalIndex !== undefined ? group.originalIndex : w;
+        const absCol = config.weekColStart + originalIndex;
+        
         for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
           let val = mappedData[r][absCol];
           if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
@@ -1494,7 +1660,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Aggregate values from all columns in this group
         group.columns.forEach(col => {
-          const absCol = config.weekColStart + col.index;
+          // Use originalIndex to access the correct column in the original spreadsheet data
+          const absCol = config.weekColStart + (col.originalIndex !== undefined ? col.originalIndex : col.index);
           for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
             let val = mappedData[r][absCol];
             if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
@@ -1506,14 +1673,17 @@ document.addEventListener('DOMContentLoaded', function() {
         arr[g] = groupSum;
       }
     } else {
-      // Use original logic for individual columns (Weekly Cashflow, P&L tabs)
-      const rawHeaders = mappedData[config.weekLabelRow] || [];
-      const rawWeekLabels = rawHeaders.slice(config.weekColStart, config.weekColEnd+1).map(x => x || '');
-      
-      for (let w = 0; w < rawWeekLabels.length; w++) {
+      // Use sorted week mapping for individual columns (Weekly Cashflow, P&L tabs)
+      for (let w = 0; w < weekLabels.length; w++) {
         if (weekCheckboxStates && !weekCheckboxStates[w]) continue;
-        let absCol = config.weekColStart + w;
+        
         let sum = 0;
+        
+        // Get the original column index for this sorted week
+        const group = groupMapping && groupMapping[w];
+        const originalIndex = group && group.originalIndex !== undefined ? group.originalIndex : w;
+        const absCol = config.weekColStart + originalIndex;
+        
         for (let r = config.firstDataRow; r <= config.lastDataRow; r++) {
           let val = mappedData[r][absCol];
           if (typeof val === "string") val = val.replace(/,/g, '').replace(/€|\s/g,'');
@@ -3913,11 +4083,31 @@ setupExcelExport();
     if (!dateMappingStatus) return;
     
     if (weekLabels && weekLabels.length > 0) {
-      // Simple sequential mapping summary
-      const statusText = `${weekLabels.length} columns mapped sequentially as Week 1, Week 2, etc.`;
-      dateMappingStatus.textContent = statusText;
-      dateMappingStatus.style.color = '#388e3c';
-      dateMappingStatus.innerHTML += ' ✓';
+      // Determine mapping type
+      let mappingType = 'sequential';
+      let parsedDateCount = 0;
+      
+      if (window.weekGroupMapping && window.weekGroupMapping.length > 0) {
+        parsedDateCount = window.weekGroupMapping.filter(group => group.parsedDate).length;
+        if (parsedDateCount > 0) {
+          mappingType = parsedDateCount === weekLabels.length ? 'chronological' : 'hybrid';
+        }
+      }
+      
+      let statusText = '';
+      if (mappingType === 'chronological') {
+        statusText = `${weekLabels.length} columns sorted chronologically by parsed dates`;
+        dateMappingStatus.style.color = '#388e3c';
+        dateMappingStatus.innerHTML = statusText + ' ✓';
+      } else if (mappingType === 'hybrid') {
+        statusText = `${parsedDateCount}/${weekLabels.length} columns sorted by dates, ${weekLabels.length - parsedDateCount} sequential`;
+        dateMappingStatus.style.color = '#ff9800';
+        dateMappingStatus.innerHTML = statusText + ' ⚠️';
+      } else {
+        statusText = `${weekLabels.length} columns mapped sequentially (no dates parsed)`;
+        dateMappingStatus.style.color = '#1976d2';
+        dateMappingStatus.innerHTML = statusText + ' ℹ️';
+      }
     } else {
       dateMappingStatus.textContent = 'Upload spreadsheet to see column mapping';
       dateMappingStatus.style.color = '#666';
@@ -3934,15 +4124,47 @@ setupExcelExport();
   function updateMappingSummaryBanners() {
     if (!weekLabels || weekLabels.length === 0) return;
     
-    // Create summary content for sequential column mapping
-    const summaryHTML = `
-      <div style="background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em;">
-        <strong>📋 Sequential Column Mapping:</strong> 
-        ${weekLabels.length} columns mapped as Week 1, Week 2, Week 3, etc. | 
-        Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
-        <span style="color: #4caf50;">✅ All calculations use column-based sequential mapping</span>
-      </div>
-    `;
+    // Determine mapping type and create appropriate summary
+    let mappingType = 'sequential';
+    let parsedDateCount = 0;
+    
+    if (window.weekGroupMapping && window.weekGroupMapping.length > 0) {
+      parsedDateCount = window.weekGroupMapping.filter(group => group.parsedDate).length;
+      if (parsedDateCount > 0) {
+        mappingType = parsedDateCount === weekLabels.length ? 'chronological' : 'hybrid';
+      }
+    }
+    
+    // Create summary content based on mapping type
+    let summaryHTML = '';
+    if (mappingType === 'chronological') {
+      summaryHTML = `
+        <div style="background: #e8f5e8; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #4caf50; font-size: 0.9em;">
+          <strong>📅 Chronological Column Mapping:</strong> 
+          ${weekLabels.length} columns sorted by parsed dates | 
+          Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
+          <span style="color: #4caf50;">✅ All calculations use date-based chronological order</span>
+        </div>
+      `;
+    } else if (mappingType === 'hybrid') {
+      summaryHTML = `
+        <div style="background: #fff3cd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #ff9800; font-size: 0.9em;">
+          <strong>📅 Hybrid Column Mapping:</strong> 
+          ${parsedDateCount}/${weekLabels.length} columns sorted by dates, ${weekLabels.length - parsedDateCount} sequential | 
+          Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
+          <span style="color: #ff6f00;">⚠️ Calculations use best available chronological order</span>
+        </div>
+      `;
+    } else {
+      summaryHTML = `
+        <div style="background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em;">
+          <strong>📋 Sequential Column Mapping:</strong> 
+          ${weekLabels.length} columns mapped as Week 1, Week 2, Week 3, etc. | 
+          Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
+          <span style="color: #1976d2;">ℹ️ No dates parsed from headers - using column order</span>
+        </div>
+      `;
+    }
     
     // Target containers for each tab
     const targetContainers = [
