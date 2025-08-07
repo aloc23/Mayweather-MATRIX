@@ -1538,20 +1538,28 @@ document.addEventListener('DOMContentLoaded', function() {
     repaymentRows.forEach(r => {
       let canonicalWeekIdx = 0;
       
-      if (r.type === "week") {
+      // Handle simplified date-based repayments
+      if (r.date) {
+        // Convert date string to Date object and map to week index
+        const repaymentDate = new Date(r.date);
+        if (!isNaN(repaymentDate)) {
+          canonicalWeekIdx = mapDateToWeekIndex(repaymentDate, actualWeekStartDates);
+          console.log('[DEBUG] Date repayment:', r.date, '-> week index:', canonicalWeekIdx);
+        }
+      } else if (r.type === "week") {
         // Legacy week repayment type
         canonicalWeekIdx = mapWeekLabelToIndex(r.week, actualWeekLabels);
         console.log('[DEBUG] Week repayment:', r.week, '-> week index:', canonicalWeekIdx);
       } else if (r.type === "unified") {
-        // New unified repayment type with both date and week info
+        // Legacy unified repayment type with both date and week info
         canonicalWeekIdx = r.weekIndex;
         console.log('[DEBUG] Unified repayment:', r.explicitDate, '-> week:', r.weekLabel, '-> week index:', canonicalWeekIdx);
       } else if (r.type === "date" && r.explicitDate) {
         // Legacy date repayment type
         canonicalWeekIdx = mapDateToWeekIndex(r.explicitDate, actualWeekStartDates);
-        console.log('[DEBUG] Date repayment:', r.explicitDate, '-> week index:', canonicalWeekIdx, 'week label:', actualWeekLabels[canonicalWeekIdx]);
+        console.log('[DEBUG] Legacy date repayment:', r.explicitDate, '-> week index:', canonicalWeekIdx);
       } else if (r.type === "frequency") {
-        // Handle frequency-based repayments
+        // Handle frequency-based repayments (legacy)
         if (r.frequency === "monthly") {
           let perMonth = Math.ceil(arr.length/12);
           for (let m=0; m<12; m++) {
@@ -1827,348 +1835,213 @@ document.addEventListener('DOMContentLoaded', function() {
     populateYearWeekDropdowns(labels);
   }
 
-  function setupRepaymentForm() {
-    const yearSelect = document.getElementById('yearSelect');
-    const weekSelect = document.getElementById('weekSelect');
-    const repaymentDateInput = document.getElementById('repaymentDate');
-    const dateWeekMapping = document.getElementById('dateWeekMapping');
-    const mappingText = document.getElementById('mappingText');
-    const useFrequencyCheckbox = document.getElementById('useFrequency');
-    const frequencyControls = document.getElementById('frequencyControls');
-    const repaymentFrequency = document.getElementById('repaymentFrequency');
-    const validationSection = document.getElementById('repaymentValidation');
-    const validationText = document.getElementById('validationText');
+  // -------------------- Repayment Management (Modernized) --------------------
+  
+  // Simplified repayment schedule table management
+  function setupRepaymentScheduleTable() {
+    const addBtn = document.getElementById('addRepaymentRowBtn');
+    const tableBody = document.getElementById('repaymentTableBody');
+    const emptyMessage = document.getElementById('emptyTableMessage');
     
-    if (!yearSelect || !weekSelect || !repaymentDateInput) return;
+    if (!addBtn || !tableBody) return;
     
-    // Enhanced date/week/year synchronization with validation
-    function updateDateWeekYearSync(source = 'auto') {
-      let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-      let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
-      
-      // If no week data available, use fallback calculation
-      const hasWeekData = weekLabels && weekLabels.length > 0;
-      
-      // Get current selections
-      const selectedYear = yearSelect.value ? parseInt(yearSelect.value) : null;
-      const selectedWeek = weekSelect.value;
-      const selectedDate = repaymentDateInput.value;
-      
-      if (source === 'date' && selectedDate) {
-        // Date changed - update year and week selection and mapping
-        const dateObj = new Date(selectedDate);
-        if (!isNaN(dateObj)) {
-          // Update year dropdown
-          const dateYear = dateObj.getFullYear();
-          if (yearSelect.querySelector(`option[value="${dateYear}"]`)) {
-            yearSelect.value = dateYear;
-          }
-          
-          // Determine week selection strategy
-          let mappedWeekIdx, mappedWeekLabel, weekValue;
-          
-          if (hasWeekData) {
-            // Use spreadsheet data mapping
-            mappedWeekIdx = mapDateToWeekIndex(dateObj, actualWeekStartDates);
-            mappedWeekLabel = actualWeekLabels[mappedWeekIdx] || `Week ${mappedWeekIdx + 1}`;
-            weekValue = `spreadsheet-${mappedWeekIdx}`;
-            
-            // Update week selector with spreadsheet option if available
-            if (weekSelect.querySelector(`option[value="${weekValue}"]`)) {
-              weekSelect.value = weekValue;
-            } else {
-              // Fallback to ISO week
-              const isoWeek = getISOWeek(dateObj);
-              if (isoWeek && weekSelect.querySelector(`option[value="${isoWeek.week}"]`)) {
-                weekSelect.value = isoWeek.week;
-              }
-            }
-          } else {
-            // Use ISO week calculation
-            const isoWeek = getISOWeek(dateObj);
-            if (isoWeek && weekSelect.querySelector(`option[value="${isoWeek.week}"]`)) {
-              weekSelect.value = isoWeek.week;
-              mappedWeekLabel = `Week ${isoWeek.week}`;
-            }
-          }
-          
-          // Update mapping display with enhanced information
-          if (mappingText) {
-            const dateStr = dateObj.toLocaleDateString('en-GB');
-            const weekEndDate = new Date(dateObj);
-            weekEndDate.setDate(dateObj.getDate() + 6);
-            const weekRange = `${dateObj.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})} - ${weekEndDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})}`;
-            mappingText.innerHTML = `<strong>${dateStr}</strong> → <strong>${dateYear}, ${mappedWeekLabel || 'Week ' + getISOWeek(dateObj)?.week}</strong>: ${weekRange}`;
-            dateWeekMapping.style.background = 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)';
-            dateWeekMapping.style.borderColor = '#4caf50';
-          }
-          
-          // Validate date
-          validateRepaymentTiming(dateObj, mappedWeekIdx);
-        }
-        
-      } else if ((source === 'year' || source === 'week') && selectedYear && selectedWeek) {
-        // Year or week changed - update date and mapping
-        let targetDate = null;
-        let weekLabel = '';
-        
-        if (selectedWeek.startsWith('spreadsheet-') && hasWeekData) {
-          // Handle spreadsheet-based week selection
-          const weekIdx = parseInt(selectedWeek.replace('spreadsheet-', ''));
-          if (actualWeekStartDates[weekIdx]) {
-            targetDate = actualWeekStartDates[weekIdx];
-            weekLabel = actualWeekLabels[weekIdx] || `Week ${weekIdx + 1}`;
-          }
-        } else if (!isNaN(parseInt(selectedWeek))) {
-          // Handle ISO week number selection
-          const weekNum = parseInt(selectedWeek);
-          targetDate = getDateFromISOWeek(selectedYear, weekNum);
-          weekLabel = `Week ${weekNum}`;
-        }
-        
-        if (targetDate && !isNaN(targetDate)) {
-          // Update date input
-          repaymentDateInput.value = targetDate.toISOString().split('T')[0];
-          
-          // Calculate week range for display
-          const weekEndDate = new Date(targetDate);
-          weekEndDate.setDate(targetDate.getDate() + 6);
-          
-          // Update mapping display
-          if (mappingText) {
-            const dateStr = targetDate.toLocaleDateString('en-GB');
-            const weekRange = `${targetDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})} - ${weekEndDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'})}`;
-            mappingText.innerHTML = `<strong>${selectedYear}, ${weekLabel}</strong> → <strong>${dateStr}</strong>: ${weekRange}`;
-            dateWeekMapping.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #f1f8e9 100%)';
-            dateWeekMapping.style.borderColor = '#1976d2';
-          }
-          
-          // Validate selection
-          const weekIdx = hasWeekData && selectedWeek.startsWith('spreadsheet-') ? 
-            parseInt(selectedWeek.replace('spreadsheet-', '')) : null;
-          validateRepaymentTiming(targetDate, weekIdx);
-        }
-      } else {
-        // Clear mapping display
-        if (mappingText) {
-          const displayText = hasWeekData ? 
-            'Select a date, or year and week to see mapping' : 
-            'Select a date to see mapping (Upload spreadsheet for week synchronization)';
-          mappingText.textContent = displayText;
-          dateWeekMapping.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #f1f8e9 100%)';
-          dateWeekMapping.style.borderColor = '#bbdefb';
-        }
-        clearValidation();
-      }
-    }
-    
-    // Enhanced validation function
-    function validateRepaymentTiming(date, weekIndex) {
-      if (!validationSection || !validationText) return true;
-      
-      let isValid = true;
-      let validationMessage = '';
-      
-      // If no week data is available, allow any date selection
-      if (!weekLabels || weekLabels.length === 0) {
-        clearValidation();
-        return true;
-      }
-      
-      // Check if date/week is within available range
-      if (weekIndex !== null && (weekIndex < 0 || weekIndex >= weekLabels.length)) {
-        isValid = false;
-        validationMessage = `Selected date falls outside available week range (Weeks 1-${weekLabels.length})`;
-      }
-      
-      // Check for duplicate repayments in same week
-      const existingRepayment = repaymentRows.find(row => {
-        if (row.type === 'week') {
-          return mapWeekLabelToIndex(row.week, weekLabels) === weekIndex;
-        } else if (row.type === 'date') {
-          return mapDateToWeekIndex(row.explicitDate, weekStartDates) === weekIndex;
-        } else if (row.type === 'unified') {
-          return row.weekIndex === weekIndex;
-        }
-        return false;
-      });
-      
-      if (existingRepayment) {
-        isValid = false;
-        validationMessage = `A repayment already exists for this week (${weekLabels[weekIndex] || `Week ${weekIndex + 1}`})`;
-      }
-      
-      // Show/hide validation
-      if (!isValid) {
-        validationText.textContent = validationMessage;
-        validationSection.style.display = 'block';
-      } else {
-        clearValidation();
-      }
-      
-      return isValid;
-    }
-    
-    function clearValidation() {
-      if (validationSection) {
-        validationSection.style.display = 'none';
-      }
-    }
-    
-    // Event listeners for real-time synchronization
-    if (repaymentDateInput) {
-      repaymentDateInput.addEventListener('change', () => updateDateWeekYearSync('date'));
-      repaymentDateInput.addEventListener('input', () => updateDateWeekYearSync('date'));
-    }
-    
-    if (yearSelect) {
-      yearSelect.addEventListener('change', () => updateDateWeekYearSync('year'));
-    }
-    
-    if (weekSelect) {
-      weekSelect.addEventListener('change', () => updateDateWeekYearSync('week'));
-    }
-    
-    // Frequency toggle handling
-    if (useFrequencyCheckbox && frequencyControls) {
-      useFrequencyCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-          frequencyControls.style.display = 'block';
-          // Disable date/week inputs when using frequency
-          repaymentDateInput.style.opacity = '0.5';
-          yearSelect.style.opacity = '0.5';
-          weekSelect.style.opacity = '0.5';
-          repaymentDateInput.disabled = true;
-          yearSelect.disabled = true;
-          weekSelect.disabled = true;
-        } else {
-          frequencyControls.style.display = 'none';
-          // Re-enable date/week inputs
-          repaymentDateInput.style.opacity = '1';
-          yearSelect.style.opacity = '1';
-          weekSelect.style.opacity = '1';
-          repaymentDateInput.disabled = false;
-          yearSelect.disabled = false;
-          weekSelect.disabled = false;
-        }
-        clearValidation();
-      });
-    }
-    
-    // Enhanced form submission with improved data structure
-    const addRepaymentForm = document.getElementById('addRepaymentForm');
-    if (addRepaymentForm) {
-      addRepaymentForm.onsubmit = function(e) {
-        e.preventDefault();
-        
-        const amount = document.getElementById('repaymentAmount').value;
-        if (!amount || parseFloat(amount) <= 0) {
-          alert('Please enter a valid repayment amount.');
-          return;
-        }
-        
-        const isFrequencyMode = useFrequencyCheckbox && useFrequencyCheckbox.checked;
-        let newRepayment;
-        
-        if (isFrequencyMode) {
-          // Frequency-based repayment
-          const frequency = repaymentFrequency.value;
-          newRepayment = { 
-            id: ++repaymentIdCounter,
-            type: 'frequency', 
-            frequency, 
-            amount: parseFloat(amount), 
-            editing: false 
-          };
-        } else {
-          // Date/year/week-based repayment with enhanced data structure
-          const selectedDate = new Date(repaymentDateInput.value);
-          const selectedYear = yearSelect.value ? parseInt(yearSelect.value) : null;
-          const selectedWeek = weekSelect.value;
-          
-          // For cases where no week data is available, use a default week calculation
-          let weekIndex, weekLabel, yearWeekKey;
-          
-          if (weekLabels && weekLabels.length > 0) {
-            // Use spreadsheet-based mapping if available
-            if (selectedWeek && selectedWeek.startsWith('spreadsheet-')) {
-              weekIndex = parseInt(selectedWeek.replace('spreadsheet-', ''));
-              weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
-            } else {
-              // Map date to spreadsheet week
-              weekIndex = mapDateToWeekIndex(selectedDate, weekStartDates);
-              weekLabel = weekLabels[weekIndex] || `Week ${weekIndex + 1}`;
-            }
-            
-            // Validate before adding
-            if (!validateRepaymentTiming(selectedDate, weekIndex)) {
-              return; // Don't add if validation fails
-            }
-          } else {
-            // Fallback calculation when no spreadsheet data available
-            const baseDate = new Date(2025, 0, 1); // Jan 1, 2025
-            const daysDiff = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
-            weekIndex = Math.floor(daysDiff / 7);
-            weekLabel = `Week ${weekIndex + 1}`;
-          }
-          
-          // Create year-week key for proper periodization
-          if (selectedYear && selectedWeek && !selectedWeek.startsWith('spreadsheet-')) {
-            yearWeekKey = createYearWeekKey(selectedYear, parseInt(selectedWeek));
-          } else {
-            // Extract year from date
-            const dateYear = selectedDate.getFullYear();
-            const isoWeek = getISOWeek(selectedDate);
-            yearWeekKey = isoWeek ? createYearWeekKey(isoWeek.year, isoWeek.week) : null;
-          }
-          
-          newRepayment = { 
-            id: ++repaymentIdCounter,
-            type: 'unified', // New unified type that contains date, year and week info
-            explicitDate: repaymentDateInput.value,
-            weekIndex: weekIndex,
-            weekLabel: weekLabel,
-            year: selectedYear || selectedDate.getFullYear(),
-            week: selectedWeek && !selectedWeek.startsWith('spreadsheet-') ? parseInt(selectedWeek) : (getISOWeek(selectedDate)?.week || weekIndex + 1),
-            yearWeekKey: yearWeekKey,
-            amount: parseFloat(amount), 
-            editing: false 
-          };
-          
-          console.log('[INFO] Adding unified repayment:', {
-            date: selectedDate.toLocaleDateString(),
-            year: newRepayment.year,
-            week: newRepayment.week,
-            weekLabel: weekLabel,
-            weekIndex: weekIndex,
-            yearWeekKey: yearWeekKey,
-            amount: parseFloat(amount)
-          });
-        }
-        
-        console.log('[DEBUG] Adding new repayment:', JSON.parse(JSON.stringify(newRepayment)));
-        repaymentRows.push(newRepayment);
-        
-        // Check for cash flow warnings
-        checkRepaymentWarning();
-        
-        renderRepaymentRows();
-        this.reset();
-        clearValidation();
-        
-        // Re-populate dropdowns and reset UI state
-        populateYearWeekDropdowns(weekLabels);
-        updateDateWeekYearSync('auto');
-        
-        updateAllTabs();
+    // Add new repayment row
+    addBtn.addEventListener('click', function() {
+      const newRepayment = {
+        id: ++repaymentIdCounter,
+        date: '',
+        amount: 0,
+        editing: true
       };
+      
+      repaymentRows.push(newRepayment);
+      renderRepaymentTable();
+    });
+    
+    // Initial render
+    renderRepaymentTable();
+  }
+  
+  function renderRepaymentTable() {
+    const tableBody = document.getElementById('repaymentTableBody');
+    const emptyMessage = document.getElementById('emptyTableMessage');
+    const table = document.getElementById('repaymentScheduleTable');
+    
+    if (!tableBody) return;
+    
+    // Clear existing rows
+    tableBody.innerHTML = '';
+    
+    if (repaymentRows.length === 0) {
+      // Show empty state
+      if (table) table.style.display = 'none';
+      if (emptyMessage) emptyMessage.style.display = 'block';
+      return;
     }
     
-    // Initialize the form state
-    populateYearWeekDropdowns(weekLabels); // Populate dropdowns with current week data
-    updateDateWeekYearSync('auto');
+    // Show table and hide empty message
+    if (table) table.style.display = 'table';
+    if (emptyMessage) emptyMessage.style.display = 'none';
+    
+    // Render each repayment row
+    repaymentRows.forEach((repayment, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = createRepaymentRowHTML(repayment, index);
+      tableBody.appendChild(row);
+      
+      // Add event listeners for this row
+      attachRepaymentRowListeners(row, repayment, index);
+    });
+    
+    // Update loan summary
+    updateLoanSummary();
   }
-  setupRepaymentForm();
+  
+  function createRepaymentRowHTML(repayment, index) {
+    if (repayment.editing) {
+      // Editing mode
+      return `
+        <td>
+          <input type="date" 
+                 class="repayment-date-input" 
+                 value="${repayment.date || ''}"
+                 data-field="date"
+                 data-index="${index}">
+        </td>
+        <td>
+          <input type="number" 
+                 class="repayment-amount-input" 
+                 value="${repayment.amount || ''}"
+                 placeholder="0.00"
+                 step="0.01"
+                 min="0"
+                 data-field="amount"
+                 data-index="${index}">
+        </td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-table-save" data-action="save" data-index="${index}">Save</button>
+            <button class="btn-table-cancel" data-action="cancel" data-index="${index}">Cancel</button>
+          </div>
+        </td>
+      `;
+    } else {
+      // Display mode
+      const formattedDate = repayment.date ? new Date(repayment.date).toLocaleDateString('en-GB') : 'Not set';
+      const formattedAmount = repayment.amount ? `€${Number(repayment.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '€0.00';
+      
+      return `
+        <td>
+          <span class="repayment-date-display">${formattedDate}</span>
+        </td>
+        <td>
+          <span class="repayment-amount-display">${formattedAmount}</span>
+        </td>
+        <td>
+          <div class="table-actions">
+            <button class="btn-table-edit" data-action="edit" data-index="${index}">Edit</button>
+            <button class="btn-table-delete" data-action="delete" data-index="${index}">Delete</button>
+          </div>
+        </td>
+      `;
+    }
+  }
+  
+  function attachRepaymentRowListeners(row, repayment, index) {
+    // Handle button clicks
+    const buttons = row.querySelectorAll('button[data-action]');
+    buttons.forEach(button => {
+      button.addEventListener('click', function() {
+        const action = this.getAttribute('data-action');
+        const idx = parseInt(this.getAttribute('data-index'));
+        
+        switch (action) {
+          case 'edit':
+            editRepaymentRow(idx);
+            break;
+          case 'save':
+            saveRepaymentRow(idx, row);
+            break;
+          case 'cancel':
+            cancelRepaymentEdit(idx);
+            break;
+          case 'delete':
+            deleteRepaymentRow(idx);
+            break;
+        }
+      });
+    });
+    
+    // Handle input changes in edit mode
+    if (repayment.editing) {
+      const inputs = row.querySelectorAll('input[data-field]');
+      inputs.forEach(input => {
+        input.addEventListener('input', function() {
+          const field = this.getAttribute('data-field');
+          const idx = parseInt(this.getAttribute('data-index'));
+          
+          if (field === 'date') {
+            repaymentRows[idx].date = this.value;
+          } else if (field === 'amount') {
+            repaymentRows[idx].amount = parseFloat(this.value) || 0;
+          }
+        });
+      });
+    }
+  }
+  
+  function editRepaymentRow(index) {
+    repaymentRows[index].editing = true;
+    renderRepaymentTable();
+  }
+  
+  function saveRepaymentRow(index, row) {
+    const repayment = repaymentRows[index];
+    const dateInput = row.querySelector('input[data-field="date"]');
+    const amountInput = row.querySelector('input[data-field="amount"]');
+    
+    // Validate inputs
+    if (!dateInput.value) {
+      alert('Please enter a date for the repayment.');
+      return;
+    }
+    
+    if (!amountInput.value || parseFloat(amountInput.value) <= 0) {
+      alert('Please enter a valid repayment amount.');
+      return;
+    }
+    
+    // Save the values
+    repayment.date = dateInput.value;
+    repayment.amount = parseFloat(amountInput.value);
+    repayment.editing = false;
+    
+    renderRepaymentTable();
+    checkRepaymentWarning();
+    updateAllTabs();
+  }
+  
+  function cancelRepaymentEdit(index) {
+    // If this is a new repayment (no date set), remove it
+    if (!repaymentRows[index].date) {
+      repaymentRows.splice(index, 1);
+    } else {
+      // Otherwise just cancel editing
+      repaymentRows[index].editing = false;
+    }
+    
+    renderRepaymentTable();
+  }
+  
+  function deleteRepaymentRow(index) {
+    if (confirm('Are you sure you want to delete this repayment?')) {
+      repaymentRows.splice(index, 1);
+      renderRepaymentTable();
+      checkRepaymentWarning();
+      updateAllTabs();
+    }
+  }
+  setupRepaymentScheduleTable();
 
   // Setup date picker functionality
   function setupDatePickers() {
@@ -2250,185 +2123,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  function renderRepaymentRows() {
-    const container = document.getElementById('repaymentRows');
-    if (!container) return;
-    container.innerHTML = "";
-    
-    repaymentRows.forEach((row, i) => {
-      const div = document.createElement('div');
-      div.className = 'repayment-row';
-      
-      // Enhanced repayment row header
-      const headerDiv = document.createElement('div');
-      headerDiv.className = 'repayment-row-header';
-      
-      // Type badge
-      const typeBadge = document.createElement('span');
-      typeBadge.className = 'repayment-type-badge';
-      if (row.type === 'unified') {
-        typeBadge.textContent = 'Date & Week Synchronized';
-      } else if (row.type === 'frequency') {
-        typeBadge.textContent = `Frequency: ${row.frequency}`;
-      } else {
-        typeBadge.textContent = row.type;
-      }
-      headerDiv.appendChild(typeBadge);
-      
-      // Action buttons
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'repayment-actions';
-      
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn-edit';
-      editBtn.textContent = row.editing ? 'Save' : 'Edit';
-      
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'btn-remove';
-      removeBtn.textContent = 'Remove';
-      
-      actionsDiv.appendChild(editBtn);
-      actionsDiv.appendChild(removeBtn);
-      headerDiv.appendChild(actionsDiv);
-      
-      div.appendChild(headerDiv);
-      
-      // Repayment details section
-      const detailsDiv = document.createElement('div');
-      detailsDiv.className = 'repayment-details';
-      
-      if (row.type === 'unified') {
-        // Unified date/week display
-        const dateWeekInfo = document.createElement('div');
-        dateWeekInfo.className = 'date-week-info';
-        dateWeekInfo.style.cssText = 'display: flex; gap: 20px; align-items: center; margin-bottom: 12px; padding: 12px; background: #f8fafc; border-radius: 8px;';
-        
-        if (row.editing) {
-          // Editable unified date/week inputs
-          const dateInput = document.createElement('input');
-          dateInput.type = 'date';
-          dateInput.value = row.explicitDate || "";
-          dateInput.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
-          
-          const weekSelect = document.createElement('select');
-          weekSelect.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
-          (weekLabels.length ? weekLabels : Array.from({length:52}, (_,i)=>`Week ${i+1}`)).forEach(label => {
-            const opt = document.createElement('option');
-            opt.value = label;
-            opt.textContent = label;
-            weekSelect.appendChild(opt);
-          });
-          weekSelect.value = row.weekLabel || "";
-          
-          dateWeekInfo.innerHTML = '<strong>📅 Date:</strong> ';
-          dateWeekInfo.appendChild(dateInput);
-          dateWeekInfo.innerHTML += ' <strong>📊 Week:</strong> ';
-          dateWeekInfo.appendChild(weekSelect);
-          
-          // Store references for save operation
-          row._editingElements = { dateInput, weekSelect };
-        } else {
-          // Display unified date/week info
-          const formattedDate = row.explicitDate ? new Date(row.explicitDate).toLocaleDateString('en-GB') : 'Not set';
-          const weekLabel = row.weekLabel || 'Not set';
-          
-          dateWeekInfo.innerHTML = `
-            <div><strong>📅 Date:</strong> ${formattedDate}</div>
-            <div><strong>📊 Week:</strong> ${weekLabel}</div>
-            <div style="color: #1976d2; font-size: 0.9em;">🔗 Synchronized</div>
-          `;
-        }
-        
-        detailsDiv.appendChild(dateWeekInfo);
-      } else if (row.type === 'frequency') {
-        // Frequency display
-        const freqInfo = document.createElement('div');
-        freqInfo.style.cssText = 'margin-bottom: 12px; padding: 12px; background: #f0f9ff; border-radius: 8px;';
-        
-        if (row.editing) {
-          const freqSelect = document.createElement('select');
-          freqSelect.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
-          ["monthly", "quarterly", "one-off"].forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f;
-            opt.textContent = f.charAt(0).toUpperCase() + f.slice(1);
-            freqSelect.appendChild(opt);
-          });
-          freqSelect.value = row.frequency || "monthly";
-          
-          freqInfo.innerHTML = '<strong>💫 Frequency:</strong> ';
-          freqInfo.appendChild(freqSelect);
-          
-          row._editingElements = { freqSelect };
-        } else {
-          freqInfo.innerHTML = `<strong>💫 Frequency:</strong> ${row.frequency ? row.frequency.charAt(0).toUpperCase() + row.frequency.slice(1) : 'Not set'}`;
-        }
-        
-        detailsDiv.appendChild(freqInfo);
-      } else {
-        // Legacy week/date display
-        const legacyInfo = document.createElement('div');
-        legacyInfo.style.cssText = 'margin-bottom: 12px; padding: 12px; background: #fef7cd; border-radius: 8px;';
-        legacyInfo.innerHTML = `<strong>Legacy ${row.type}:</strong> ${row.week || row.explicitDate || 'Not set'}`;
-        detailsDiv.appendChild(legacyInfo);
-      }
-      
-      // Amount input
-      const amountDiv = document.createElement('div');
-      amountDiv.style.cssText = 'display: flex; align-items: center; gap: 12px;';
-      
-      const amountInput = document.createElement('input');
-      amountInput.type = 'number';
-      amountInput.value = row.amount;
-      amountInput.placeholder = 'Repayment €';
-      amountInput.disabled = !row.editing;
-      amountInput.style.cssText = 'flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;';
-      
-      amountDiv.innerHTML = '<strong>💰 Amount: €</strong>';
-      amountDiv.appendChild(amountInput);
-      
-      detailsDiv.appendChild(amountDiv);
-      div.appendChild(detailsDiv);
-      
-      // Event handlers
-      editBtn.onclick = function() {
-        console.log('[DEBUG] Edit button clicked for repayment row', i);
-        if (row.editing) {
-          // Save changes
-          if (row.type === 'unified' && row._editingElements) {
-            const newDate = row._editingElements.dateInput.value;
-            const newWeekLabel = row._editingElements.weekSelect.value;
-            
-            if (newDate) {
-              row.explicitDate = newDate;
-              row.weekIndex = mapDateToWeekIndex(newDate, weekStartDates);
-              row.weekLabel = newWeekLabel;
-            }
-          } else if (row.type === 'frequency' && row._editingElements) {
-            row.frequency = row._editingElements.freqSelect.value;
-          }
-          
-          row.amount = parseFloat(amountInput.value);
-          delete row._editingElements; // Clean up temporary references
-        }
-        row.editing = !row.editing;
-        renderRepaymentRows();
-        checkRepaymentWarning();
-        updateAllTabs();
-      };
 
-      removeBtn.onclick = function() {
-        console.log('[DEBUG] Remove button clicked for repayment row', i);
-        repaymentRows.splice(i, 1);
-        renderRepaymentRows();
-        checkRepaymentWarning();
-        updateAllTabs();
-      };
-      
-      // Add the row to the container
-      container.appendChild(div);
-    });
-  }
 
   function updateLoanSummary() {
     const totalRepaid = getRepaymentArr().reduce((a,b)=>a+b,0);
@@ -4282,7 +3977,7 @@ setupExcelExport();
     clearCalculationCache();
     
     clearRoiSuggestions(); // Clear suggestions when data changes
-    renderRepaymentRows();
+    renderRepaymentTable();
     updateLoanSummary();
     updateChartAndSummary();
     renderPnlTables();
