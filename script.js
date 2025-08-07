@@ -1718,13 +1718,18 @@ document.addEventListener('DOMContentLoaded', function() {
     repaymentRows.forEach(r => {
       let canonicalWeekIdx = 0;
       
-      // Handle simplified date-based repayments
-      if (r.date) {
+      // NEW: Prioritize explicit weekIndex (our new approach)
+      if (r.weekIndex !== undefined && r.weekIndex !== null) {
+        canonicalWeekIdx = r.weekIndex;
+        console.log('[DEBUG] New weekIndex repayment: weekIndex', r.weekIndex, '-> week index:', canonicalWeekIdx);
+      }
+      // Handle legacy date-based repayments (for backward compatibility)
+      else if (r.date) {
         // Convert date string to Date object and map to week index
         const repaymentDate = new Date(r.date);
         if (!isNaN(repaymentDate)) {
           canonicalWeekIdx = mapDateToWeekIndex(repaymentDate, actualWeekStartDates);
-          console.log('[DEBUG] Date repayment:', r.date, '-> week index:', canonicalWeekIdx);
+          console.log('[DEBUG] Legacy date repayment:', r.date, '-> week index:', canonicalWeekIdx);
         }
       } else if (r.type === "week") {
         // Legacy week repayment type
@@ -2029,7 +2034,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addBtn.addEventListener('click', function() {
       const newRepayment = {
         id: ++repaymentIdCounter,
-        date: '',
+        weekIndex: 0, // Default to first week
         amount: 0,
         editing: true
       };
@@ -2079,18 +2084,19 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function createRepaymentRowHTML(repayment, index) {
     if (repayment.editing) {
-      // Editing mode
+      // Editing mode - use week dropdown instead of date picker
+      const weekOptions = generateWeekDropdownOptions(repayment.weekIndex);
       return `
         <td>
-          <input type="date" 
-                 class="repayment-date-input" 
-                 value="${repayment.date || ''}"
-                 data-field="date"
-                 data-index="${index}">
+          <select class="repayment-week-select modern-select" 
+                  data-field="weekIndex"
+                  data-index="${index}">
+            ${weekOptions}
+          </select>
         </td>
         <td>
           <input type="number" 
-                 class="repayment-amount-input" 
+                 class="repayment-amount-input modern-input" 
                  value="${repayment.amount || ''}"
                  placeholder="0.00"
                  step="0.01"
@@ -2100,31 +2106,83 @@ document.addEventListener('DOMContentLoaded', function() {
         </td>
         <td>
           <div class="table-actions">
-            <button class="btn-table-save" data-action="save" data-index="${index}">Save</button>
-            <button class="btn-table-cancel" data-action="cancel" data-index="${index}">Cancel</button>
+            <button class="btn-table-save modern-btn-primary" data-action="save" data-index="${index}">
+              <span class="btn-icon">💾</span> Save
+            </button>
+            <button class="btn-table-cancel modern-btn-secondary" data-action="cancel" data-index="${index}">
+              <span class="btn-icon">❌</span> Cancel
+            </button>
           </div>
         </td>
       `;
     } else {
-      // Display mode
-      const formattedDate = repayment.date ? new Date(repayment.date).toLocaleDateString('en-GB') : 'Not set';
+      // Display mode - show week and corresponding date
+      const weekDisplay = getWeekDisplayText(repayment.weekIndex);
       const formattedAmount = repayment.amount ? `€${Number(repayment.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '€0.00';
       
       return `
         <td>
-          <span class="repayment-date-display">${formattedDate}</span>
+          <span class="repayment-week-display">${weekDisplay}</span>
         </td>
         <td>
           <span class="repayment-amount-display">${formattedAmount}</span>
         </td>
         <td>
           <div class="table-actions">
-            <button class="btn-table-edit" data-action="edit" data-index="${index}">Edit</button>
-            <button class="btn-table-delete" data-action="delete" data-index="${index}">Delete</button>
+            <button class="btn-table-edit modern-btn-outline" data-action="edit" data-index="${index}">
+              <span class="btn-icon">✏️</span> Edit
+            </button>
+            <button class="btn-table-delete modern-btn-danger" data-action="delete" data-index="${index}">
+              <span class="btn-icon">🗑️</span> Delete
+            </button>
           </div>
         </td>
       `;
     }
+  }
+
+  /**
+   * Generate dropdown options for week selection
+   */
+  function generateWeekDropdownOptions(selectedWeekIndex) {
+    const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
+      Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+    const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
+      Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    
+    let options = '<option value="">Select Week...</option>';
+    
+    for (let i = 0; i < availableWeekLabels.length; i++) {
+      const weekLabel = availableWeekLabels[i] || `Week ${i + 1}`;
+      const weekDate = availableWeekStartDates[i];
+      const dateStr = weekDate ? weekDate.toLocaleDateString('en-GB') : '';
+      const displayText = dateStr ? `${weekLabel} (${dateStr})` : weekLabel;
+      const selected = (selectedWeekIndex === i) ? 'selected' : '';
+      
+      options += `<option value="${i}" ${selected}>${displayText}</option>`;
+    }
+    
+    return options;
+  }
+
+  /**
+   * Get display text for a week index (for display mode)
+   */
+  function getWeekDisplayText(weekIndex) {
+    if (weekIndex === undefined || weekIndex === null) {
+      return 'Not set';
+    }
+    
+    const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
+      Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+    const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
+      Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    
+    const weekLabel = availableWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
+    const weekDate = availableWeekStartDates[weekIndex];
+    const dateStr = weekDate ? weekDate.toLocaleDateString('en-GB') : '';
+    
+    return dateStr ? `${weekLabel} (${dateStr})` : weekLabel;
   }
   
   function attachRepaymentRowListeners(row, repayment, index) {
@@ -2154,14 +2212,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle input changes in edit mode
     if (repayment.editing) {
-      const inputs = row.querySelectorAll('input[data-field]');
+      const inputs = row.querySelectorAll('input[data-field], select[data-field]');
       inputs.forEach(input => {
-        input.addEventListener('input', function() {
+        input.addEventListener('change', function() {
           const field = this.getAttribute('data-field');
           const idx = parseInt(this.getAttribute('data-index'));
           
-          if (field === 'date') {
-            repaymentRows[idx].date = this.value;
+          if (field === 'weekIndex') {
+            repaymentRows[idx].weekIndex = parseInt(this.value) || 0;
           } else if (field === 'amount') {
             repaymentRows[idx].amount = parseFloat(this.value) || 0;
           }
@@ -2177,12 +2235,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function saveRepaymentRow(index, row) {
     const repayment = repaymentRows[index];
-    const dateInput = row.querySelector('input[data-field="date"]');
+    const weekSelect = row.querySelector('select[data-field="weekIndex"]');
     const amountInput = row.querySelector('input[data-field="amount"]');
     
     // Validate inputs
-    if (!dateInput.value) {
-      alert('Please enter a date for the repayment.');
+    if (!weekSelect.value) {
+      alert('Please select a week for the repayment.');
       return;
     }
     
@@ -2191,8 +2249,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Save the values
-    repayment.date = dateInput.value;
+    // Save the values using weekIndex instead of date
+    repayment.weekIndex = parseInt(weekSelect.value);
     repayment.amount = parseFloat(amountInput.value);
     repayment.editing = false;
     
