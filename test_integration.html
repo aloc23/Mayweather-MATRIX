@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual Week Mapping Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { 
+            border: 1px solid #ccc; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 6px;
+        }
+        .success { border-color: #4caf50; background: #f1f8e9; }
+        .warning { border-color: #ff9800; background: #fff3e0; }
+    </style>
+</head>
+<body>
+    <h1>Week Mapping Integration Test - Before and After</h1>
+    
+    <div class="test-section">
+        <h3>Simulated Test Data: Out-of-Order Date Columns</h3>
+        <p><strong>Headers:</strong> ["15/01/2025", "08/01/2025", "22/01/2025", "01/01/2025", "29/01/2025"]</p>
+        <p><strong>Income Row:</strong> [1000, 1500, 1200, 800, 1100]</p>
+        <p><strong>Expected Chronological Order:</strong> 01/01/2025 → 08/01/2025 → 15/01/2025 → 22/01/2025 → 29/01/2025</p>
+        <p><strong>Expected Income Order:</strong> [800, 1500, 1000, 1200, 1100]</p>
+    </div>
+
+    <div id="old-behavior" class="test-section">
+        <h3>❌ Old Behavior (Sequential Column Order)</h3>
+        <div id="old-results"></div>
+    </div>
+
+    <div id="new-behavior" class="test-section success">
+        <h3>✅ New Behavior (Chronological Date Order)</h3>
+        <div id="new-results"></div>
+    </div>
+
+    <script>
+        // Test data representing the CSV file
+        const testData = {
+            headers: ["15/01/2025", "08/01/2025", "22/01/2025", "01/01/2025", "29/01/2025"],
+            incomeRow: [1000, 1500, 1200, 800, 1100],
+            expenditureRow: [-600, -620, -615, -590, -605]
+        };
+
+        // OLD BEHAVIOR: Sequential column mapping (current system)
+        function oldSequentialMapping(headers, dataRow) {
+            const weekLabels = headers;
+            const weekData = dataRow;
+            
+            let html = '<h4>Sequential Week Mapping:</h4>';
+            html += '<table border="1" style="border-collapse: collapse;">';
+            html += '<tr><th>Week #</th><th>Header</th><th>Income</th><th>Date Order Issue</th></tr>';
+            
+            weekLabels.forEach((header, index) => {
+                const income = weekData[index];
+                const isOutOfOrder = index > 0 && new Date(header.split('/').reverse().join('-')) < new Date(weekLabels[index-1].split('/').reverse().join('-'));
+                html += `<tr>
+                    <td>Week ${index + 1}</td>
+                    <td>${header}</td>
+                    <td>€${income}</td>
+                    <td>${isOutOfOrder ? '⚠️ Out of chronological order' : '✅ OK'}</td>
+                </tr>`;
+            });
+            html += '</table>';
+            
+            return html;
+        }
+
+        // Copy enhanced parsing functions from script.js
+        function parseColumnDate(headerText) {
+            if (!headerText || typeof headerText !== 'string') return null;
+            
+            const text = headerText.toString().trim();
+            
+            // Pattern 1: DD/MM/YYYY or DD/MM/YY
+            let match = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+            if (match) {
+                let [, day, month, year] = match;
+                if (year.length === 2) year = '20' + year;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            
+            return null;
+        }
+
+        function parseAndSortWeekColumns(rawHeaders) {
+            const currentYear = new Date().getFullYear();
+            const baseYear = 2025;
+            
+            const columnMappings = rawHeaders.map((header, originalIndex) => {
+                let parsedDate = null;
+                let sortKey = null;
+                
+                parsedDate = parseColumnDate(header);
+                
+                if (parsedDate) {
+                    sortKey = parsedDate.getTime();
+                } else {
+                    sortKey = new Date(2099, 11, 31).getTime() + originalIndex;
+                }
+                
+                const fallbackDate = new Date(baseYear, 0, 1 + (originalIndex * 7));
+                
+                return {
+                    originalIndex,
+                    header,
+                    parsedDate,
+                    fallbackDate,
+                    sortKey,
+                    isParsed: !!parsedDate
+                };
+            });
+            
+            columnMappings.sort((a, b) => a.sortKey - b.sortKey);
+            
+            return columnMappings;
+        }
+
+        // NEW BEHAVIOR: Enhanced chronological mapping
+        function newChronologicalMapping(headers, dataRow) {
+            const columnMappings = parseAndSortWeekColumns(headers);
+            
+            let html = '<h4>Chronological Week Mapping:</h4>';
+            html += '<table border="1" style="border-collapse: collapse;">';
+            html += '<tr><th>Week #</th><th>Header</th><th>Parsed Date</th><th>Income</th><th>Original Column</th></tr>';
+            
+            columnMappings.forEach((mapping, index) => {
+                const income = dataRow[mapping.originalIndex];
+                const dateStr = mapping.parsedDate ? mapping.parsedDate.toLocaleDateString('en-GB') : 'Not parsed';
+                const reordered = mapping.originalIndex !== index ? '🔄' : '';
+                
+                html += `<tr>
+                    <td>Week ${index + 1} ${reordered}</td>
+                    <td>${mapping.header}</td>
+                    <td>${dateStr}</td>
+                    <td>€${income}</td>
+                    <td>Column ${mapping.originalIndex + 1}</td>
+                </tr>`;
+            });
+            html += '</table>';
+            
+            // Show the impact on calculations
+            html += '<h4>Impact on Weekly Calculations:</h4>';
+            html += '<p><strong>Old order income total:</strong> €' + dataRow.reduce((a, b) => a + b, 0) + '</p>';
+            
+            const newOrderIncome = columnMappings.map(m => dataRow[m.originalIndex]);
+            html += '<p><strong>New order income:</strong> [' + newOrderIncome.join(', ') + ']</p>';
+            html += '<p><strong>Chronological total:</strong> €' + newOrderIncome.reduce((a, b) => a + b, 0) + '</p>';
+            html += '<p style="color: #4caf50;"><strong>✅ Now reflects true calendar progression of income</strong></p>';
+            
+            return html;
+        }
+
+        // Run the comparison
+        document.getElementById('old-results').innerHTML = oldSequentialMapping(testData.headers, testData.incomeRow);
+        document.getElementById('new-results').innerHTML = newChronologicalMapping(testData.headers, testData.incomeRow);
+
+        // Add summary
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'test-section warning';
+        summaryDiv.innerHTML = `
+            <h3>📊 Key Improvements Summary</h3>
+            <ul>
+                <li><strong>Before:</strong> Week 1 = 15/01/2025 (€1000), Week 2 = 08/01/2025 (€1500) - Wrong chronological order!</li>
+                <li><strong>After:</strong> Week 1 = 01/01/2025 (€800), Week 2 = 08/01/2025 (€1500) - Correct chronological order!</li>
+                <li><strong>Impact:</strong> P&L calculations, ROI timing, and cashflow warnings now reflect true calendar sequence</li>
+                <li><strong>Fallback:</strong> If no dates can be parsed, system falls back to original sequential mapping</li>
+            </ul>
+        `;
+        document.body.appendChild(summaryDiv);
+    </script>
+</body>
+</html>

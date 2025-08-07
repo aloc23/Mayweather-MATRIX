@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Week Mapping Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { 
+            border: 1px solid #ccc; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 6px;
+        }
+        .success { border-color: #4caf50; background: #f1f8e9; }
+        .warning { border-color: #ff9800; background: #fff3e0; }
+        .error { border-color: #f44336; background: #ffebee; }
+        table { 
+            border-collapse: collapse; 
+            margin: 10px 0; 
+            width: 100%;
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        th { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>Enhanced Week Mapping Logic Test</h1>
+    
+    <div id="test-results"></div>
+
+    <script>
+        // Copy the essential parsing functions from script.js for testing
+        function parseColumnDate(headerText) {
+            if (!headerText || typeof headerText !== 'string') return null;
+            
+            const text = headerText.toString().trim();
+            
+            // Pattern 1: DD/MM/YYYY or DD/MM/YY
+            let match = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+            if (match) {
+                let [, day, month, year] = match;
+                if (year.length === 2) year = '20' + year;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            
+            // Pattern 2: DD-MM-YYYY or DD-MM-YY  
+            match = text.match(/(\d{1,2})-(\d{1,2})-(\d{2,4})/);
+            if (match) {
+                let [, day, month, year] = match;
+                if (year.length === 2) year = '20' + year;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            
+            // Pattern 3: DD MMM YYYY (e.g., "28 Jun 2025")
+            const months = {
+                jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+                apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+                aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+                nov: 10, november: 10, dec: 11, december: 11
+            };
+            
+            match = text.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/i);
+            if (match) {
+                const [, day, monthStr, year] = match;
+                const monthIndex = months[monthStr.toLowerCase()];
+                if (monthIndex !== undefined) {
+                    return new Date(parseInt(year), monthIndex, parseInt(day));
+                }
+            }
+            
+            return null;
+        }
+
+        function parseWeekLabelAsDate(weekLabel, referenceYear = null) {
+            if (!weekLabel || typeof weekLabel !== 'string') return null;
+            
+            const effectiveYear = referenceYear || new Date().getFullYear();
+            const text = weekLabel.toString().trim();
+            
+            // Common month abbreviations
+            const months = {
+                jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+                apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+                aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+                nov: 10, november: 10, dec: 11, december: 11
+            };
+            
+            // Pattern 1: "1 Jan", "8 Jan", "15 Jan"
+            let match = text.match(/^(\d{1,2})\s+([a-z]+)$/i);
+            if (match) {
+                const [, day, monthStr] = match;
+                const monthIndex = months[monthStr.toLowerCase()];
+                if (monthIndex !== undefined) {
+                    return new Date(effectiveYear, monthIndex, parseInt(day));
+                }
+            }
+            
+            // Pattern 2: "Jan 1", "Jan 8", "Jan 15" 
+            match = text.match(/^([a-z]+)\s+(\d{1,2})$/i);
+            if (match) {
+                const [, monthStr, day] = match;
+                const monthIndex = months[monthStr.toLowerCase()];
+                if (monthIndex !== undefined) {
+                    return new Date(effectiveYear, monthIndex, parseInt(day));
+                }
+            }
+            
+            // Pattern 3: "1/1", "8/1", "15/1" (day/month)
+            match = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+            if (match) {
+                const [, day, month] = match;
+                return new Date(effectiveYear, parseInt(month) - 1, parseInt(day));
+            }
+            
+            return null;
+        }
+
+        function parseColumnWeekNumber(headerText) {
+            if (!headerText || typeof headerText !== 'string') return null;
+            
+            const text = headerText.toString().trim();
+            
+            // Pattern: Week N, Wk N, W N, WN
+            const match = text.match(/(?:week|wk|w)\s*(\d{1,2})/i);
+            if (match) {
+                const weekNum = parseInt(match[1]);
+                return weekNum >= 1 && weekNum <= 53 ? weekNum : null;
+            }
+            
+            return null;
+        }
+
+        function getDateFromISOWeek(year, week) {
+            const jan4 = new Date(year, 0, 4);
+            const jan4Day = jan4.getDay() || 7;
+            const jan4Thursday = new Date(jan4);
+            jan4Thursday.setDate(jan4.getDate() - jan4Day + 4);
+            
+            const targetThursday = new Date(jan4Thursday);
+            targetThursday.setDate(jan4Thursday.getDate() + (week - 1) * 7);
+            
+            const mondayOfWeek = new Date(targetThursday);
+            mondayOfWeek.setDate(targetThursday.getDate() - 3);
+            
+            return mondayOfWeek;
+        }
+
+        function parseAndSortWeekColumns(rawHeaders) {
+            const currentYear = new Date().getFullYear();
+            const baseYear = 2025; // Test with 2025
+            
+            const columnMappings = rawHeaders.map((header, originalIndex) => {
+                let parsedDate = null;
+                let sortKey = null;
+                
+                // Try multiple parsing methods
+                parsedDate = parseColumnDate(header);
+                
+                if (!parsedDate) {
+                    parsedDate = parseWeekLabelAsDate(header, baseYear);
+                }
+                
+                if (!parsedDate) {
+                    const weekNumber = parseColumnWeekNumber(header);
+                    if (weekNumber && weekNumber >= 1 && weekNumber <= 53) {
+                        parsedDate = getDateFromISOWeek(baseYear, weekNumber);
+                    }
+                }
+                
+                if (parsedDate) {
+                    sortKey = parsedDate.getTime();
+                } else {
+                    sortKey = new Date(2099, 11, 31).getTime() + originalIndex;
+                }
+                
+                const fallbackDate = new Date(baseYear, 0, 1 + (originalIndex * 7));
+                
+                return {
+                    originalIndex,
+                    header,
+                    parsedDate,
+                    fallbackDate,
+                    sortKey,
+                    isParsed: !!parsedDate
+                };
+            });
+            
+            columnMappings.sort((a, b) => a.sortKey - b.sortKey);
+            
+            return columnMappings;
+        }
+
+        function runTest(testName, rawHeaders, expectedOrder = null) {
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-section';
+            
+            const result = parseAndSortWeekColumns(rawHeaders);
+            const parseSuccessCount = result.filter(m => m.isParsed).length;
+            
+            let status = 'success';
+            let statusText = '✅ Success';
+            
+            if (parseSuccessCount === 0) {
+                status = 'error';
+                statusText = '❌ No dates parsed';
+            } else if (parseSuccessCount < rawHeaders.length) {
+                status = 'warning';
+                statusText = '⚠️ Partial parsing';
+            }
+            
+            testDiv.className += ' ' + status;
+            
+            let html = `
+                <h3>${testName} ${statusText}</h3>
+                <p><strong>Input:</strong> [${rawHeaders.map(h => `"${h}"`).join(', ')}]</p>
+                <p><strong>Parsed:</strong> ${parseSuccessCount}/${rawHeaders.length} headers as dates</p>
+            `;
+            
+            // Create results table
+            html += `
+                <table>
+                    <tr>
+                        <th>Sort Order</th>
+                        <th>Original Position</th>
+                        <th>Header</th>
+                        <th>Parsed Date</th>
+                        <th>Status</th>
+                    </tr>
+            `;
+            
+            result.forEach((mapping, sortedIndex) => {
+                const dateStr = mapping.parsedDate ? mapping.parsedDate.toLocaleDateString('en-GB') : 'Not parsed';
+                const statusIcon = mapping.isParsed ? '✅' : '❌';
+                const reordered = mapping.originalIndex !== sortedIndex ? '🔄' : '';
+                
+                html += `
+                    <tr>
+                        <td>${sortedIndex + 1} ${reordered}</td>
+                        <td>${mapping.originalIndex + 1}</td>
+                        <td><strong>${mapping.header}</strong></td>
+                        <td>${dateStr}</td>
+                        <td>${statusIcon} ${mapping.isParsed ? 'Parsed' : 'Fallback'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</table>';
+            
+            if (expectedOrder) {
+                const actualOrder = result.map(m => m.header);
+                const matches = JSON.stringify(actualOrder) === JSON.stringify(expectedOrder);
+                html += `<p><strong>Expected Order:</strong> [${expectedOrder.map(h => `"${h}"`).join(', ')}]</p>`;
+                html += `<p><strong>Actual Order:</strong> [${actualOrder.map(h => `"${h}"`).join(', ')}]</p>`;
+                html += `<p><strong>Order Match:</strong> ${matches ? '✅ Correct' : '❌ Incorrect'}</p>`;
+            }
+            
+            testDiv.innerHTML = html;
+            return testDiv;
+        }
+
+        // Run tests
+        const resultsDiv = document.getElementById('test-results');
+        
+        // Test 1: Chronological date headers (should be reordered)
+        resultsDiv.appendChild(runTest(
+            "Test 1: Out-of-order Date Headers",
+            ["15/01/2025", "08/01/2025", "22/01/2025", "01/01/2025"],
+            ["01/01/2025", "08/01/2025", "15/01/2025", "22/01/2025"]
+        ));
+        
+        // Test 2: Month-day format headers
+        resultsDiv.appendChild(runTest(
+            "Test 2: Month-Day Format Headers",
+            ["15 Jan", "1 Jan", "8 Jan", "22 Jan"],
+            ["1 Jan", "8 Jan", "15 Jan", "22 Jan"]
+        ));
+        
+        // Test 3: Mixed parseable and non-parseable headers
+        resultsDiv.appendChild(runTest(
+            "Test 3: Mixed Headers",
+            ["Week 3", "08/01/2025", "Random Text", "15/01/2025", "Week 1"],
+            ["08/01/2025", "15/01/2025", "Week 3", "Random Text", "Week 1"]
+        ));
+        
+        // Test 4: Week number headers
+        resultsDiv.appendChild(runTest(
+            "Test 4: Week Number Headers",
+            ["Week 3", "Week 1", "Week 2", "Week 5", "Week 4"],
+            ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"]
+        ));
+        
+        // Test 5: All unparseable headers (should maintain original order)
+        resultsDiv.appendChild(runTest(
+            "Test 5: Unparseable Headers",
+            ["Column A", "Column B", "Column C", "Column D"],
+            ["Column A", "Column B", "Column C", "Column D"]
+        ));
+        
+        // Test 6: Complex mixed scenario
+        resultsDiv.appendChild(runTest(
+            "Test 6: Complex Mixed Scenario",
+            ["22/01/2025", "Week 2", "8 Jan", "Total", "15/01/2025", "Week 1"],
+            ["8 Jan", "Week 1", "Week 2", "15/01/2025", "22/01/2025", "Total"]
+        ));
+    </script>
+</body>
+</html>
