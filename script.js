@@ -4185,80 +4185,161 @@ setupExcelExport();
   // -------------------- ROI DATE MAPPING REMOVED --------------------
   // Date mapping now handled directly through spreadsheet column label parsing
   // No manual date selection required
-  // -------------------- Update All Tabs --------------------
-  /**
-   * Create or update mapping summary banner for all tabs
-   */
-  function updateMappingSummaryBanners() {
-    if (!weekLabels || weekLabels.length === 0) return;
-    
-    // Determine mapping type and create appropriate summary
-    let mappingType = 'sequential';
-    let parsedDateCount = 0;
-    
-    if (window.weekGroupMapping && window.weekGroupMapping.length > 0) {
-      parsedDateCount = window.weekGroupMapping.filter(group => group.parsedDate).length;
-      if (parsedDateCount > 0) {
-        mappingType = parsedDateCount === weekLabels.length ? 'chronological' : 'hybrid';
+  // -------------------- Enhanced UI State Management --------------------
+  function setupEnhancedUIInteractions() {
+    // Add smooth transitions for tab switches
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Add loading state
+        this.style.opacity = '0.7';
+        setTimeout(() => {
+          this.style.opacity = '1';
+        }, 150);
+      });
+    });
+
+    // Enhanced form validation with visual feedback
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('input', function() {
+        const value = parseFloat(this.value);
+        if (isNaN(value) || value < 0) {
+          this.classList.add('error');
+          this.setAttribute('aria-invalid', 'true');
+        } else {
+          this.classList.remove('error');
+          this.setAttribute('aria-invalid', 'false');
+        }
+      });
+    });
+
+    // Add tooltips for accessibility
+    document.querySelectorAll('[data-tooltip]').forEach(element => {
+      element.setAttribute('aria-describedby', element.id + '-tooltip');
+    });
+
+    // Enhanced file upload with drag and drop visual feedback
+    const fileInput = document.getElementById('spreadsheetUpload');
+    if (fileInput) {
+      const fileArea = fileInput.parentElement;
+      
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileArea.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        fileArea.addEventListener(eventName, highlight, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        fileArea.addEventListener(eventName, unhighlight, false);
+      });
+
+      function highlight() {
+        fileArea.classList.add('drag-over');
+      }
+
+      function unhighlight() {
+        fileArea.classList.remove('drag-over');
       }
     }
-    
-    // Create summary content based on mapping type
-    let summaryHTML = '';
-    if (mappingType === 'chronological') {
-      summaryHTML = `
-        <div style="background: #e8f5e8; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #4caf50; font-size: 0.9em;">
-          <strong>📅 Chronological Column Mapping:</strong> 
-          ${weekLabels.length} columns sorted by parsed dates | 
-          Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
-          <span style="color: #4caf50;">✅ All calculations use sequential column order</span>
-        </div>
+  }
+
+  // -------------------- Accessibility Enhancements --------------------
+  function setupAccessibility() {
+    // Add proper ARIA labels and roles
+    document.querySelectorAll('.tab-content').forEach((content, index) => {
+      content.setAttribute('aria-labelledby', content.id + '-tab');
+      content.setAttribute('tabindex', content.classList.contains('active') ? '0' : '-1');
+    });
+
+    // Keyboard navigation for tabs
+    document.querySelectorAll('.tabs button').forEach(button => {
+      button.addEventListener('keydown', function(e) {
+        const tabs = Array.from(document.querySelectorAll('.tabs button'));
+        const currentIndex = tabs.indexOf(this);
+        
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const nextIndex = e.key === 'ArrowRight' 
+            ? (currentIndex + 1) % tabs.length 
+            : (currentIndex - 1 + tabs.length) % tabs.length;
+          tabs[nextIndex].focus();
+          tabs[nextIndex].click();
+        }
+      });
+    });
+
+    // Add skip link for screen readers
+    const skipLink = document.createElement('a');
+    skipLink.href = '#main-content';
+    skipLink.textContent = 'Skip to main content';
+    skipLink.className = 'sr-only';
+    skipLink.style.cssText = `
+      position: absolute;
+      left: -10000px;
+      top: auto;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    `;
+    skipLink.addEventListener('focus', () => {
+      skipLink.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9999;
+        padding: 8px 12px;
+        background: var(--brand-primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
       `;
-    } else if (mappingType === 'hybrid') {
-      summaryHTML = `
-        <div style="background: #fff3cd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #ff9800; font-size: 0.9em;">
-          <strong>📅 Hybrid Column Mapping:</strong> 
-          ${parsedDateCount}/${weekLabels.length} columns sorted by dates, ${weekLabels.length - parsedDateCount} sequential | 
-          Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
-          <span style="color: #ff6f00;">⚠️ Calculations use sequential column order</span>
-        </div>
+    });
+    skipLink.addEventListener('blur', () => {
+      skipLink.style.cssText = `
+        position: absolute;
+        left: -10000px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
       `;
-    } else {
-      summaryHTML = `
-        <div style="background: #e3f2fd; padding: 10px 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #1976d2; font-size: 0.9em;">
-          <strong>📋 Sequential Column Mapping:</strong> 
-          ${weekLabels.length} columns mapped as Week 1, Week 2, Week 3, etc. | 
-          Column range: ${weekLabels[0]} to ${weekLabels[weekLabels.length - 1]} |
-          <span style="color: #1976d2;">ℹ️ No dates parsed from headers - using column order</span>
-        </div>
-      `;
+    });
+    document.body.insertBefore(skipLink, document.body.firstChild);
+  }
+
+  // -------------------- Mobile Optimizations --------------------
+  function setupMobileOptimizations() {
+    // Add touch-friendly interactions
+    if ('ontouchstart' in window) {
+      document.body.classList.add('touch-device');
+      
+      // Increase touch targets for buttons
+      document.querySelectorAll('button').forEach(button => {
+        if (button.offsetHeight < 44) {
+          button.style.minHeight = '44px';
+        }
+      });
     }
-    
-    // Target containers for each tab
-    const targetContainers = [
-      'pnl', 'roi', 'summary'  // Tab IDs where we want to show mapping summary
-    ];
-    
-    targetContainers.forEach(tabId => {
-      const tabContainer = document.getElementById(tabId);
-      if (!tabContainer) return;
-      
-      // Remove existing summary
-      const existingSummary = tabContainer.querySelector('.mapping-summary-banner');
-      if (existingSummary) {
-        existingSummary.remove();
-      }
-      
-      // Add new summary at the top (after the h2 heading)
-      const heading = tabContainer.querySelector('h2');
-      if (heading) {
-        const summaryDiv = document.createElement('div');
-        summaryDiv.className = 'mapping-summary-banner';
-        summaryDiv.innerHTML = summaryHTML;
-        heading.parentNode.insertBefore(summaryDiv, heading.nextSibling);
-      }
+
+    // Responsive table handling
+    document.querySelectorAll('table').forEach(table => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-responsive';
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
     });
   }
+
+  // Initialize enhanced UI features
+  setupEnhancedUIInteractions();
+  setupAccessibility();
+  setupMobileOptimizations();
 
   function updateAllTabs() {
     console.log('[DEBUG] updateAllTabs: Starting update of all tabs');
