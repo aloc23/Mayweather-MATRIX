@@ -472,35 +472,91 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // -------------------- Tabs & UI Interactions --------------------
   function setupTabs() {
+    // Remove any existing event listeners by cloning and replacing tab buttons
     document.querySelectorAll('.tabs button').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+    });
+    
+    // Setup main tab navigation with enhanced functionality
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Hide any open modals/overlays when switching tabs
+        hideAllModals();
+        
+        // Update tab button states and ARIA attributes
+        document.querySelectorAll('.tabs button').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
         this.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(sec => sec.classList.remove('active'));
+        this.setAttribute('aria-selected', 'true');
+        
+        // Update tab content panels
+        document.querySelectorAll('.tab-content').forEach(sec => {
+          sec.classList.remove('active');
+          sec.setAttribute('aria-hidden', 'true');
+          sec.setAttribute('tabindex', '-1');
+        });
+        
         var tabId = btn.getAttribute('data-tab');
         var panel = document.getElementById(tabId);
-        if (panel) panel.classList.add('active');
+        if (panel) {
+          panel.classList.add('active');
+          panel.setAttribute('aria-hidden', 'false');
+          panel.setAttribute('tabindex', '0');
+          panel.focus(); // Set focus for accessibility
+        }
+        
+        // Update content after a small delay to ensure DOM is ready
         setTimeout(() => {
           updateAllTabs();
         }, 50);
       });
     });
+    
+    // Setup subtab navigation with enhanced functionality
     document.querySelectorAll('.subtabs button').forEach(btn => {
-      btn.addEventListener('click', function() {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+    });
+    
+    document.querySelectorAll('.subtabs button').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         // Find the parent tab content to limit scope
         const parentTab = this.closest('.tab-content');
         if (parentTab) {
           // Only affect subtabs within the same parent tab
-          parentTab.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+          parentTab.querySelectorAll('.subtabs button').forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+          });
           this.classList.add('active');
-          parentTab.querySelectorAll('.subtab-panel').forEach(sec => sec.classList.remove('active'));
+          this.setAttribute('aria-selected', 'true');
+          
+          parentTab.querySelectorAll('.subtab-panel').forEach(sec => {
+            sec.classList.remove('active');
+            sec.setAttribute('aria-hidden', 'true');
+          });
+          
           var subtabId = 'subtab-' + btn.getAttribute('data-subtab');
           var subpanel = document.getElementById(subtabId);
-          if (subpanel) subpanel.classList.add('active');
+          if (subpanel) {
+            subpanel.classList.add('active');
+            subpanel.setAttribute('aria-hidden', 'false');
+          }
         }
         setTimeout(updateAllTabs, 50);
       });
     });
+    
+    // Setup collapsible sections
     document.querySelectorAll('.collapsible-header').forEach(btn => {
       btn.addEventListener('click', function() {
         var content = btn.nextElementSibling;
@@ -513,6 +569,17 @@ document.addEventListener('DOMContentLoaded', function() {
           if (caret) caret.style.transform = 'none';
         }
       });
+    });
+  }
+  
+  // Helper function to hide all modals/overlays when switching tabs
+  function hideAllModals() {
+    const modals = ['helpModal', 'targetIrrModal', 'bufferModal'];
+    modals.forEach(modalId => {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.style.display = 'none';
+      }
     });
   }
   setupTabs();
