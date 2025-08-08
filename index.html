@@ -2,83 +2,132 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MATRIX</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MATRIX - Mayweather Analytics & Tracking for ROI, Investments, and Execution</title>
+  <meta name="description" content="Professional financial analytics tool for investment tracking, ROI calculations, and cash flow management by Mayweather Limited.">
+  
   <!-- External libraries -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+  
+  <!-- Preload critical assets -->
+  <link rel="preload" href="mayweather-logo.png" as="image">
 </head>
 <body>
-  <div class="header">
-    <img src="mayweather-logo.png" alt="Mayweather Limited Logo" class="logo">
+  <!-- Main Header -->
+  <header class="header" role="banner">
+    <img src="mayweather-logo.png" alt="Mayweather Limited - Professional Financial Services" class="logo">
     <h1>MATRIX</h1>
-    <h2 class="header-subtitle">Mayweather Analytics & Tracking for ROI, Investments, and Execution</h2>
-    <button id="helpBtn" style="position: absolute; top: 20px; right: 20px; background: #1976d2; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9em;" data-tooltip="Click for user guide and help">
-      ❓ Help
+    <p class="header-subtitle">Mayweather Analytics & Tracking for ROI, Investments, and Execution</p>
+    <button id="helpBtn" type="button" aria-label="Open help guide">
+      <span aria-hidden="true">❓</span> Help
     </button>
-  </div>
-  <div class="container">
-    <nav class="tabs" role="tablist">
-      <button data-tab="main" class="active">Weekly Cashflow</button>
-      <button data-tab="pnl">Profit & Loss</button>
-      <button data-tab="roi">Investment Return & Repayments</button>
-      <button data-tab="summary">Summary</button>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="container" role="main">
+    <!-- Primary Navigation -->
+    <nav class="tabs" role="tablist" aria-label="Main navigation">
+      <button type="button" role="tab" data-tab="main" class="active" aria-selected="true" aria-controls="main">
+        <span aria-hidden="true">📊</span> Weekly Cashflow
+      </button>
+      <button type="button" role="tab" data-tab="pnl" aria-selected="false" aria-controls="pnl">
+        <span aria-hidden="true">📈</span> Profit & Loss
+      </button>
+      <button type="button" role="tab" data-tab="roi" aria-selected="false" aria-controls="roi">
+        <span aria-hidden="true">💰</span> Investment Return & Repayments
+      </button>
+      <button type="button" role="tab" data-tab="summary" aria-selected="false" aria-controls="summary">
+        <span aria-hidden="true">📋</span> Summary
+      </button>
     </nav>
-    <section id="main" class="tab-content active">
-      <h2>Weekly Cashflow</h2>
-      <div class="subtabs" role="tablist">
-        <button data-subtab="mapping" class="active">Spreadsheet Mapping</button>
-        <button data-subtab="settings">Tool Settings</button>
-      </div>
-      <div id="subtab-mapping" class="subtab-panel active">
+    <!-- Weekly Cashflow Tab -->
+    <section id="main" class="tab-content active" role="tabpanel" aria-labelledby="main-tab" tabindex="0">
+      <h2>Weekly Cashflow Analysis</h2>
+      
+      <!-- Sub Navigation -->
+      <nav class="subtabs" role="tablist" aria-label="Weekly cashflow options">
+        <button type="button" role="tab" data-subtab="mapping" class="active" aria-selected="true" aria-controls="subtab-mapping">
+          Data Mapping
+        </button>
+        <button type="button" role="tab" data-subtab="settings" aria-selected="false" aria-controls="subtab-settings">
+          Tool Settings
+        </button>
+      </nav>
+
+      <!-- Data Mapping Panel -->
+      <div id="subtab-mapping" class="subtab-panel active" role="tabpanel">
         <div class="info-banner">
-          <h4><i class="icon">📊</i> Spreadsheet Mapping</h4>
+          <h4><span class="icon" aria-hidden="true">📊</span> Spreadsheet Data Mapping</h4>
           <div class="banner-content">
-            Upload your financial spreadsheet to automatically map weekly cashflow data. Columns will be processed sequentially as Week 1, Week 2, etc.
+            Upload your financial spreadsheet to automatically map weekly cashflow data. The system will process columns sequentially as Week 1, Week 2, etc., and detect your data structure automatically.
           </div>
         </div>
-        <input type="file" id="spreadsheetUpload" accept=".xlsx,.xls,.csv">
-        <div id="mappingPanel"></div>
+        
+        <div class="form-group">
+          <label for="spreadsheetUpload">Upload Financial Spreadsheet</label>
+          <input type="file" id="spreadsheetUpload" accept=".xlsx,.xls,.csv" aria-describedby="upload-help">
+          <small id="upload-help" class="form-help">Supported formats: Excel (.xlsx, .xls) and CSV files</small>
+        </div>
+        
+        <div id="mappingPanel" role="region" aria-label="Data mapping configuration"></div>
       </div>
-      <div id="subtab-settings" class="subtab-panel">
+
+      <!-- Tool Settings Panel -->
+      <div id="subtab-settings" class="subtab-panel" role="tabpanel">
         <div class="info-banner">
-          <h4><i class="icon">⚙️</i> Tool Settings</h4>
+          <h4><span class="icon" aria-hidden="true">⚙️</span> Tool Configuration</h4>
           <div class="banner-content">
-            Configure display preferences and default settings for the MATRIX application.
+            Configure application settings, chart preferences, and data display options to customize your analytics experience.
           </div>
         </div>
+        
         <div class="settings-grid">
           <div class="setting-item">
-            <label>Currency: 
-              <select id="settingsCurrency">
-                <option value="EUR">EUR (€)</option>
-                <option value="USD">USD ($)</option>
-                <option value="GBP">GBP (£)</option>
-              </select>
-            </label>
+            <label for="chartType">Default Chart Type</label>
+            <select id="chartType">
+              <option value="line">Line Chart</option>
+              <option value="bar">Bar Chart</option>
+              <option value="area">Area Chart</option>
+            </select>
           </div>
+          
           <div class="setting-item">
-            <label>Default Chart Type: 
-              <select id="settingsChartType">
-                <option value="line">Line</option>
-                <option value="bar">Bar</option>
-                <option value="pie">Pie</option>
-              </select>
-            </label>
+            <label for="currencyFormat">Currency Format</label>
+            <select id="currencyFormat">
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+          
+          <div class="setting-item">
+            <label for="dateFormat">Date Format</label>
+            <select id="dateFormat">
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
           </div>
         </div>
       </div>
-    </section>
-    <section id="pnl" class="tab-content">
-      <h2>Profit &amp; Loss Statement</h2>
+    <!-- Profit & Loss Tab -->
+    <section id="pnl" class="tab-content" role="tabpanel" aria-labelledby="pnl-tab" tabindex="0">
+      <h2>Profit &amp; Loss Analysis</h2>
       
       <!-- Charts & Analysis Section -->
       <div class="charts-analysis-section">
         <div class="info-banner">
+          <h4><span class="icon" aria-hidden="true">📈</span> Financial Performance Overview</h4>
+          <div class="banner-content">
+            Comprehensive profit and loss analysis based on your uploaded financial data. View income, expenses, and net position across all periods.
+          </div>
+        </div>
           <h4><i class="icon">📈</i> Cashflow Charts & Reports</h4>
           <div class="banner-content">
             This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
