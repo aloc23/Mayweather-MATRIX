@@ -31,27 +31,39 @@
 
   <!-- Main Application Container -->
   <main class="container" role="main">
-    <!-- Primary Navigation -->
-    <nav class="tabs" role="tablist" aria-label="Main navigation">
-      <button type="button" role="tab" data-tab="main" class="active" aria-selected="true" aria-controls="main">
-        <span aria-hidden="true">📊</span> Weekly Cashflow
+    <!-- Primary Navigation - MATRIX/VISTA/NOVA Structure -->
+    <nav class="tabs modern-tabs" role="tablist" aria-label="Main navigation">
+      <button type="button" role="tab" data-tab="matrix" class="active tab-matrix" aria-selected="true" aria-controls="matrix">
+        <div class="tab-icon">⚡</div>
+        <div class="tab-content">
+          <span class="tab-title">MATRIX</span>
+          <span class="tab-subtitle">Data & Mapping</span>
+        </div>
       </button>
-      <button type="button" role="tab" data-tab="pnl" aria-selected="false" aria-controls="pnl">
-        <span aria-hidden="true">📈</span> Profit & Loss
+      <button type="button" role="tab" data-tab="vista" class="tab-vista" aria-selected="false" aria-controls="vista">
+        <div class="tab-icon">📊</div>
+        <div class="tab-content">
+          <span class="tab-title">VISTA</span>
+          <span class="tab-subtitle">Analytics & Reports</span>
+        </div>
       </button>
-      <button type="button" role="tab" data-tab="roi" aria-selected="false" aria-controls="roi">
-        <span aria-hidden="true">💰</span> Investment Return & Repayments
-      </button>
-      <button type="button" role="tab" data-tab="summary" aria-selected="false" aria-controls="summary">
-        <span aria-hidden="true">📋</span> Summary
+      <button type="button" role="tab" data-tab="nova" class="tab-nova" aria-selected="false" aria-controls="nova">
+        <div class="tab-icon">🚀</div>
+        <div class="tab-content">
+          <span class="tab-title">NOVA</span>
+          <span class="tab-subtitle">Projections & ROI</span>
+        </div>
       </button>
     </nav>
-    <!-- Weekly Cashflow Tab -->
-    <section id="main" class="tab-content active" role="tabpanel" aria-labelledby="main-tab" tabindex="0">
-      <h2>Weekly Cashflow Analysis</h2>
+    <!-- MATRIX Tab - Data Input & Mapping -->
+    <section id="matrix" class="tab-content active" role="tabpanel" aria-labelledby="matrix-tab" tabindex="0">
+      <div class="tab-header">
+        <h2>MATRIX</h2>
+        <p class="tab-description">Data Input & Mapping Hub</p>
+      </div>
       
       <!-- Sub Navigation -->
-      <nav class="subtabs" role="tablist" aria-label="Weekly cashflow options">
+      <nav class="subtabs" role="tablist" aria-label="Matrix options">
         <button type="button" role="tab" data-subtab="mapping" class="active" aria-selected="true" aria-controls="subtab-mapping">
           Data Mapping
         </button>
@@ -118,23 +130,28 @@
       </div>
     </section>
     
-    <!-- Profit & Loss Tab -->
-    <section id="pnl" class="tab-content" role="tabpanel" aria-labelledby="pnl-tab" tabindex="0">
-      <h2>Profit &amp; Loss Analysis</h2>
+    <!-- VISTA Tab - Analytics & Reports -->
+    <section id="vista" class="tab-content" role="tabpanel" aria-labelledby="vista-tab" tabindex="0">
+      <div class="tab-header">
+        <h2>VISTA</h2>
+        <p class="tab-description">Analytics & Reporting Hub</p>
+      </div>
       
       <!-- Charts & Analysis Section -->
       <div class="charts-analysis-section">
-        <div class="info-banner">
+        <div class="info-banner vista-banner">
           <h4><span class="icon" aria-hidden="true">📈</span> Financial Performance Overview</h4>
           <div class="banner-content">
             Comprehensive profit and loss analysis based on your uploaded financial data. View income, expenses, and net position across all periods.
           </div>
         </div>
+        
+        <div class="charts-analysis-section">
           <h4><i class="icon">📈</i> Cashflow Charts & Reports</h4>
           <div class="banner-content">
             This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
             <div style="margin-top: 8px; font-size: 0.9em; color: #1565c0;">
-              <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
+              <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the MATRIX tab to configure which columns represent your weekly data.
             </div>
           </div>
         </div>
@@ -145,12 +162,12 @@
         <div id="mainChartNoData" style="display:none; color:#c00; margin-top:12px;">No data to display. Please map and filter your weeks.</div>
       </div>
       
-      <div class="info-banner" style="background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%); border-left-color: #4caf50;">
+      <div class="info-banner vista-banner" style="background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%); border-left-color: #4caf50;">
         <h4><i class="icon">📊</i> Direct Profitability Analysis</h4>
         <div class="banner-content">
           Shows profitability per week using sequential column mapping from your spreadsheet (Week 1, Week 2, etc.).
           <div style="margin-top: 8px; font-size: 0.9em; color: #2e7d32;">
-            <strong>Tip:</strong> Week numbers here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
+            <strong>Tip:</strong> Week numbers here correspond exactly to your MATRIX tab for easy cross-referencing.
           </div>
         </div>
       </div>
@@ -215,15 +232,69 @@
           </table>
         </div>
       </div>
+
+      <!-- Summary Section -->
+      <div class="vista-summary-section">
+        <div class="info-banner vista-banner">
+          <h4><i class="icon">📋</i> Executive Summary</h4>
+          <div class="banner-content">
+            Comprehensive overview of your financial performance with key performance indicators, visual analytics, and exportable reports.
+          </div>
+        </div>
+        
+        <div class="kpi-cards">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Income</div>
+            <div class="kpi-value" id="kpiTotalIncome">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Expenditure</div>
+            <div class="kpi-value" id="kpiTotalExpenditure">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Repayments</div>
+            <div class="kpi-value" id="kpiTotalRepayments">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Final Bank Balance</div>
+            <div class="kpi-value" id="kpiFinalBank">--</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Lowest Bank Balance</div>
+            <div class="kpi-value" id="kpiLowestBank">--</div>
+          </div>
+        </div>
+        <div id="summaryKeyFinancials"></div>
+        <div class="summary-section">
+          <h3>Top Contributors (Tornado Chart)</h3>
+          <canvas id="tornadoChart" style="min-height:300px; width:100%;"></canvas>
+        </div>
+        <div class="collapsible-table-section">
+          <button class="collapsible-header" type="button">
+            <span class="caret">&#9660;</span> Summary Chart
+          </button>
+          <div class="collapsible-content active">
+            <canvas id="summaryChart" height="150"></canvas>
+          </div>
+        </div>
+        <div class="export-actions">
+          <button id="exportPDFBtn" class="btn-primary">Export PDF</button>
+          <button id="exportExcelBtn" class="btn-primary">Export Excel</button>
+        </div>
+      </div>
     </section>
-    <section id="roi" class="tab-content">
-      <h2>Investment Return &amp; Repayments</h2>
+    <!-- NOVA Tab - Projections & ROI -->
+    <section id="nova" class="tab-content" role="tabpanel" aria-labelledby="nova-tab" tabindex="0">
+      <div class="tab-header">
+        <h2>NOVA</h2>
+        <p class="tab-description">Advanced Projections & ROI Analysis</p>
+      </div>
       
       <!-- ROI Analysis and Repayment Management - Unified View -->
       <div class="roi-unified-panel">
       
       <!-- Spreadsheet Column Mapping Preview -->
-      <div class="info-banner modern-banner">
+      <div class="info-banner nova-banner">
         <h4><i class="icon">📋</i> Spreadsheet Column Mapping</h4>
         <div class="banner-content">
           Columns are mapped sequentially as Week 1, Week 2, etc. based on spreadsheet column order. All calculations use this consistent column-based mapping.
@@ -267,7 +338,7 @@
         <div class="summary-controls">
           <span id="suggestedIrrDisplay" class="target-irr-display">Target IRR: 20%</span>
           <button id="editTargetIrrBtn" class="btn-secondary">Edit Target IRR/NPV</button>
-          <button id="showSuggestedRepaymentsBtn" class="btn-accent">Show Suggested Repayments</button>
+          <button id="showSuggestedRepaymentsBtn" class="btn-accent nova-btn">Show Suggested Repayments</button>
         </div>
       </div>
       
@@ -344,153 +415,104 @@
       
       </div>
     </section>
-    
-    <!-- Target IRR/NPV Modal -->
-    <div id="targetIrrModal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Edit Target IRR/NPV Settings</h3>
-          <button class="modal-close" id="closeIrrModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="targetIrrSlider"><b>Target IRR (%):</b></label>
-            <div class="slider-container">
-              <input type="range" id="targetIrrSlider" min="5" max="50" value="20" step="1">
-              <span id="targetIrrValue">20%</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label><b>Equivalent NPV:</b></label>
-            <div id="equivalentNpvDisplay" style="font-size: 1.2em; font-weight: bold; color: #1976d2; padding: 8px 0;">€0</div>
-          </div>
-          <div class="form-group">
-            <label for="installmentCountInput"><b>Number of Installments:</b></label>
-            <input type="number" id="installmentCountInput" min="1" max="52" value="12" style="width:80px;">
-            <button id="bufferSelectionBtn" type="button" style="background:#ff9800; color:white; border:none; padding:6px 12px; border-radius:4px; margin-left:10px;">Buffer/Gap</button>
-          </div>
-          <div class="form-group">
-            <label><b>Repayment Buffer:</b></label>
-            <div id="bufferSelectionDisplay" style="font-size: 1.1em; color: #1976d2; padding: 4px 0;">None selected</div>
-          </div>
-          <div class="form-group">
-            <label for="firstRepaymentWeekSelect"><b>First Repayment Week:</b></label>
-            <select id="firstRepaymentWeekSelect" style="width:200px;">
-              <option value="">Select week...</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <input type="checkbox" id="liveUpdateCheckbox" checked>
-            <label for="liveUpdateCheckbox">Live update suggestions as I adjust settings</label>
+  </div>
+  
+  <!-- Target IRR/NPV Modal -->
+  <div id="targetIrrModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Target IRR/NPV Settings</h3>
+        <button class="modal-close" id="closeIrrModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="targetIrrSlider"><b>Target IRR (%):</b></label>
+          <div class="slider-container">
+            <input type="range" id="targetIrrSlider" min="5" max="50" value="20" step="1">
+            <span id="targetIrrValue">20%</span>
           </div>
         </div>
-        <div class="modal-footer">
-          <button id="applyIrrSettings" style="background:#4caf50; color:white; border:none; padding:8px 16px; border-radius:4px;">Apply Settings</button>
-          <button id="cancelIrrSettings" style="background:#757575; color:white; border:none; padding:8px 16px; border-radius:4px;">Cancel</button>
+        <div class="form-group">
+          <label><b>Equivalent NPV:</b></label>
+          <div id="equivalentNpvDisplay" style="font-size: 1.2em; font-weight: bold; color: #1976d2; padding: 8px 0;">€0</div>
         </div>
+        <div class="form-group">
+          <label for="installmentCountInput"><b>Number of Installments:</b></label>
+          <input type="number" id="installmentCountInput" min="1" max="52" value="12" style="width:80px;">
+          <button id="bufferSelectionBtn" type="button" style="background:#ff9800; color:white; border:none; padding:6px 12px; border-radius:4px; margin-left:10px;">Buffer/Gap</button>
+        </div>
+        <div class="form-group">
+          <label><b>Repayment Buffer:</b></label>
+          <div id="bufferSelectionDisplay" style="font-size: 1.1em; color: #1976d2; padding: 4px 0;">None selected</div>
+        </div>
+        <div class="form-group">
+          <label for="firstRepaymentWeekSelect"><b>First Repayment Week:</b></label>
+          <select id="firstRepaymentWeekSelect" style="width:200px;">
+            <option value="">Select week...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="checkbox" id="liveUpdateCheckbox" checked>
+          <label for="liveUpdateCheckbox">Live update suggestions as I adjust settings</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="applyIrrSettings" style="background:#4caf50; color:white; border:none; padding:8px 16px; border-radius:4px;">Apply Settings</button>
+        <button id="cancelIrrSettings" style="background:#757575; color:white; border:none; padding:8px 16px; border-radius:4px;">Cancel</button>
       </div>
     </div>
-    
-    <!-- Buffer Selection Modal -->
-    <div id="bufferModal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Select Repayment Buffer/Gap</h3>
-          <button class="modal-close" id="closeBufferModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label><b>Choose buffer between repayments:</b></label>
-            <div style="margin-top: 10px;">
-              <label style="display: block; margin-bottom: 8px;">
-                <input type="radio" name="bufferOption" value="none" checked style="margin-right: 8px;">
-                None (fastest possible schedule)
-              </label>
-              <label style="display: block; margin-bottom: 8px;">
-                <input type="radio" name="bufferOption" value="2weeks" style="margin-right: 8px;">
-                2 weeks gap between repayments
-              </label>
-              <label style="display: block; margin-bottom: 8px;">
-                <input type="radio" name="bufferOption" value="1month" style="margin-right: 8px;">
-                1 month gap between repayments
-              </label>
-              <label style="display: block; margin-bottom: 8px;">
-                <input type="radio" name="bufferOption" value="2months" style="margin-right: 8px;">
-                2 months gap between repayments
-              </label>
-              <label style="display: block; margin-bottom: 8px;">
-                <input type="radio" name="bufferOption" value="quarter" style="margin-right: 8px;">
-                Quarter (3 months) gap between repayments
-              </label>
-              <label style="display: block; margin-bottom: 8px;">
-                <input type="radio" name="bufferOption" value="custom" style="margin-right: 8px;">
-                Custom (advanced)
-              </label>
-            </div>
-          </div>
-          <div id="customBufferSettings" class="form-group" style="display: none; border: 1px solid #e0e7ef; padding: 12px; border-radius: 6px; background: #f9f9f9;">
-            <label for="customBufferWeeks"><b>Custom Buffer (weeks):</b></label>
-            <input type="number" id="customBufferWeeks" min="0" max="52" value="1" style="width:80px;">
-            <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
-              Enter the number of weeks to wait between suggested repayments.
-            </div>
+  </div>
+  
+  <!-- Buffer Selection Modal -->
+  <div id="bufferModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Select Repayment Buffer/Gap</h3>
+        <button class="modal-close" id="closeBufferModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label><b>Choose buffer between repayments:</b></label>
+          <div style="margin-top: 10px;">
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="bufferOption" value="none" checked style="margin-right: 8px;">
+              None (fastest possible schedule)
+            </label>
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="bufferOption" value="2weeks" style="margin-right: 8px;">
+              2 weeks gap between repayments
+            </label>
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="bufferOption" value="1month" style="margin-right: 8px;">
+              1 month gap between repayments
+            </label>
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="bufferOption" value="2months" style="margin-right: 8px;">
+              2 months gap between repayments
+            </label>
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="bufferOption" value="quarter" style="margin-right: 8px;">
+              Quarter (3 months) gap between repayments
+            </label>
+            <label style="display: block; margin-bottom: 8px;">
+              <input type="radio" name="bufferOption" value="custom" style="margin-right: 8px;">
+              Custom (advanced)
+            </label>
           </div>
         </div>
-        <div class="modal-footer">
-          <button id="applyBufferSettings" style="background:#4caf50; color:white; border:none; padding:8px 16px; border-radius:4px;">Apply Buffer</button>
-          <button id="cancelBufferSettings" style="background:#757575; color:white; border:none; padding:8px 16px; border-radius:4px;">Cancel</button>
+        <div id="customBufferSettings" class="form-group" style="display: none; border: 1px solid #e0e7ef; padding: 12px; border-radius: 6px; background: #f9f9f9;">
+          <label for="customBufferWeeks"><b>Custom Buffer (weeks):</b></label>
+          <input type="number" id="customBufferWeeks" min="0" max="52" value="1" style="width:80px;">
+          <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
+            Enter the number of weeks to wait between suggested repayments.
+          </div>
         </div>
+      </div>
+      <div class="modal-footer">
+        <button id="applyBufferSettings" style="background:#4caf50; color:white; border:none; padding:8px 16px; border-radius:4px;">Apply Buffer</button>
+        <button id="cancelBufferSettings" style="background:#757575; color:white; border:none; padding:8px 16px; border-radius:4px;">Cancel</button>
       </div>
     </div>
-    
-    <section id="summary" class="tab-content">
-      <h2>Summary Report</h2>
-      
-      <div class="info-banner">
-        <h4><i class="icon">📋</i> Executive Summary</h4>
-        <div class="banner-content">
-          Comprehensive overview of your financial performance with key performance indicators, visual analytics, and exportable reports.
-        </div>
-      </div>
-      
-      <div class="kpi-cards">
-        <div class="kpi-card">
-          <div class="kpi-label">Total Income</div>
-          <div class="kpi-value" id="kpiTotalIncome">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Total Expenditure</div>
-          <div class="kpi-value" id="kpiTotalExpenditure">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Total Repayments</div>
-          <div class="kpi-value" id="kpiTotalRepayments">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Final Bank Balance</div>
-          <div class="kpi-value" id="kpiFinalBank">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Lowest Bank Balance</div>
-          <div class="kpi-value" id="kpiLowestBank">--</div>
-        </div>
-      </div>
-      <div id="summaryKeyFinancials"></div>
-      <div class="summary-section">
-        <h3>Top Contributors (Tornado Chart)</h3>
-        <canvas id="tornadoChart" style="min-height:300px; width:100%;"></canvas>
-      </div>
-      <div class="collapsible-table-section">
-        <button class="collapsible-header" type="button">
-          <span class="caret">&#9660;</span> Summary Chart
-        </button>
-        <div class="collapsible-content active">
-          <canvas id="summaryChart" height="150"></canvas>
-        </div>
-      </div>
-      <button id="exportPDFBtn">Export PDF</button>
-      <button id="exportExcelBtn">Export Excel</button>
-    </section>
   </div>
   
   <!-- Help/Info Modal -->

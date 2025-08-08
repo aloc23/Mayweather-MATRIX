@@ -2,19 +2,38 @@
 
 /* ===== CSS DESIGN SYSTEM ===== */
 :root {
-  /* Brand Colors - Mayweather Limited */
+  /* Brand Colors - Mayweather Limited & Matrix Vista */
   --brand-primary: #1a365d;      /* Deep professional blue */
   --brand-secondary: #2d3748;    /* Charcoal grey */
   --brand-accent: #3182ce;       /* Modern blue accent */
   --brand-light: #edf2f7;       /* Light background */
   
-  /* Functional Colors */
-  --color-success: #38a169;
-  --color-warning: #d69e2e;
-  --color-error: #e53e3e;
-  --color-info: --brand-accent;
+  /* Vista (Blue) Theme */
+  --vista-primary: #2196f3;      /* Vista blue */
+  --vista-secondary: #1976d2;    /* Darker vista blue */
+  --vista-light: #e3f2fd;       /* Light vista blue */
+  --vista-gradient: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   
-  /* Neutral Palette */
+  /* Nova (Orange) Theme */
+  --nova-primary: #ff9800;       /* Nova orange */
+  --nova-secondary: #f57c00;     /* Darker nova orange */
+  --nova-light: #fff3e0;        /* Light nova orange */
+  --nova-gradient: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  
+  /* Matrix (Core) Theme */
+  --matrix-primary: #6a1b9a;     /* Matrix purple/violet */
+  --matrix-secondary: #4a148c;   /* Darker matrix purple */
+  --matrix-light: #f3e5f5;      /* Light matrix purple */
+  --matrix-gradient: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%);
+  
+  /* Functional Colors */
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+  --color-info: #2196f3;
+  
+  /* Enhanced Neutral Palette */
+  --gray-25: #fafbfc;
   --gray-50: #f7fafc;
   --gray-100: #edf2f7;
   --gray-200: #e2e8f0;
@@ -26,70 +45,94 @@
   --gray-800: #1a202c;
   --gray-900: #171923;
   
-  /* Typography */
+  /* Typography System */
   --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 1.875rem;
-  --font-size-4xl: 2.25rem;
+  --font-family-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-4xl: 2.25rem;   /* 36px */
+  --font-size-5xl: 3rem;      /* 48px */
   
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
   
   --line-height-tight: 1.25;
   --line-height-snug: 1.375;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
   
-  /* Spacing System */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-20: 5rem;
-  --space-24: 6rem;
+  /* Enhanced Spacing System */
+  --space-px: 1px;
+  --space-0: 0;
+  --space-1: 0.25rem;    /* 4px */
+  --space-2: 0.5rem;     /* 8px */
+  --space-3: 0.75rem;    /* 12px */
+  --space-4: 1rem;       /* 16px */
+  --space-5: 1.25rem;    /* 20px */
+  --space-6: 1.5rem;     /* 24px */
+  --space-8: 2rem;       /* 32px */
+  --space-10: 2.5rem;    /* 40px */
+  --space-12: 3rem;      /* 48px */
+  --space-16: 4rem;      /* 64px */
+  --space-20: 5rem;      /* 80px */
+  --space-24: 6rem;      /* 96px */
+  --space-32: 8rem;      /* 128px */
   
-  /* Border Radius */
-  --radius-sm: 0.25rem;
-  --radius-base: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  /* Enhanced Border Radius */
+  --radius-none: 0;
+  --radius-sm: 0.25rem;    /* 4px */
+  --radius-base: 0.5rem;   /* 8px */
+  --radius-md: 0.75rem;    /* 12px */
+  --radius-lg: 1rem;       /* 16px */
+  --radius-xl: 1.5rem;     /* 24px */
+  --radius-2xl: 2rem;      /* 32px */
   --radius-full: 9999px;
   
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Enhanced Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-base: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
   
-  /* Transitions */
+  /* Enhanced Transitions */
   --transition-fast: 150ms ease-in-out;
   --transition-base: 250ms ease-in-out;
   --transition-slow: 350ms ease-in-out;
+  --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   
   /* Layout */
-  --container-max-width: 1200px;
+  --container-max-width: 1280px;
   --sidebar-width: 280px;
-  --header-height: 120px;
+  --header-height: 140px;
+  
+  /* Modern Design Elements */
+  --blur-sm: blur(4px);
+  --blur-base: blur(8px);
+  --blur-lg: blur(16px);
 }
 
 /* ===== RESET & BASE STYLES ===== */
 * {
+  box-sizing: border-box;
+}
+
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -99,37 +142,57 @@ body {
   font-weight: var(--font-weight-normal);
   line-height: var(--line-height-normal);
   color: var(--gray-800);
-  background-color: var(--gray-50);
+  background: linear-gradient(135deg, var(--gray-25) 0%, var(--gray-50) 100%);
   margin: 0;
   padding: 0;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
-/* ===== LAYOUT COMPONENTS ===== */
 
-/* Main Container */
+/* ===== ENHANCED LAYOUT COMPONENTS ===== */
+
+/* Modern Container */
 .container {
   max-width: var(--container-max-width);
   margin: 0 auto;
-  padding: var(--space-6);
+  padding: var(--space-8) var(--space-6);
   background: white;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
   margin-top: var(--space-8);
   margin-bottom: var(--space-8);
-}
-
-/* Modern Header */
-.header {
-  text-align: center;
-  padding: var(--space-12) var(--space-6);
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
-  color: white;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
-  margin-bottom: var(--space-8);
+}
+
+.container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    var(--matrix-primary) 0%, 
+    var(--vista-primary) 50%, 
+    var(--nova-primary) 100%);
+  z-index: 1;
+}
+
+/* Enhanced Header */
+.header {
+  text-align: center;
+  padding: var(--space-16) var(--space-6) var(--space-12) var(--space-6);
+  background: var(--matrix-gradient);
+  color: white;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: var(--space-10);
+  min-height: var(--header-height);
 }
 
 .header::before {
@@ -139,8 +202,18 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/></pattern></defs><rect width="100" height="20" fill="url(%23grid)"/></svg>');
-  opacity: 0.6;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="20" fill="url(%23grid)"/></svg>');
+  opacity: 0.4;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
 }
 
 .header > * {
@@ -149,36 +222,303 @@ body {
 }
 
 .logo {
-  max-width: 120px;
-  margin: 0 auto var(--space-4) auto;
+  max-width: 140px;
+  height: auto;
+  margin: 0 auto var(--space-5) auto;
   display: block;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
-  transition: transform var(--transition-base);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.2));
+  transition: all var(--transition-base);
+  border-radius: var(--radius-lg);
 }
 
 .logo:hover {
-  transform: scale(1.05);
+  transform: scale(1.05) rotate(1deg);
+  filter: drop-shadow(0 12px 32px rgba(0,0,0,0.3));
 }
 
 .header h1 {
-  font-size: var(--font-size-4xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-extrabold);
   letter-spacing: 0.05em;
-  margin: 0 0 var(--space-2) 0;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  margin: 0 0 var(--space-3) 0;
+  text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-subtitle {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-medium);
   color: rgba(255,255,255,0.95);
   margin: 0;
   letter-spacing: 0.025em;
-  max-width: 600px;
+  max-width: 700px;
   margin-left: auto;
   margin-right: auto;
+  opacity: 0.9;
 }
-/* ===== BUTTON COMPONENTS ===== */
+/* ===== MODERN TAB NAVIGATION ===== */
+
+.modern-tabs {
+  display: flex;
+  background: var(--gray-50);
+  border-radius: var(--radius-xl);
+  padding: var(--space-1);
+  box-shadow: var(--shadow-inner);
+  margin-bottom: var(--space-8);
+  position: relative;
+  overflow: hidden;
+}
+
+.modern-tabs::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    var(--matrix-light) 0%, 
+    var(--vista-light) 50%, 
+    var(--nova-light) 100%);
+  opacity: 0.3;
+  z-index: 0;
+}
+
+.modern-tabs button {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  margin: 0;
+  font-family: var(--font-family-heading);
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 80px;
+  text-align: center;
+}
+
+.modern-tabs button:hover {
+  color: var(--gray-800);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: var(--blur-sm);
+}
+
+.modern-tabs button.active {
+  background: white;
+  color: var(--gray-900);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  font-weight: var(--font-weight-semibold);
+}
+
+.modern-tabs .tab-icon {
+  font-size: var(--font-size-2xl);
+  line-height: 1;
+  opacity: 0.8;
+  transition: all var(--transition-base);
+}
+
+.modern-tabs .tab-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.modern-tabs .tab-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  line-height: var(--line-height-tight);
+}
+
+.modern-tabs .tab-subtitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  opacity: 0.7;
+  line-height: var(--line-height-tight);
+}
+
+/* Individual Tab Themes */
+.modern-tabs .tab-matrix.active {
+  background: var(--matrix-gradient);
+  color: white;
+  border: 2px solid var(--matrix-secondary);
+}
+
+.modern-tabs .tab-matrix.active .tab-icon {
+  opacity: 1;
+  animation: pulse 2s infinite;
+}
+
+.modern-tabs .tab-vista.active {
+  background: var(--vista-gradient);
+  color: white;
+  border: 2px solid var(--vista-secondary);
+}
+
+.modern-tabs .tab-vista.active .tab-icon {
+  opacity: 1;
+  animation: bounce 1s ease-in-out infinite alternate;
+}
+
+.modern-tabs .tab-nova.active {
+  background: var(--nova-gradient);
+  color: white;
+  border: 2px solid var(--nova-secondary);
+}
+
+.modern-tabs .tab-nova.active .tab-icon {
+  opacity: 1;
+  animation: rocket 2s ease-in-out infinite;
+}
+
+/* Tab Hover Effects */
+.modern-tabs .tab-matrix:hover:not(.active) {
+  background: var(--matrix-light);
+  color: var(--matrix-primary);
+}
+
+.modern-tabs .tab-vista:hover:not(.active) {
+  background: var(--vista-light);
+  color: var(--vista-primary);
+}
+
+.modern-tabs .tab-nova:hover:not(.active) {
+  background: var(--nova-light);
+  color: var(--nova-primary);
+}
+
+/* Tab Content Areas */
+.tab-content {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all var(--transition-base);
+}
+
+.tab-content.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.tab-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background: linear-gradient(135deg, var(--gray-25) 0%, white 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--gray-200);
+}
+
+.tab-header h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-2) 0;
+  background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-600) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tab-description {
+  font-size: var(--font-size-lg);
+  color: var(--gray-600);
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
+
+@keyframes rocket {
+  0% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(2deg); }
+  50% { transform: translateY(-4px) rotate(0deg); }
+  75% { transform: translateY(-2px) rotate(-2deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== ENHANCED BANNER STYLES ===== */
+
+.vista-banner {
+  background: linear-gradient(135deg, var(--vista-light) 0%, #e8f4fd 100%);
+  border-left: 4px solid var(--vista-primary);
+}
+
+.nova-banner {
+  background: linear-gradient(135deg, var(--nova-light) 0%, #fff8e1 100%);
+  border-left: 4px solid var(--nova-primary);
+}
+
+.matrix-banner {
+  background: linear-gradient(135deg, var(--matrix-light) 0%, #f8f5ff 100%);
+  border-left: 4px solid var(--matrix-primary);
+}
+
+/* ===== ENHANCED COMPONENT STYLES ===== */
+
+.nova-btn {
+  background: var(--nova-gradient) !important;
+  color: white !important;
+  border: 2px solid var(--nova-secondary) !important;
+}
+
+.nova-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-lg) !important;
+  filter: brightness(1.1) !important;
+}
+
+.vista-summary-section {
+  background: linear-gradient(135deg, var(--vista-light) 0%, white 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  margin-top: var(--space-8);
+  border: 1px solid var(--vista-primary);
+}
+
+.export-actions {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  margin-top: var(--space-6);
+}
 
 /* Base Button Styles */
 .btn, button, .button {
