@@ -133,7 +133,7 @@
           <h4><i class="icon">CHARTS</i> Cashflow Charts & Reports</h4>
           <div class="banner-content">
             This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
-            <div style="margin-top: 8px; font-size: 0.9em; color: #1565c0;">
+            <div class="tip-text">
               <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
             </div>
           </div>
@@ -142,14 +142,14 @@
           <canvas id="mainChart" height="180"></canvas>
         </div>
         <div id="mainChartSummary"></div>
-        <div id="mainChartNoData" style="display:none; color:#c00; margin-top:12px;">No data to display. Please map and filter your weeks.</div>
+        <div id="mainChartNoData" class="no-data-message">No data to display. Please map and filter your weeks.</div>
       </div>
       
       <div class="info-banner success-banner">
         <h4><i class="icon">PROFIT</i> Direct Profitability Analysis</h4>
         <div class="banner-content">
           Shows profitability per week using sequential column mapping from your spreadsheet (Week 1, Week 2, etc.).
-          <div style="margin-top: 8px; font-size: 0.9em; color: #2e7d32;">
+          <div class="tip-text success-tip">
             <strong>Tip:</strong> Week numbers here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
           </div>
         </div>
