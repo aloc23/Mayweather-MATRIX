@@ -25,7 +25,7 @@
     <h1>MATRIX</h1>
     <p class="header-subtitle">Mayweather Analytics & Tracking for ROI, Investments, and Execution</p>
     <button id="helpBtn" type="button" aria-label="Open help guide">
-      <span aria-hidden="true">❓</span> Help
+      Help
     </button>
   </header>
 
@@ -34,21 +34,21 @@
     <!-- Primary Navigation -->
     <nav class="tabs" role="tablist" aria-label="Main navigation">
       <button type="button" role="tab" data-tab="main" class="active" aria-selected="true" aria-controls="main">
-        <span aria-hidden="true">📊</span> Weekly Cashflow
+        <span class="tab-icon" aria-hidden="true">⚡</span> MATRIX
       </button>
       <button type="button" role="tab" data-tab="pnl" aria-selected="false" aria-controls="pnl">
-        <span aria-hidden="true">📈</span> Profit & Loss
+        <span class="tab-icon" aria-hidden="true">📊</span> VISTA
       </button>
       <button type="button" role="tab" data-tab="roi" aria-selected="false" aria-controls="roi">
-        <span aria-hidden="true">💰</span> Investment Return & Repayments
+        <span class="tab-icon" aria-hidden="true">💎</span> NOVA
       </button>
       <button type="button" role="tab" data-tab="summary" aria-selected="false" aria-controls="summary">
-        <span aria-hidden="true">📋</span> Summary
+        <span class="tab-icon" aria-hidden="true">📋</span> SUMMARY
       </button>
     </nav>
-    <!-- Weekly Cashflow Tab -->
+    <!-- MATRIX Tab -->
     <section id="main" class="tab-content active" role="tabpanel" aria-labelledby="main-tab" tabindex="0">
-      <h2>Weekly Cashflow Analysis</h2>
+      <h2>MATRIX • Weekly Cashflow Analysis</h2>
       
       <!-- Sub Navigation -->
       <nav class="subtabs" role="tablist" aria-label="Weekly cashflow options">
@@ -63,7 +63,7 @@
       <!-- Data Mapping Panel -->
       <div id="subtab-mapping" class="subtab-panel active" role="tabpanel">
         <div class="info-banner">
-          <h4><span class="icon" aria-hidden="true">📊</span> Spreadsheet Data Mapping</h4>
+          <h4><span class="icon" aria-hidden="true">DATA</span> Spreadsheet Data Mapping</h4>
           <div class="banner-content">
             Upload your financial spreadsheet to automatically map weekly cashflow data. The system will process columns sequentially as Week 1, Week 2, etc., and detect your data structure automatically.
           </div>
@@ -81,7 +81,7 @@
       <!-- Tool Settings Panel -->
       <div id="subtab-settings" class="subtab-panel" role="tabpanel">
         <div class="info-banner">
-          <h4><span class="icon" aria-hidden="true">⚙️</span> Tool Configuration</h4>
+          <h4><span class="icon" aria-hidden="true">CONFIG</span> Tool Configuration</h4>
           <div class="banner-content">
             Configure application settings, chart preferences, and data display options to customize your analytics experience.
           </div>
@@ -118,22 +118,22 @@
       </div>
     </section>
     
-    <!-- Profit & Loss Tab -->
+    <!-- VISTA Tab -->
     <section id="pnl" class="tab-content" role="tabpanel" aria-labelledby="pnl-tab" tabindex="0">
-      <h2>Profit &amp; Loss Analysis</h2>
+      <h2>VISTA • Profit &amp; Loss Analysis</h2>
       
       <!-- Charts & Analysis Section -->
       <div class="charts-analysis-section">
         <div class="info-banner">
-          <h4><span class="icon" aria-hidden="true">📈</span> Financial Performance Overview</h4>
+          <h4><span class="icon" aria-hidden="true">PERFORMANCE</span> Financial Performance Overview</h4>
           <div class="banner-content">
             Comprehensive profit and loss analysis based on your uploaded financial data. View income, expenses, and net position across all periods.
           </div>
         </div>
-          <h4><i class="icon">📈</i> Cashflow Charts & Reports</h4>
+          <h4><i class="icon">CHARTS</i> Cashflow Charts & Reports</h4>
           <div class="banner-content">
             This view shows cashflow and bank balance for each week exactly as mapped from your uploaded spreadsheet columns in sequential order.
-            <div style="margin-top: 8px; font-size: 0.9em; color: #1565c0;">
+            <div class="tip-text">
               <strong>Tip:</strong> Week numbers shown here correspond to spreadsheet columns (Week 1 = 1st column, Week 2 = 2nd column, etc.). Use the Spreadsheet Mapping tab to configure which columns represent your weekly data.
             </div>
           </div>
@@ -142,14 +142,14 @@
           <canvas id="mainChart" height="180"></canvas>
         </div>
         <div id="mainChartSummary"></div>
-        <div id="mainChartNoData" style="display:none; color:#c00; margin-top:12px;">No data to display. Please map and filter your weeks.</div>
+        <div id="mainChartNoData" class="no-data-message">No data to display. Please map and filter your weeks.</div>
       </div>
       
-      <div class="info-banner" style="background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%); border-left-color: #4caf50;">
-        <h4><i class="icon">📊</i> Direct Profitability Analysis</h4>
+      <div class="info-banner success-banner">
+        <h4><i class="icon">PROFIT</i> Direct Profitability Analysis</h4>
         <div class="banner-content">
           Shows profitability per week using sequential column mapping from your spreadsheet (Week 1, Week 2, etc.).
-          <div style="margin-top: 8px; font-size: 0.9em; color: #2e7d32;">
+          <div class="tip-text success-tip">
             <strong>Tip:</strong> Week numbers here correspond exactly to your Weekly Cashflow tab for easy cross-referencing.
           </div>
         </div>
@@ -217,14 +217,14 @@
       </div>
     </section>
     <section id="roi" class="tab-content">
-      <h2>Investment Return &amp; Repayments</h2>
+      <h2>NOVA • Investment Return &amp; Repayments</h2>
       
       <!-- ROI Analysis and Repayment Management - Unified View -->
       <div class="roi-unified-panel">
       
       <!-- Spreadsheet Column Mapping Preview -->
       <div class="info-banner modern-banner">
-        <h4><i class="icon">📋</i> Spreadsheet Column Mapping</h4>
+        <h4><i class="icon">MAPPING</i> Spreadsheet Column Mapping</h4>
         <div class="banner-content">
           Columns are mapped sequentially as Week 1, Week 2, etc. based on spreadsheet column order. All calculations use this consistent column-based mapping.
         </div>
@@ -274,7 +274,7 @@
       <!-- Repayment Management Section -->
       <div class="repayment-management-section">
         <div class="section-header">
-          <h3><i class="icon">💰</i> Repayment Management</h3>
+          <h3><i class="icon">REPAYMENT</i> Repayment Management</h3>
           <p class="section-description">Add specific repayments or use suggested schedules to optimize your ROI</p>
         </div>
         
@@ -291,9 +291,9 @@
           
           <div class="repayment-table-container">
             <div class="table-header">
-              <h5>📋 Scheduled Repayments</h5>
+              <h5>SCHEDULE • Scheduled Repayments</h5>
               <button id="addRepaymentRowBtn" class="btn-primary">
-                <span class="btn-icon">➕</span>
+                <span class="btn-icon">+</span>
                 Add Repayment
               </button>
             </div>
@@ -312,7 +312,7 @@
                 </tbody>
               </table>
               <div id="emptyTableMessage" class="empty-message">
-                <div class="empty-icon">📅</div>
+                <div class="empty-icon">SCHEDULE</div>
                 <p>No repayments scheduled</p>
                 <p class="empty-subtext">Click "Add Repayment" to create your first repayment entry</p>
               </div>
@@ -444,10 +444,10 @@
     </div>
     
     <section id="summary" class="tab-content">
-      <h2>Summary Report</h2>
+      <h2>SUMMARY • Executive Report</h2>
       
       <div class="info-banner">
-        <h4><i class="icon">📋</i> Executive Summary</h4>
+        <h4><span class="icon" aria-hidden="true">EXECUTIVE</span> Executive Summary</h4>
         <div class="banner-content">
           Comprehensive overview of your financial performance with key performance indicators, visual analytics, and exportable reports.
         </div>
