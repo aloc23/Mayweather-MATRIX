@@ -274,6 +274,32 @@ body {
   opacity: 0.8;
 }
 
+/* Coming Soon Tab Styling */
+.tabs button.coming-soon {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--gray-100);
+  color: var(--gray-400);
+  position: relative;
+}
+
+.tabs button.coming-soon:hover {
+  background: var(--gray-100);
+  color: var(--gray-400);
+  transform: none;
+  box-shadow: none;
+}
+
+.badge-coming-soon {
+  font-size: var(--font-size-xs);
+  background: var(--color-warning);
+  color: white;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* Sub Navigation */
 .subtabs {
   display: flex;
