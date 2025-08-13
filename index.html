@@ -878,12 +878,15 @@
       function initializeNova() {
         if (!novaUI) {
           novaUI = new NovaDynamicUI();
+          // Make it globally accessible for testing and integration
+          window.novaUI = novaUI;
+          console.log('NOVA UI initialized successfully');
         }
       }
       
-      // Initialize NOVA when tab is clicked
+      // Initialize NOVA when tab is clicked  
       document.addEventListener('click', function(e) {
-        if (e.target.matches('[data-tab="nova"]')) {
+        if (e.target.matches('[data-tab="nova"]') || e.target.closest('[data-tab="nova"]')) {
           setTimeout(initializeNova, 100); // Small delay for tab transition
         }
       });
@@ -891,15 +894,25 @@
       // NOVA-specific event handlers
       document.addEventListener('click', function(e) {
         // Handle NOVA view switching
-        if (e.target.matches('.nova-nav-tab')) {
+        if (e.target.matches('.nova-nav-tab') || e.target.closest('.nova-nav-tab')) {
+          const targetTab = e.target.matches('.nova-nav-tab') ? e.target : e.target.closest('.nova-nav-tab');
+          
           document.querySelectorAll('.nova-nav-tab').forEach(tab => {
             tab.classList.remove('active');
           });
-          e.target.classList.add('active');
+          targetTab.classList.add('active');
           
-          const view = e.target.getAttribute('data-nova-view');
+          const view = targetTab.getAttribute('data-nova-view');
           if (novaUI) {
             novaUI.switchView(view);
+          } else {
+            // Initialize NOVA first if not already done
+            initializeNova();
+            setTimeout(() => {
+              if (window.novaUI) {
+                window.novaUI.switchView(view);
+              }
+            }, 200);
           }
         }
         
