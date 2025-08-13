@@ -326,3 +326,68 @@
     color: #f3f4f6;
   }
 }
+
+/* NOVA Notifications */
+.nova-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-left: 4px solid #3b82f6;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.nova-notification-success {
+  border-left-color: #10b981;
+  color: #047857;
+}
+
+.nova-notification-warning {
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.nova-notification-error {
+  border-left-color: #ef4444;
+  color: #dc2626;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Correlation Matrix Styles */
+.correlation-matrix td {
+  text-align: center;
+  font-weight: 500;
+}
+
+.correlation-matrix .high-correlation {
+  background: rgba(16, 185, 129, 0.2);
+  color: #047857;
+}
+
+.correlation-matrix .medium-correlation {
+  background: rgba(245, 158, 11, 0.2);
+  color: #92400e;
+}
+
+.correlation-matrix .low-correlation {
+  background: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
