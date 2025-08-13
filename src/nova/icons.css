@@ -1,0 +1,328 @@
+/**
+ * NOVA Icons CSS
+ * Icon font and SVG icon styles for Matrix-Nova analytics
+ */
+
+/* NOVA Icon Font Base */
+.nova-icon {
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  font-size: 1rem;
+  vertical-align: baseline;
+}
+
+/* Icon Sizes */
+.nova-icon-xs { font-size: 0.75rem; }
+.nova-icon-sm { font-size: 0.875rem; }
+.nova-icon-md { font-size: 1rem; }
+.nova-icon-lg { font-size: 1.25rem; }
+.nova-icon-xl { font-size: 1.5rem; }
+.nova-icon-2xl { font-size: 2rem; }
+
+/* Common Financial & Analytics Icons using Unicode characters */
+.nova-icon-chart::before { content: "📊"; }
+.nova-icon-trend-up::before { content: "📈"; }
+.nova-icon-trend-down::before { content: "📉"; }
+.nova-icon-analytics::before { content: "🔍"; }
+.nova-icon-calculator::before { content: "🧮"; }
+.nova-icon-money::before { content: "💰"; }
+.nova-icon-bank::before { content: "🏦"; }
+.nova-icon-portfolio::before { content: "💼"; }
+.nova-icon-risk::before { content: "⚠️"; }
+.nova-icon-target::before { content: "🎯"; }
+.nova-icon-growth::before { content: "🌱"; }
+.nova-icon-balance::before { content: "⚖️"; }
+.nova-icon-diamond::before { content: "💎"; }
+.nova-icon-star::before { content: "⭐"; }
+.nova-icon-lightning::before { content: "⚡"; }
+.nova-icon-fire::before { content: "🔥"; }
+.nova-icon-rocket::before { content: "🚀"; }
+.nova-icon-gem::before { content: "💎"; }
+.nova-icon-crown::before { content: "👑"; }
+.nova-icon-trophy::before { content: "🏆"; }
+
+/* Action Icons */
+.nova-icon-add::before { content: "➕"; }
+.nova-icon-remove::before { content: "➖"; }
+.nova-icon-edit::before { content: "✏️"; }
+.nova-icon-delete::before { content: "🗑️"; }
+.nova-icon-save::before { content: "💾"; }
+.nova-icon-download::before { content: "⬇️"; }
+.nova-icon-upload::before { content: "⬆️"; }
+.nova-icon-refresh::before { content: "🔄"; }
+.nova-icon-settings::before { content: "⚙️"; }
+.nova-icon-filter::before { content: "🔍"; }
+.nova-icon-sort::before { content: "🔀"; }
+.nova-icon-export::before { content: "📤"; }
+.nova-icon-import::before { content: "📥"; }
+.nova-icon-print::before { content: "🖨️"; }
+.nova-icon-share::before { content: "🔗"; }
+
+/* Navigation Icons */
+.nova-icon-home::before { content: "🏠"; }
+.nova-icon-dashboard::before { content: "📊"; }
+.nova-icon-menu::before { content: "☰"; }
+.nova-icon-close::before { content: "✕"; }
+.nova-icon-back::before { content: "⬅️"; }
+.nova-icon-forward::before { content: "➡️"; }
+.nova-icon-up::before { content: "⬆️"; }
+.nova-icon-down::before { content: "⬇️"; }
+.nova-icon-left::before { content: "⬅️"; }
+.nova-icon-right::before { content: "➡️"; }
+
+/* Status Icons */
+.nova-icon-success::before { content: "✅"; }
+.nova-icon-error::before { content: "❌"; }
+.nova-icon-warning::before { content: "⚠️"; }
+.nova-icon-info::before { content: "ℹ️"; }
+.nova-icon-help::before { content: "❓"; }
+.nova-icon-loading::before { content: "⏳"; }
+.nova-icon-check::before { content: "✓"; }
+.nova-icon-times::before { content: "✕"; }
+
+/* Market & Finance Specific Icons */
+.nova-icon-bull::before { content: "🐂"; }
+.nova-icon-bear::before { content: "🐻"; }
+.nova-icon-stocks::before { content: "📈"; }
+.nova-icon-bonds::before { content: "📋"; }
+.nova-icon-crypto::before { content: "₿"; }
+.nova-icon-forex::before { content: "💱"; }
+.nova-icon-commodities::before { content: "🏷️"; }
+.nova-icon-real-estate::before { content: "🏘️"; }
+
+/* Animated Icons */
+.nova-icon-spin {
+  animation: nova-icon-spin 2s infinite linear;
+}
+
+.nova-icon-pulse {
+  animation: nova-icon-pulse 2s infinite;
+}
+
+.nova-icon-bounce {
+  animation: nova-icon-bounce 1s infinite;
+}
+
+@keyframes nova-icon-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes nova-icon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes nova-icon-bounce {
+  0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+  40%, 43% { transform: translate3d(0,-30px,0); }
+  70% { transform: translate3d(0,-15px,0); }
+  90% { transform: translate3d(0,-4px,0); }
+}
+
+/* Icon Colors */
+.nova-icon-primary { color: #3b82f6; }
+.nova-icon-secondary { color: #6b7280; }
+.nova-icon-success { color: #10b981; }
+.nova-icon-danger { color: #ef4444; }
+.nova-icon-warning { color: #f59e0b; }
+.nova-icon-info { color: #06b6d4; }
+.nova-icon-light { color: #f8fafc; }
+.nova-icon-dark { color: #1f2937; }
+
+/* Icon with Text Combinations */
+.nova-icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nova-icon-text-vertical {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+/* SVG Icon Styles */
+.nova-svg-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+/* Custom SVG Icons for specific NOVA features */
+.nova-chart-icon {
+  width: 24px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.nova-analytics-icon {
+  width: 24px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.nova-portfolio-icon {
+  width: 24px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.nova-risk-icon {
+  width: 24px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Icon Buttons */
+.nova-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nova-icon-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+  transform: translateY(-1px);
+}
+
+.nova-icon-btn:active {
+  transform: translateY(0);
+}
+
+.nova-icon-btn.primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.nova-icon-btn.primary:hover {
+  background: #2563eb;
+}
+
+.nova-icon-btn.success {
+  background: #10b981;
+  color: white;
+}
+
+.nova-icon-btn.success:hover {
+  background: #059669;
+}
+
+.nova-icon-btn.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.nova-icon-btn.danger:hover {
+  background: #dc2626;
+}
+
+/* Icon Lists */
+.nova-icon-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nova-icon-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  gap: 12px;
+}
+
+.nova-icon-list-item .nova-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+/* Responsive Icon Adjustments */
+@media (max-width: 768px) {
+  .nova-icon-lg { font-size: 1.125rem; }
+  .nova-icon-xl { font-size: 1.25rem; }
+  .nova-icon-2xl { font-size: 1.5rem; }
+  
+  .nova-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .nova-chart-icon,
+  .nova-analytics-icon,
+  .nova-portfolio-icon,
+  .nova-risk-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Accessibility */
+.nova-icon[aria-label] {
+  position: relative;
+}
+
+.nova-icon[aria-label]:focus::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-bottom: 4px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .nova-icon {
+    font-weight: bold;
+  }
+  
+  .nova-icon-btn {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .nova-icon-btn {
+    background: #374151;
+    color: #d1d5db;
+  }
+  
+  .nova-icon-btn:hover {
+    background: #4b5563;
+    color: #f3f4f6;
+  }
+}
