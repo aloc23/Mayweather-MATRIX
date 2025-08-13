@@ -870,28 +870,45 @@
   
   <!-- Initialize NOVA after DOM is loaded -->
   <script>
+    // Global NOVA UI instance
+    let novaUI = null;
+    
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize NOVA UI when NOVA tab is active
-      let novaUI = null;
-      
       // Function to initialize NOVA
       function initializeNova() {
         if (!novaUI) {
-          novaUI = new NovaDynamicUI();
+          try {
+            novaUI = new NovaDynamicUI();
+            console.log('NOVA UI initialized successfully');
+          } catch (error) {
+            console.error('Failed to initialize NOVA UI:', error);
+          }
         }
+        return novaUI;
       }
       
-      // Initialize NOVA when tab is clicked
+      // Initialize NOVA when tab is clicked or if already active
       document.addEventListener('click', function(e) {
         if (e.target.matches('[data-tab="nova"]')) {
           setTimeout(initializeNova, 100); // Small delay for tab transition
         }
       });
       
+      // Check if NOVA tab is already active on page load
+      const novaTab = document.querySelector('[data-tab="nova"]');
+      if (novaTab && novaTab.classList.contains('active')) {
+        setTimeout(initializeNova, 100);
+      }
+      
       // NOVA-specific event handlers
       document.addEventListener('click', function(e) {
         // Handle NOVA view switching
         if (e.target.matches('.nova-nav-tab')) {
+          // Ensure NOVA UI is initialized
+          if (!novaUI) {
+            initializeNova();
+          }
+          
           document.querySelectorAll('.nova-nav-tab').forEach(tab => {
             tab.classList.remove('active');
           });
