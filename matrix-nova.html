@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matrix Nova - Business Analytics</title>
+  <meta name="description" content="Independent Matrix Nova business analytics module for advanced portfolio analytics and financial insights.">
+  
+  <!-- External libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="src/nova/enhanced-template-cards.css">
+  <link rel="stylesheet" href="src/nova/icons.css">
+  
+  <!-- Preload critical assets -->
+  <link rel="preload" href="mayweather-logo.png" as="image">
+</head>
+<body>
+  <!-- Main Header -->
+  <header class="header" role="banner">
+    <img src="mayweather-logo.png" alt="Mayweather Limited - Professional Financial Services" class="logo">
+    <h1>Matrix Nova</h1>
+    <p class="header-subtitle">Business Analytics • Advanced Portfolio Analytics & Risk Management</p>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="container" role="main" id="nova-main-container">
+    <!-- NOVA - Advanced Analytics -->
+    <section id="nova" class="tab-content active" role="tabpanel" aria-labelledby="nova-tab" tabindex="0">
+      <h2>NOVA • Advanced Portfolio Analytics</h2>
+      
+      <!-- NOVA Navigation -->
+      <nav class="nova-nav-tabs" role="tablist" aria-label="NOVA views">
+        <button type="button" class="nova-nav-tab active" data-nova-view="overview">
+          <span class="nova-icon nova-icon-dashboard"></span> Overview
+        </button>
+        <button type="button" class="nova-nav-tab" data-nova-view="analytics">
+          <span class="nova-icon nova-icon-analytics"></span> Analytics
+        </button>
+        <button type="button" class="nova-nav-tab" data-nova-view="risk">
+          <span class="nova-icon nova-icon-risk"></span> Risk Analysis
+        </button>
+        <button type="button" class="nova-nav-tab" data-nova-view="optimization">
+          <span class="nova-icon nova-icon-target"></span> Optimization
+        </button>
+      </nav>
+
+      <!-- NOVA Overview Panel -->
+      <div data-nova-panel="overview" class="nova-view-panel active">
+        <!-- KPI Cards -->
+        <div class="nova-kpi-grid">
+          <div class="nova-kpi-card positive" data-kpi="total-value">
+            <div class="nova-kpi-title">Total Portfolio Value</div>
+            <div class="nova-kpi-value">$124,500</div>
+            <div class="nova-kpi-change">
+              <span class="nova-icon nova-icon-trend-up"></span>
+              +5.2% Today
+            </div>
+          </div>
+          <div class="nova-kpi-card neutral" data-kpi="daily-return">
+            <div class="nova-kpi-title">Daily Return</div>
+            <div class="nova-kpi-value">+2.1%</div>
+            <div class="nova-kpi-change">
+              <span class="nova-icon nova-icon-growth"></span>
+              Above Benchmark
+            </div>
+          </div>
+          <div class="nova-kpi-card secondary" data-kpi="volatility">
+            <div class="nova-kpi-title">Volatility (Ann.)</div>
+            <div class="nova-kpi-value">12.3%</div>
+            <div class="nova-kpi-change">
+              <span class="nova-icon nova-icon-balance"></span>
+              Low Risk
+            </div>
+          </div>
+          <div class="nova-kpi-card primary" data-kpi="sharpe-ratio">
+            <div class="nova-kpi-title">Sharpe Ratio</div>
+            <div class="nova-kpi-value">1.45</div>
+            <div class="nova-kpi-change">
+              <span class="nova-icon nova-icon-star"></span>
+              Excellent
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+          <!-- Portfolio Performance Chart -->
+          <div class="nova-chart-container">
+            <div class="nova-chart-header">
+              <h3 class="nova-chart-title">Portfolio Performance</h3>
+              <div class="nova-chart-controls">
+                <select class="nova-form-select" style="width: auto;">
+                  <option value="1M">1 Month</option>
+                  <option value="3M">3 Months</option>
+                  <option value="6M">6 Months</option>
+                  <option value="1Y" selected>1 Year</option>
+                </select>
+              </div>
+            </div>
+            <div class="nova-chart-canvas">
+              <canvas id="portfolio-performance"></canvas>
+            </div>
+          </div>
+
+          <!-- Asset Allocation Chart -->
+          <div class="nova-chart-container">
+            <div class="nova-chart-header">
+              <h3 class="nova-chart-title">Asset Allocation</h3>
+            </div>
+            <div class="nova-chart-canvas" style="height: 300px;">
+              <canvas id="asset-allocation"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Portfolio Positions Table -->
+        <div class="nova-analytics-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Current Positions</h3>
+            <div>
+              <button class="nova-btn" data-nova-action="add-position">
+                <span class="nova-icon nova-icon-add"></span>
+                Add Position
+              </button>
+              <button class="nova-btn secondary" data-nova-action="refresh-data">
+                <span class="nova-icon nova-icon-refresh"></span>
+                Refresh
+              </button>
+            </div>
+          </div>
+          <table class="nova-data-table" id="positions-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Quantity</th>
+                <th>Current Price</th>
+                <th>Market Value</th>
+                <th>Gain/Loss</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Dynamic content populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOVA Analytics Panel -->
+      <div data-nova-panel="analytics" class="nova-view-panel">
+        <div class="nova-analytics-card">
+          <h3>Advanced Performance Metrics</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div>
+              <h4>Risk-Adjusted Returns</h4>
+              <table class="nova-data-table">
+                <tbody>
+                  <tr><td>Alpha</td><td class="positive">2.3%</td></tr>
+                  <tr><td>Beta</td><td>0.85</td></tr>
+                  <tr><td>Information Ratio</td><td class="positive">1.12</td></tr>
+                  <tr><td>Tracking Error</td><td>8.5%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Drawdown Analysis</h4>
+              <table class="nova-data-table">
+                <tbody>
+                  <tr><td>Current Drawdown</td><td class="negative">-2.1%</td></tr>
+                  <tr><td>Max Drawdown</td><td class="negative">-8.7%</td></tr>
+                  <tr><td>Recovery Time</td><td>45 days</td></tr>
+                  <tr><td>Calmar Ratio</td><td class="positive">1.85</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance Attribution Chart -->
+        <div class="nova-chart-container">
+          <div class="nova-chart-header">
+            <h3 class="nova-chart-title">Performance Attribution</h3>
+          </div>
+          <div class="nova-chart-canvas">
+            <canvas id="performance-attribution"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOVA Risk Analysis Panel -->
+      <div data-nova-panel="risk" class="nova-view-panel">
+        <!-- Risk Metrics -->
+        <div class="nova-kpi-grid">
+          <div class="nova-kpi-card warning" data-kpi="var-95">
+            <div class="nova-kpi-title">VaR (95%)</div>
+            <div class="nova-kpi-value">-3.2%</div>
+            <div class="nova-kpi-change">1-Day Risk</div>
+          </div>
+          <div class="nova-kpi-card danger" data-kpi="var-99">
+            <div class="nova-kpi-title">VaR (99%)</div>
+            <div class="nova-kpi-value">-5.8%</div>
+            <div class="nova-kpi-change">Extreme Risk</div>
+          </div>
+          <div class="nova-kpi-card negative" data-kpi="max-drawdown">
+            <div class="nova-kpi-title">Max Drawdown</div>
+            <div class="nova-kpi-value">-8.7%</div>
+            <div class="nova-kpi-change">Historical Worst</div>
+          </div>
+        </div>
+
+        <!-- Risk Distribution Chart -->
+        <div class="nova-chart-container">
+          <div class="nova-chart-header">
+            <h3 class="nova-chart-title">Risk Distribution</h3>
+          </div>
+          <div class="nova-chart-canvas">
+            <canvas id="risk-distribution"></canvas>
+          </div>
+        </div>
+
+        <!-- Stress Testing -->
+        <div class="nova-analytics-card">
+          <h3>Stress Test Scenarios</h3>
+          <table class="nova-data-table">
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Market Shock</th>
+                <th>Portfolio Impact</th>
+                <th>Recovery Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mild Correction</td>
+                <td>-10%</td>
+                <td class="negative">-$12,450</td>
+                <td>3-6 months</td>
+              </tr>
+              <tr>
+                <td>Market Crash</td>
+                <td>-20%</td>
+                <td class="negative">-$24,900</td>
+                <td>12-18 months</td>
+              </tr>
+              <tr>
+                <td>Black Swan</td>
+                <td>-35%</td>
+                <td class="negative">-$43,575</td>
+                <td>2-3 years</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOVA Optimization Panel -->
+      <div data-nova-panel="optimization" class="nova-view-panel">
+        <div class="nova-analytics-card">
+          <h3>Portfolio Optimization</h3>
+          <p>Analyze efficient frontier and optimal allocations based on your risk tolerance.</p>
+          
+          <div style="margin-bottom: 20px;">
+            <button class="nova-btn" data-nova-action="run-analysis">
+              <span class="nova-icon nova-icon-lightning"></span>
+              Run Optimization Analysis
+            </button>
+            <button class="nova-btn secondary" data-nova-action="export-report">
+              <span class="nova-icon nova-icon-download"></span>
+              Export Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Efficient Frontier Chart -->
+        <div class="nova-chart-container">
+          <div class="nova-chart-header">
+            <h3 class="nova-chart-title">Efficient Frontier</h3>
+          </div>
+          <div class="nova-chart-canvas">
+            <canvas id="efficient-frontier"></canvas>
+          </div>
+        </div>
+
+        <!-- Optimization Results -->
+        <div class="nova-analytics-card">
+          <h3>Recommended Allocation</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div class="nova-badge info">Conservative: 60% Bonds, 40% Stocks</div>
+            <div class="nova-badge success">Moderate: 40% Bonds, 60% Stocks</div>
+            <div class="nova-badge warning">Aggressive: 20% Bonds, 80% Stocks</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Position Modal -->
+      <div id="add-position-modal" class="nova-modal">
+        <div class="nova-modal-content">
+          <div class="nova-modal-header">
+            <h3 class="nova-modal-title">Add New Position</h3>
+            <button class="nova-modal-close">&times;</button>
+          </div>
+          <div class="nova-modal-body">
+            <div class="nova-form-group">
+              <label class="nova-form-label" for="position-symbol">Symbol</label>
+              <input type="text" id="position-symbol" class="nova-form-input" placeholder="e.g., AAPL" required>
+            </div>
+            <div class="nova-form-group">
+              <label class="nova-form-label" for="position-quantity">Quantity</label>
+              <input type="number" id="position-quantity" class="nova-form-input" placeholder="Number of shares" required>
+            </div>
+            <div class="nova-form-group">
+              <label class="nova-form-label" for="position-price">Price</label>
+              <input type="number" id="position-price" class="nova-form-input" placeholder="Price per share" step="0.01" required>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button type="button" class="nova-btn secondary" onclick="closeAddPositionModal()">Cancel</button>
+              <button type="button" class="nova-btn" onclick="addPositionFromModal()">Add Position</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <!-- Matrix Nova Scripts -->
+  <script src="matrix-nova.js"></script>
+  
+  <!-- Initialize Matrix Nova -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Matrix Nova UI
+      const matrixNova = new MatrixNova();
+      matrixNova.init();
+    });
+  </script>
+</body>
+</html>
