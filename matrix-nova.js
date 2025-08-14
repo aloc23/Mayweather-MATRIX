@@ -442,6 +442,8 @@ class MatrixNova {
     const modal = document.getElementById('add-position-modal');
     if (modal) {
       modal.style.display = 'flex';
+      // Add active class for animation
+      setTimeout(() => modal.classList.add('active'), 10);
     }
   }
 

@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="src/nova/enhanced-template-cards.css">
   <link rel="stylesheet" href="src/nova/icons.css">
+  <link rel="stylesheet" href="src/nova/accessibility-improvements.css">
   
   <!-- Preload critical assets -->
   <link rel="preload" href="mayweather-logo.png" as="image">
@@ -871,10 +872,10 @@
   
   <!-- Initialize NOVA after DOM is loaded -->
   <script>
+    // Global novaUI instance for modal functions
+    let novaUI = null;
+    
     document.addEventListener('DOMContentLoaded', function() {
-      // NOVA UI instance (using MatrixNova for exact matrix-nova structure)
-      let novaUI = null;
-      
       // Function to initialize NOVA
       function initializeNova() {
         if (!novaUI) {
@@ -882,6 +883,8 @@
             // Use MatrixNova class for exact matrix-nova implementation
             novaUI = new MatrixNova();
             novaUI.init();
+            // Make globally accessible
+            window.novaUI = novaUI;
             console.log('NOVA UI (MatrixNova) initialized successfully');
           } catch (error) {
             console.error('Error initializing NOVA UI:', error);
@@ -889,6 +892,7 @@
             try {
               novaUI = new NovaDynamicUI();
               novaUI.init();
+              window.novaUI = novaUI;
               console.log('Fallback to NovaDynamicUI successful');
             } catch (fallbackError) {
               console.error('Fallback initialization failed:', fallbackError);
@@ -935,7 +939,8 @@
     function closeAddPositionModal() {
       const modal = document.getElementById('add-position-modal');
       if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
       }
     }
 
