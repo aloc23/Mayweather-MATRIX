@@ -896,6 +896,12 @@
         }
       }
       
+      // Check if NOVA tab is initially active and initialize if needed
+      const initialActiveTab = document.querySelector('.tabs button[data-tab].active');
+      if (initialActiveTab && initialActiveTab.getAttribute('data-tab') === 'nova') {
+        setTimeout(initializeNova, 100);
+      }
+      
       // Initialize NOVA when tab is clicked, deactivate when other tabs are clicked
       document.addEventListener('click', function(e) {
         if (e.target.matches('[data-tab="nova"]')) {
