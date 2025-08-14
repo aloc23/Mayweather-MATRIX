@@ -10,44 +10,92 @@ class NovaDynamicUI {
     this.config = window.NovaConfig || {};
     this.portfolioData = [];
     this.currentView = 'overview';
-    this.init();
+    this.novaTabElement = null;
+    this.isActive = false;
+    this.eventListeners = [];
   }
 
   /**
    * Initialize the NOVA UI
    */
   init() {
+    this.novaTabElement = document.getElementById('nova');
+    if (!this.novaTabElement) {
+      console.warn('NOVA tab element not found');
+      return;
+    }
+    
     this.setupEventListeners();
     this.initializeCharts();
     this.loadDefaultData();
+    this.setActive(true);
   }
 
   /**
-   * Setup event listeners for NOVA interactions
+   * Setup event listeners for NOVA interactions (scoped to NOVA tab only)
    */
   setupEventListeners() {
-    // Portfolio management
-    document.addEventListener('click', (e) => {
+    if (!this.novaTabElement) return;
+
+    // Scoped click handler for NOVA actions - only within NOVA tab
+    const clickHandler = (e) => {
+      if (!this.isActive || !this.novaTabElement.contains(e.target)) return;
+      
       if (e.target.matches('[data-nova-action]')) {
         const action = e.target.getAttribute('data-nova-action');
         this.handleAction(action, e.target);
       }
-    });
+      
+      // Handle NOVA view switching
+      if (e.target.matches('.nova-nav-tab')) {
+        this.novaTabElement.querySelectorAll('.nova-nav-tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        e.target.classList.add('active');
+        
+        const view = e.target.getAttribute('data-nova-view');
+        this.switchView(view);
+      }
+    };
+    
+    // Add event listener and store reference for cleanup
+    document.addEventListener('click', clickHandler);
+    this.eventListeners.push({ type: 'click', handler: clickHandler });
 
     // Real-time updates (if enabled)
     if (this.config.features?.realTimeData) {
-      setInterval(() => {
-        this.updateCharts();
+      const updateInterval = setInterval(() => {
+        if (this.isActive) {
+          this.updateCharts();
+        }
       }, this.config.dashboard?.refreshInterval || 30000);
+      
+      this.eventListeners.push({ type: 'interval', handler: updateInterval });
     }
+  }
 
-    // View switching
-    document.addEventListener('change', (e) => {
-      if (e.target.matches('[data-nova-view]')) {
-        const view = e.target.value;
-        this.switchView(view);
+  /**
+   * Set NOVA as active/inactive
+   */
+  setActive(active) {
+    this.isActive = active;
+    if (active) {
+      this.renderCurrentView();
+    }
+  }
+
+  /**
+   * Clean up event listeners
+   */
+  cleanup() {
+    this.eventListeners.forEach(listener => {
+      if (listener.type === 'interval') {
+        clearInterval(listener.handler);
+      } else {
+        document.removeEventListener(listener.type, listener.handler);
       }
     });
+    this.eventListeners = [];
   }
 
   /**
@@ -81,19 +129,28 @@ class NovaDynamicUI {
   switchView(view) {
     this.currentView = view;
     
-    // Hide all view panels
-    document.querySelectorAll('[data-nova-panel]').forEach(panel => {
-      panel.classList.remove('active');
-      panel.style.display = 'none';
-    });
+    // Hide all NOVA view panels (scoped to NOVA tab only)
+    if (this.novaTabElement) {
+      this.novaTabElement.querySelectorAll('[data-nova-panel]').forEach(panel => {
+        panel.classList.remove('active');
+        panel.style.display = 'none';
+      });
 
-    // Show selected view panel
-    const targetPanel = document.querySelector(`[data-nova-panel="${view}"]`);
-    if (targetPanel) {
-      targetPanel.classList.add('active');
-      targetPanel.style.display = 'block';
-      this.updateViewContent(view);
+      // Show selected view panel
+      const targetPanel = this.novaTabElement.querySelector(`[data-nova-panel="${view}"]`);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        targetPanel.style.display = 'block';
+        this.updateViewContent(view);
+      }
     }
+  }
+
+  /**
+   * Render current view
+   */
+  renderCurrentView() {
+    this.updateViewContent(this.currentView);
   }
 
   /**
@@ -120,7 +177,9 @@ class NovaDynamicUI {
    * Render overview dashboard
    */
   renderOverview() {
-    const overviewContainer = document.querySelector('[data-nova-panel="overview"]');
+    if (!this.novaTabElement) return;
+    
+    const overviewContainer = this.novaTabElement.querySelector('[data-nova-panel="overview"]');
     if (!overviewContainer) return;
 
     const metrics = this.calculator.calculatePortfolioMetrics(this.portfolioData, this.getHistoricalData());
@@ -140,7 +199,9 @@ class NovaDynamicUI {
    * Render analytics view
    */
   renderAnalytics() {
-    const analyticsContainer = document.querySelector('[data-nova-panel="analytics"]');
+    if (!this.novaTabElement) return;
+    
+    const analyticsContainer = this.novaTabElement.querySelector('[data-nova-panel="analytics"]');
     if (!analyticsContainer) return;
 
     const metrics = this.calculator.calculatePortfolioMetrics(this.portfolioData, this.getHistoricalData());
@@ -229,12 +290,14 @@ class NovaDynamicUI {
   }
 
   /**
-   * Create a chart instance
+   * Create a chart instance (scoped to NOVA tab)
    */
   createChart(chartId, config) {
-    const canvas = document.getElementById(chartId);
+    if (!this.novaTabElement) return;
+    
+    const canvas = this.novaTabElement.querySelector(`#${chartId}`);
     if (!canvas) {
-      console.warn(`Chart canvas not found: ${chartId}`);
+      console.warn(`Chart canvas not found in NOVA tab: ${chartId}`);
       return;
     }
 
@@ -405,10 +468,12 @@ class NovaDynamicUI {
   }
 
   /**
-   * Update KPI card value
+   * Update KPI card value (scoped to NOVA tab)
    */
   updateKPICard(cardId, value) {
-    const card = document.querySelector(`[data-kpi="${cardId}"] .kpi-value`);
+    if (!this.novaTabElement) return;
+    
+    const card = this.novaTabElement.querySelector(`[data-kpi="${cardId}"] .kpi-value`);
     if (card) {
       card.textContent = value;
     }
@@ -644,11 +709,13 @@ class NovaDynamicUI {
   }
 
   renderCorrelationMatrix() {
+    if (!this.novaTabElement) return;
+    
     // Create a simple correlation matrix display
-    const container = document.querySelector('[data-nova-panel="analytics"] .correlation-matrix-container');
+    const container = this.novaTabElement.querySelector('[data-nova-panel="analytics"] .correlation-matrix-container');
     if (!container) {
       // Create container if it doesn't exist
-      const analyticsPanel = document.querySelector('[data-nova-panel="analytics"]');
+      const analyticsPanel = this.novaTabElement.querySelector('[data-nova-panel="analytics"]');
       if (analyticsPanel) {
         const matrixDiv = document.createElement('div');
         matrixDiv.className = 'nova-analytics-card';
@@ -689,10 +756,12 @@ class NovaDynamicUI {
   }
 
   renderMetricsTable(metrics) {
+    if (!this.novaTabElement) return;
+    
     // Find or create metrics table container
-    let container = document.querySelector('[data-nova-panel="analytics"] .metrics-table-container');
+    let container = this.novaTabElement.querySelector('[data-nova-panel="analytics"] .metrics-table-container');
     if (!container) {
-      const analyticsPanel = document.querySelector('[data-nova-panel="analytics"]');
+      const analyticsPanel = this.novaTabElement.querySelector('[data-nova-panel="analytics"]');
       if (analyticsPanel) {
         const metricsDiv = document.createElement('div');
         metricsDiv.className = 'nova-analytics-card metrics-table-container';
