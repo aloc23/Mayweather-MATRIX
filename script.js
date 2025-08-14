@@ -512,8 +512,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Update content after a small delay to ensure DOM is ready
+        // Only run VISTA logic for VISTA tab
         setTimeout(() => {
-          updateAllTabs();
+          if (tabId === 'pnl') { // Only for VISTA tab
+            updateAllTabs();
+          }
         }, 50);
       });
     });
@@ -552,7 +555,13 @@ document.addEventListener('DOMContentLoaded', function() {
             subpanel.setAttribute('aria-hidden', 'false');
           }
         }
-        setTimeout(updateAllTabs, 50);
+        // Only run VISTA logic if we're in the VISTA tab
+        setTimeout(() => {
+          const activeMainTab = document.querySelector('.tabs button[data-tab].active');
+          if (activeMainTab && activeMainTab.getAttribute('data-tab') === 'pnl') {
+            updateAllTabs();
+          }
+        }, 50);
       });
     });
     
@@ -4429,5 +4438,10 @@ setupExcelExport();
     // Update NPV display in modal if open
     updateNPVDisplayInModal();
   }
-  updateAllTabs();
+  
+  // Only initialize VISTA content initially since VISTA is the default active tab
+  const defaultActiveTab = document.querySelector('.tabs button[data-tab].active');
+  if (defaultActiveTab && defaultActiveTab.getAttribute('data-tab') === 'pnl') {
+    updateAllTabs();
+  }
 });

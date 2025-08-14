@@ -871,62 +871,46 @@
   <!-- Initialize NOVA after DOM is loaded -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize NOVA UI when NOVA tab is active
+      // NOVA UI instance
       let novaUI = null;
       
       // Function to initialize NOVA
       function initializeNova() {
         if (!novaUI) {
-          novaUI = new NovaDynamicUI();
+          try {
+            novaUI = new NovaDynamicUI();
+            novaUI.init();
+            console.log('NOVA UI initialized successfully');
+          } catch (error) {
+            console.error('Error initializing NOVA UI:', error);
+          }
+        } else {
+          novaUI.setActive(true);
         }
       }
       
-      // Initialize NOVA when tab is clicked
+      // Function to deactivate NOVA
+      function deactivateNova() {
+        if (novaUI) {
+          novaUI.setActive(false);
+        }
+      }
+      
+      // Initialize NOVA when tab is clicked, deactivate when other tabs are clicked
       document.addEventListener('click', function(e) {
         if (e.target.matches('[data-tab="nova"]')) {
           setTimeout(initializeNova, 100); // Small delay for tab transition
+        } else if (e.target.matches('[data-tab]') && e.target.getAttribute('data-tab') !== 'nova') {
+          deactivateNova();
         }
       });
       
-      // NOVA-specific event handlers
-      document.addEventListener('click', function(e) {
-        // Handle NOVA view switching
-        if (e.target.matches('.nova-nav-tab')) {
-          document.querySelectorAll('.nova-nav-tab').forEach(tab => {
-            tab.classList.remove('active');
-          });
-          e.target.classList.add('active');
-          
-          const view = e.target.getAttribute('data-nova-view');
-          if (novaUI) {
-            novaUI.switchView(view);
-          }
-        }
-        
-        // Handle modal close
-        if (e.target.matches('.nova-modal-close') || e.target.matches('.nova-modal')) {
-          if (e.target.classList.contains('nova-modal') || e.target.classList.contains('nova-modal-close')) {
-            document.getElementById('add-position-modal').style.display = 'none';
-          }
+      // Clean up NOVA when leaving the page
+      window.addEventListener('beforeunload', function() {
+        if (novaUI) {
+          novaUI.cleanup();
         }
       });
-      
-      // Global function for adding position from modal
-      window.addPositionFromModal = function() {
-        const symbol = document.getElementById('position-symbol').value;
-        const quantity = document.getElementById('position-quantity').value;
-        const price = document.getElementById('position-price').value;
-        
-        if (symbol && quantity && price && novaUI) {
-          novaUI.addPosition(symbol, quantity, price);
-          document.getElementById('add-position-modal').style.display = 'none';
-          
-          // Clear form
-          document.getElementById('position-symbol').value = '';
-          document.getElementById('position-quantity').value = '';
-          document.getElementById('position-price').value = '';
-        }
-      };
     });
   </script>
 </body>
