@@ -233,6 +233,41 @@ class MatrixNova {
   }
 
   /**
+   * Create fallback charts when Chart.js is not available
+   */
+  createFallbackCharts() {
+    // Create fallback for portfolio-performance chart
+    this.createChart('portfolio-performance', {
+      type: 'line',
+      data: this.getPerformanceChartData(),
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Portfolio Performance'
+          }
+        }
+      }
+    });
+
+    // Create fallback for asset-allocation chart
+    this.createChart('asset-allocation', {
+      type: 'doughnut',
+      data: this.getAssetAllocationData(),
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Asset Allocation'
+          }
+        }
+      }
+    });
+  }
+
+  /**
    * Create a chart instance
    */
   createChart(chartId, config) {
