@@ -12,6 +12,7 @@ class MatrixNova {
     this.currentView = 'overview';
     this.novaElement = null;
     this.eventListeners = [];
+    this.isActive = false;
   }
 
   /**
@@ -228,7 +229,16 @@ class MatrixNova {
       });
     } else {
       console.warn('Chart.js not available, using fallback charts');
-      this.createFallbackCharts();
+      // Create fallback charts manually
+      this.createChart('portfolio-performance', {
+        type: 'line',
+        data: this.getPerformanceChartData()
+      });
+      
+      this.createChart('asset-allocation', {
+        type: 'doughnut',
+        data: this.getAssetAllocationData()
+      });
     }
   }
 
@@ -540,6 +550,16 @@ class MatrixNova {
       { symbol: 'GOOGL', quantity: 50, currentPrice: 2800.50 },
       { symbol: 'MSFT', quantity: 75, currentPrice: 350.75 }
     ];
+  }
+
+  /**
+   * Set NOVA as active/inactive
+   */
+  setActive(active) {
+    this.isActive = active;
+    if (active) {
+      this.renderCurrentView();
+    }
   }
 
   /**

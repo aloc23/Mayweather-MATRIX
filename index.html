@@ -920,9 +920,13 @@
       
       // Initialize NOVA when tab is clicked, deactivate when other tabs are clicked
       document.addEventListener('click', function(e) {
-        if (e.target.matches('[data-tab="nova"]')) {
+        // Handle clicks on NOVA tab button or its children
+        const novaTab = e.target.closest('[data-tab="nova"]');
+        const otherTab = e.target.closest('[data-tab]');
+        
+        if (novaTab) {
           setTimeout(initializeNova, 100); // Small delay for tab transition
-        } else if (e.target.matches('[data-tab]') && e.target.getAttribute('data-tab') !== 'nova') {
+        } else if (otherTab && otherTab.getAttribute('data-tab') !== 'nova') {
           deactivateNova();
         }
       });
