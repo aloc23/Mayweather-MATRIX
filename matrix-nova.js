@@ -233,6 +233,35 @@ class MatrixNova {
   }
 
   /**
+   * Create fallback charts when Chart.js is not available
+   */
+  createFallbackCharts() {
+    console.log('Creating fallback charts (Chart.js not available)');
+    // Create simple canvas placeholders for charts
+    const chartCanvases = ['portfolio-performance', 'asset-allocation', 'performance-attribution', 'risk-distribution', 'efficient-frontier'];
+    
+    chartCanvases.forEach(chartId => {
+      const canvas = document.getElementById(chartId);
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#666';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Chart placeholder', canvas.width / 2, canvas.height / 2);
+        
+        // Create a simple chart object for compatibility
+        this.charts.set(chartId, {
+          update: () => console.log(`Updating ${chartId} chart`),
+          render: () => console.log(`Rendering ${chartId} chart`),
+          destroy: () => console.log(`Destroying ${chartId} chart`)
+        });
+      }
+    });
+  }
+
+  /**
    * Create a chart instance
    */
   createChart(chartId, config) {
