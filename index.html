@@ -880,22 +880,22 @@
       function initializeNova() {
         if (!novaUI) {
           try {
-            // Use MatrixNova class for exact matrix-nova implementation
-            novaUI = new MatrixNova();
+            // Use NovaDynamicUI for enhanced business analytics system
+            novaUI = new NovaDynamicUI();
             novaUI.init();
             // Make globally accessible
             window.novaUI = novaUI;
-            console.log('NOVA UI (MatrixNova) initialized successfully');
+            console.log('NOVA UI (NovaDynamicUI) initialized successfully');
           } catch (error) {
             console.error('Error initializing NOVA UI:', error);
-            // Fallback to original NovaDynamicUI if MatrixNova fails
+            // Fallback to MatrixNova if NovaDynamicUI fails
             try {
-              novaUI = new NovaDynamicUI();
+              novaUI = new MatrixNova();
               novaUI.init();
               window.novaUI = novaUI;
-              console.log('Fallback to NovaDynamicUI successful');
+              console.log('Fallback to MatrixNova successful');
             } catch (fallbackError) {
-              console.error('Fallback initialization failed:', fallbackError);
+              console.error('All NOVA initialization failed:', fallbackError);
             }
           }
         } else {
