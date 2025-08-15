@@ -43,7 +43,7 @@
         <span class="tab-icon" aria-hidden="true">✨</span> NOVA
       </button>
     </nav>
-    <!-- NOVA Tab - Advanced Analytics -->
+    <!-- NOVA Tab - Advanced Analytics (Matrix-Nova Implementation) -->
     <section id="nova" class="tab-content" role="tabpanel" aria-labelledby="nova-tab" tabindex="0">
       <h2>NOVA • Advanced Portfolio Analytics</h2>
       
@@ -870,67 +870,45 @@
   <script src="matrix-nova.js"></script>
   <script src="script.js"></script>
   
-  <!-- Initialize NOVA after DOM is loaded -->
+  <!-- Initialize Matrix Nova after DOM is loaded -->
   <script>
-    // Global novaUI instance for modal functions
-    let novaUI = null;
+    // Global matrixNova instance for modal functions
+    let matrixNova = null;
     
     document.addEventListener('DOMContentLoaded', function() {
-      // Function to initialize NOVA
-      function initializeNova() {
-        if (!novaUI) {
+      // Function to initialize Matrix Nova
+      function initializeMatrixNova() {
+        if (!matrixNova) {
           try {
             // Use MatrixNova class for exact matrix-nova implementation
-            novaUI = new MatrixNova();
-            novaUI.init();
+            matrixNova = new MatrixNova();
+            matrixNova.init();
             // Make globally accessible
-            window.novaUI = novaUI;
-            console.log('NOVA UI (MatrixNova) initialized successfully');
+            window.matrixNova = matrixNova;
+            console.log('Matrix Nova initialized successfully');
           } catch (error) {
-            console.error('Error initializing NOVA UI:', error);
-            // Fallback to original NovaDynamicUI if MatrixNova fails
-            try {
-              novaUI = new NovaDynamicUI();
-              novaUI.init();
-              window.novaUI = novaUI;
-              console.log('Fallback to NovaDynamicUI successful');
-            } catch (fallbackError) {
-              console.error('Fallback initialization failed:', fallbackError);
-            }
+            console.error('Error initializing Matrix Nova:', error);
           }
-        } else {
-          if (typeof novaUI.setActive === 'function') {
-            novaUI.setActive(true);
-          }
-        }
-      }
-      
-      // Function to deactivate NOVA
-      function deactivateNova() {
-        if (novaUI && typeof novaUI.setActive === 'function') {
-          novaUI.setActive(false);
         }
       }
       
       // Check if NOVA tab is initially active and initialize if needed
       const initialActiveTab = document.querySelector('.tabs button[data-tab].active');
       if (initialActiveTab && initialActiveTab.getAttribute('data-tab') === 'nova') {
-        setTimeout(initializeNova, 100);
+        setTimeout(initializeMatrixNova, 100);
       }
       
-      // Initialize NOVA when tab is clicked, deactivate when other tabs are clicked
+      // Initialize Matrix Nova when NOVA tab is clicked
       document.addEventListener('click', function(e) {
         if (e.target.matches('[data-tab="nova"]')) {
-          setTimeout(initializeNova, 100); // Small delay for tab transition
-        } else if (e.target.matches('[data-tab]') && e.target.getAttribute('data-tab') !== 'nova') {
-          deactivateNova();
+          setTimeout(initializeMatrixNova, 100); // Small delay for tab transition
         }
       });
       
-      // Clean up NOVA when leaving the page
+      // Clean up Matrix Nova when leaving the page
       window.addEventListener('beforeunload', function() {
-        if (novaUI && typeof novaUI.cleanup === 'function') {
-          novaUI.cleanup();
+        if (matrixNova && typeof matrixNova.cleanup === 'function') {
+          matrixNova.cleanup();
         }
       });
     });
@@ -939,8 +917,7 @@
     function closeAddPositionModal() {
       const modal = document.getElementById('add-position-modal');
       if (modal) {
-        modal.classList.remove('active');
-        setTimeout(() => modal.style.display = 'none', 300);
+        modal.style.display = 'none';
       }
     }
 
@@ -962,8 +939,8 @@
         closeAddPositionModal();
         
         // Refresh positions table if available
-        if (window.novaUI && typeof window.novaUI.renderPositionsTable === 'function') {
-          window.novaUI.renderPositionsTable();
+        if (window.matrixNova && typeof window.matrixNova.renderPositionsTable === 'function') {
+          window.matrixNova.renderPositionsTable();
         }
       } else {
         alert('Please fill in all fields');
