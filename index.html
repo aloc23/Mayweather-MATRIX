@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="src/nova/enhanced-template-cards.css">
   <link rel="stylesheet" href="src/nova/icons.css">
+  <link rel="stylesheet" href="src/nova/accessibility-improvements.css">
   
   <!-- Preload critical assets -->
   <link rel="preload" href="mayweather-logo.png" as="image">
@@ -332,7 +333,7 @@
               <input type="number" id="position-price" class="nova-form-input" placeholder="Price per share" step="0.01" required>
             </div>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-              <button type="button" class="nova-btn secondary" onclick="document.getElementById('add-position-modal').style.display='none'">Cancel</button>
+              <button type="button" class="nova-btn secondary" onclick="closeAddPositionModal()">Cancel</button>
               <button type="button" class="nova-btn" onclick="addPositionFromModal()">Add Position</button>
             </div>
           </div>
@@ -866,32 +867,47 @@
   <script src="src/nova/config.js"></script>
   <script src="src/nova/calculations.js"></script>
   <script src="src/nova/dynamic-ui.js"></script>
+  <script src="matrix-nova.js"></script>
   <script src="script.js"></script>
   
   <!-- Initialize NOVA after DOM is loaded -->
   <script>
+    // Global novaUI instance for modal functions
+    let novaUI = null;
+    
     document.addEventListener('DOMContentLoaded', function() {
-      // NOVA UI instance
-      let novaUI = null;
-      
       // Function to initialize NOVA
       function initializeNova() {
         if (!novaUI) {
           try {
-            novaUI = new NovaDynamicUI();
+            // Use MatrixNova class for exact matrix-nova implementation
+            novaUI = new MatrixNova();
             novaUI.init();
-            console.log('NOVA UI initialized successfully');
+            // Make globally accessible
+            window.novaUI = novaUI;
+            console.log('NOVA UI (MatrixNova) initialized successfully');
           } catch (error) {
             console.error('Error initializing NOVA UI:', error);
+            // Fallback to original NovaDynamicUI if MatrixNova fails
+            try {
+              novaUI = new NovaDynamicUI();
+              novaUI.init();
+              window.novaUI = novaUI;
+              console.log('Fallback to NovaDynamicUI successful');
+            } catch (fallbackError) {
+              console.error('Fallback initialization failed:', fallbackError);
+            }
           }
         } else {
-          novaUI.setActive(true);
+          if (typeof novaUI.setActive === 'function') {
+            novaUI.setActive(true);
+          }
         }
       }
       
       // Function to deactivate NOVA
       function deactivateNova() {
-        if (novaUI) {
+        if (novaUI && typeof novaUI.setActive === 'function') {
           novaUI.setActive(false);
         }
       }
@@ -913,11 +929,46 @@
       
       // Clean up NOVA when leaving the page
       window.addEventListener('beforeunload', function() {
-        if (novaUI) {
+        if (novaUI && typeof novaUI.cleanup === 'function') {
           novaUI.cleanup();
         }
       });
     });
+
+    // Modal functions for exact matrix-nova compatibility
+    function closeAddPositionModal() {
+      const modal = document.getElementById('add-position-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+      }
+    }
+
+    function addPositionFromModal() {
+      const symbol = document.getElementById('position-symbol').value;
+      const quantity = parseFloat(document.getElementById('position-quantity').value);
+      const price = parseFloat(document.getElementById('position-price').value);
+      
+      if (symbol && quantity && price) {
+        console.log('Adding position:', { symbol, quantity, price });
+        // Here you would integrate with the portfolio management system
+        
+        // Clear form
+        document.getElementById('position-symbol').value = '';
+        document.getElementById('position-quantity').value = '';
+        document.getElementById('position-price').value = '';
+        
+        // Close modal
+        closeAddPositionModal();
+        
+        // Refresh positions table if available
+        if (window.novaUI && typeof window.novaUI.renderPositionsTable === 'function') {
+          window.novaUI.renderPositionsTable();
+        }
+      } else {
+        alert('Please fill in all fields');
+      }
+    }
   </script>
 </body>
 </html>
