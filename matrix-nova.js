@@ -233,6 +233,28 @@ class MatrixNova {
   }
 
   /**
+   * Create fallback charts when Chart.js is not available
+   */
+  createFallbackCharts() {
+    // Create fallback charts for main portfolio charts
+    const performanceCanvas = document.getElementById('portfolio-performance');
+    if (performanceCanvas) {
+      this.createFallbackChart(performanceCanvas, {
+        type: 'line',
+        data: this.getPerformanceChartData()
+      });
+    }
+
+    const allocationCanvas = document.getElementById('asset-allocation');
+    if (allocationCanvas) {
+      this.createFallbackChart(allocationCanvas, {
+        type: 'doughnut',
+        data: this.getAssetAllocationData()
+      });
+    }
+  }
+
+  /**
    * Create a chart instance
    */
   createChart(chartId, config) {
