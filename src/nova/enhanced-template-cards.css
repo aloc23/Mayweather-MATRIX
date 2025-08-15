@@ -190,11 +190,19 @@
 /* NOVA Navigation Tabs */
 .nova-nav-tabs {
   display: flex;
+  flex-wrap: wrap;
   background: #f8fafc;
   border-radius: 8px;
   padding: 4px;
   margin-bottom: 24px;
   border: 1px solid #e2e8f0;
+  gap: 2px;
+}
+
+.nova-dynamic-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
 }
 
 .nova-nav-tab {
@@ -431,7 +439,55 @@
   color: #1e40af;
 }
 
-/* NOVA Responsive Design */
+/* NOVA Icon Styles */
+.nova-icon-selector::before { content: "🎯"; }
+.nova-icon-chart::before { content: "📊"; }
+.nova-icon-money::before { content: "💰"; }
+.nova-icon-scenarios::before { content: "🔀"; }
+.nova-icon-summary::before { content: "📋"; }
+.nova-icon-gantt::before { content: "📅"; }
+.nova-icon-project::before { content: "📈"; }
+
+/* Dynamic project tabs */
+.nova-project-tab {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: 1px solid #5a67d8;
+}
+
+.nova-project-tab:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+  transform: translateY(-1px);
+}
+
+.nova-project-tab.active {
+  background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+  box-shadow: 0 4px 12px 0 rgba(76, 81, 191, 0.3);
+}
+
+/* Project-specific panels */
+.nova-project-panel {
+  border-left: 4px solid #667eea;
+  padding-left: 20px;
+}
+
+.nova-project-content {
+  margin-top: 20px;
+}
+
+.project-analysis-form {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.project-results {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
 @media (max-width: 768px) {
   .nova-kpi-grid {
     grid-template-columns: 1fr;

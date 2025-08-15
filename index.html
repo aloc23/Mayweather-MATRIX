@@ -53,188 +53,287 @@
     </nav>
     <!-- NOVA Tab - Comprehensive Business Analytics -->
     <section id="nova" class="tab-content" role="tabpanel" aria-labelledby="nova-tab" tabindex="0">
-      <h2>NOVA • Advanced Portfolio Analytics & Risk Management</h2>
+      <h2>NOVA • Advanced Business Analytics & Project Management</h2>
       
       <!-- NOVA Navigation -->
-      <nav class="nova-navigation" role="tablist" aria-label="NOVA main navigation">
-        <button type="button" class="nova-nav-tab active" data-nova-view="overview" role="tab" aria-selected="true">
-          <span class="tab-icon">📊</span> Overview
+      <nav class="nova-nav-tabs" role="tablist" aria-label="NOVA main navigation">
+        <button type="button" class="nova-nav-tab active" data-nova-view="project-selector" role="tab" aria-selected="true">
+          <span class="nova-icon nova-icon-selector"></span> Project Selector
         </button>
-        <button type="button" class="nova-nav-tab" data-nova-view="analytics" role="tab" aria-selected="false">
-          <span class="tab-icon">📈</span> Analytics
+        <button type="button" class="nova-nav-tab" data-nova-view="pnl" role="tab" aria-selected="false">
+          <span class="nova-icon nova-icon-chart"></span> P&L Analysis
         </button>
-        <button type="button" class="nova-nav-tab" data-nova-view="risk" role="tab" aria-selected="false">
-          <span class="tab-icon">⚠️</span> Risk Analysis
+        <button type="button" class="nova-nav-tab" data-nova-view="roi" role="tab" aria-selected="false">
+          <span class="nova-icon nova-icon-money"></span> ROI Analysis
         </button>
-        <button type="button" class="nova-nav-tab" data-nova-view="optimization" role="tab" aria-selected="false">
-          <span class="tab-icon">🎯</span> Portfolio Optimization
+        <button type="button" class="nova-nav-tab" data-nova-view="scenarios" role="tab" aria-selected="false">
+          <span class="nova-icon nova-icon-scenarios"></span> Scenarios
         </button>
+        <button type="button" class="nova-nav-tab" data-nova-view="summary" role="tab" aria-selected="false">
+          <span class="nova-icon nova-icon-summary"></span> Summary
+        </button>
+        <button type="button" class="nova-nav-tab" data-nova-view="gantt" role="tab" aria-selected="false">
+          <span class="nova-icon nova-icon-gantt"></span> Gantt
+        </button>
+        <!-- Dynamic project tabs will be inserted here -->
+        <div id="nova-dynamic-tabs" class="nova-dynamic-tabs"></div>
       </nav>
 
-      <!-- Overview Panel -->
-      <section class="nova-view-panel active" data-nova-panel="overview" role="tabpanel">
+      <!-- Project Selector Panel -->
+      <section class="nova-view-panel active" data-nova-panel="project-selector" role="tabpanel">
         <div class="nova-panel-header">
-          <h3>Portfolio Overview</h3>
+          <h3>Business & Project Type Selection</h3>
           <div class="nova-panel-actions">
-            <button type="button" class="nova-btn" data-nova-action="add-position">
-              <span class="btn-icon">➕</span> Add Position
-            </button>
-            <button type="button" class="nova-btn secondary" data-nova-action="refresh-data">
-              <span class="btn-icon">🔄</span> Refresh
+            <button type="button" class="nova-btn secondary" data-nova-action="reset-selection">
+              <span class="btn-icon">🔄</span> Reset Selection
             </button>
           </div>
         </div>
         
-        <!-- KPI Cards -->
-        <div class="nova-kpi-grid">
-          <div class="nova-kpi-card" data-kpi="total-value">
-            <div class="kpi-icon">💰</div>
-            <div class="kpi-content">
-              <h4>Total Portfolio Value</h4>
-              <div class="kpi-value" id="total-value">$181,356.25</div>
-              <div class="kpi-change positive">+3.2%</div>
-            </div>
-          </div>
-          <div class="nova-kpi-card" data-kpi="daily-return">
-            <div class="kpi-icon">📈</div>
-            <div class="kpi-content">
-              <h4>Daily Return</h4>
-              <div class="kpi-value" id="daily-return">+1.45%</div>
-              <div class="kpi-change positive">+0.3%</div>
-            </div>
-          </div>
-          <div class="nova-kpi-card" data-kpi="volatility">
-            <div class="kpi-icon">📊</div>
-            <div class="kpi-content">
-              <h4>Volatility (30D)</h4>
-              <div class="kpi-value" id="volatility">12.8%</div>
-              <div class="kpi-change negative">+0.5%</div>
-            </div>
-          </div>
-          <div class="nova-kpi-card" data-kpi="sharpe-ratio">
-            <div class="kpi-icon">⚡</div>
-            <div class="kpi-content">
-              <h4>Sharpe Ratio</h4>
-              <div class="kpi-value" id="sharpe-ratio">1.85</div>
-              <div class="kpi-change positive">+0.1</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Charts Section -->
-        <div class="nova-charts-grid">
-          <div class="nova-chart-container">
-            <h4>Portfolio Performance</h4>
-            <canvas id="portfolio-performance" width="400" height="200"></canvas>
-          </div>
-          <div class="nova-chart-container">
-            <h4>Asset Allocation</h4>
-            <canvas id="asset-allocation" width="400" height="200"></canvas>
-          </div>
-        </div>
-        
-        <!-- Positions Table -->
-        <div class="nova-table-container">
-          <h4>Current Positions</h4>
-          <table id="positions-table" class="nova-table">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Market Value</th>
-                <th>Gain/Loss</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Positions will be populated by JavaScript -->
-            </tbody>
-          </table>
+        <!-- Business Analytics Container -->
+        <div id="nova-business-analytics-container">
+          <!-- Dynamic UI will be generated here -->
         </div>
       </section>
 
-      <!-- Analytics Panel -->
-      <section class="nova-view-panel" data-nova-panel="analytics" role="tabpanel">
+      <!-- P&L Analysis Panel -->
+      <section class="nova-view-panel" data-nova-panel="pnl" role="tabpanel">
         <div class="nova-panel-header">
-          <h3>Portfolio Analytics</h3>
+          <h3>Profit & Loss Analysis</h3>
           <div class="nova-panel-actions">
+            <button type="button" class="nova-btn" data-nova-action="refresh-data">
+              <span class="btn-icon">🔄</span> Refresh Data
+            </button>
             <button type="button" class="nova-btn secondary" data-nova-action="export-report">
               <span class="btn-icon">📥</span> Export Report
             </button>
           </div>
         </div>
         
-        <!-- Performance Metrics -->
-        <div class="nova-metrics-grid">
-          <div class="nova-metric-card">
-            <h4>Performance Metrics</h4>
-            <div id="performance-metrics-content">
-              <!-- Performance metrics will be populated here -->
+        <!-- P&L Content from VISTA -->
+        <div class="nova-pnl-content">
+          <div class="info-banner">
+            <h4><span class="icon" aria-hidden="true">PERFORMANCE</span> Financial Performance Overview</h4>
+            <div class="banner-content">
+              Comprehensive profit and loss analysis based on your business analytics data. View income, expenses, and net position across all periods.
             </div>
           </div>
-          <div class="nova-metric-card">
-            <h4>Correlation Matrix</h4>
-            <div id="correlation-matrix-content">
-              <!-- Correlation matrix will be populated here -->
+          
+          <div class="chart-wrapper">
+            <canvas id="nova-pnl-chart" height="180"></canvas>
+          </div>
+          <div id="nova-pnl-summary"></div>
+          <div id="nova-pnl-data" class="no-data-message">Configure your business model in Project Selector to view P&L analysis.</div>
+        </div>
+      </section>
+
+      <!-- ROI Analysis Panel -->
+      <section class="nova-view-panel" data-nova-panel="roi" role="tabpanel">
+        <div class="nova-panel-header">
+          <h3>Return on Investment Analysis</h3>
+          <div class="nova-panel-actions">
+            <button type="button" class="nova-btn" data-nova-action="calculate-roi">
+              <span class="btn-icon">📊</span> Calculate ROI
+            </button>
+          </div>
+        </div>
+        
+        <!-- ROI Content from VISTA -->
+        <div class="nova-roi-content">
+          <div class="info-banner modern-banner">
+            <h4><i class="icon">ROI</i> Investment Return Analysis</h4>
+            <div class="banner-content">
+              Analyze return on investment, payback periods, and financial projections based on your business model and investment parameters.
+            </div>
+          </div>
+          
+          <div class="investment-controls-section">
+            <div class="controls-row">
+              <div class="control-group">
+                <label for="nova-investment-amount"><strong>Total Investment:</strong></label>
+                <input type="number" id="nova-investment-amount" value="300000">
+              </div>
+              <div class="control-group">
+                <label for="nova-interest-rate"><strong>Interest Rate (%):</strong></label>
+                <input type="number" id="nova-interest-rate" value="20">
+              </div>
+              <div class="control-group">
+                <button id="nova-refresh-roi-btn" class="btn-primary">Calculate ROI</button>
+              </div>
+            </div>
+          </div>
+          
+          <div id="nova-roi-results" class="roi-results-display">
+            <!-- ROI results will be populated here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Scenarios Panel -->
+      <section class="nova-view-panel" data-nova-panel="scenarios" role="tabpanel">
+        <div class="nova-panel-header">
+          <h3>Scenario Analysis</h3>
+          <div class="nova-panel-actions">
+            <button type="button" class="nova-btn" data-nova-action="add-scenario">
+              <span class="btn-icon">➕</span> Add Scenario
+            </button>
+          </div>
+        </div>
+        
+        <!-- Scenario Analysis Content -->
+        <div class="nova-scenarios-content">
+          <div class="info-banner">
+            <h4><span class="icon" aria-hidden="true">SCENARIOS</span> What-If Analysis</h4>
+            <div class="banner-content">
+              Compare different scenarios by adjusting key parameters to understand how changes impact your business performance.
+            </div>
+          </div>
+          
+          <div class="scenarios-grid">
+            <div class="scenario-card">
+              <h4>Base Case</h4>
+              <div class="scenario-metrics">
+                <div class="metric">
+                  <span class="metric-label">ROI:</span>
+                  <span class="metric-value" id="base-roi">--</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Payback:</span>
+                  <span class="metric-value" id="base-payback">--</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="scenario-card">
+              <h4>Optimistic</h4>
+              <div class="scenario-metrics">
+                <div class="metric">
+                  <span class="metric-label">ROI:</span>
+                  <span class="metric-value" id="optimistic-roi">--</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Payback:</span>
+                  <span class="metric-value" id="optimistic-payback">--</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="scenario-card">
+              <h4>Pessimistic</h4>
+              <div class="scenario-metrics">
+                <div class="metric">
+                  <span class="metric-label">ROI:</span>
+                  <span class="metric-value" id="pessimistic-roi">--</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Payback:</span>
+                  <span class="metric-value" id="pessimistic-payback">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="nova-scenarios-chart-container" class="nova-chart-container">
+            <h4>Scenario Comparison</h4>
+            <canvas id="nova-scenarios-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Summary Panel -->
+      <section class="nova-view-panel" data-nova-panel="summary" role="tabpanel">
+        <div class="nova-panel-header">
+          <h3>Executive Summary</h3>
+          <div class="nova-panel-actions">
+            <button type="button" class="nova-btn" data-nova-action="export-pdf">
+              <span class="btn-icon">📄</span> Export PDF
+            </button>
+            <button type="button" class="nova-btn secondary" data-nova-action="export-excel">
+              <span class="btn-icon">📊</span> Export Excel
+            </button>
+          </div>
+        </div>
+        
+        <!-- Summary Content from VISTA -->
+        <div class="nova-summary-content">
+          <div class="info-banner">
+            <h4><span class="icon" aria-hidden="true">EXECUTIVE</span> Executive Summary</h4>
+            <div class="banner-content">
+              Comprehensive overview of your business performance with key performance indicators, visual analytics, and exportable reports.
+            </div>
+          </div>
+          
+          <div class="kpi-cards">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Revenue</div>
+              <div class="kpi-value" id="nova-kpi-revenue">--</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Total Costs</div>
+              <div class="kpi-value" id="nova-kpi-costs">--</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Net Profit</div>
+              <div class="kpi-value" id="nova-kpi-profit">--</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">ROI</div>
+              <div class="kpi-value" id="nova-kpi-roi">--</div>
+            </div>
+          </div>
+          
+          <div id="nova-summary-charts" class="summary-charts-grid">
+            <div class="nova-chart-container">
+              <h4>Financial Overview</h4>
+              <canvas id="nova-summary-chart"></canvas>
+            </div>
+            <div class="nova-chart-container">
+              <h4>Key Metrics</h4>
+              <canvas id="nova-metrics-chart"></canvas>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Risk Analysis Panel -->
-      <section class="nova-view-panel" data-nova-panel="risk" role="tabpanel">
+      <!-- Gantt Panel -->
+      <section class="nova-view-panel" data-nova-panel="gantt" role="tabpanel">
         <div class="nova-panel-header">
-          <h3>Risk Analysis</h3>
+          <h3>Project Timeline</h3>
           <div class="nova-panel-actions">
-            <button type="button" class="nova-btn secondary" data-nova-action="refresh-data">
-              <span class="btn-icon">🔄</span> Refresh Risk Data
+            <button type="button" class="nova-btn" data-nova-action="add-milestone">
+              <span class="btn-icon">📅</span> Add Milestone
             </button>
           </div>
         </div>
         
-        <!-- Risk Metrics -->
-        <div class="nova-risk-grid">
-          <div class="nova-risk-card">
-            <h4>Risk Metrics</h4>
-            <div id="risk-metrics-content">
-              <!-- Risk metrics will be populated here -->
+        <!-- Gantt Chart Content -->
+        <div class="nova-gantt-content">
+          <div class="info-banner">
+            <h4><span class="icon" aria-hidden="true">TIMELINE</span> Project Timeline & Milestones</h4>
+            <div class="banner-content">
+              Visualize project timelines, milestones, and key business phases with interactive Gantt charts.
             </div>
           </div>
-          <div class="nova-risk-card">
-            <h4>Stress Tests</h4>
-            <div id="stress-tests-content">
-              <!-- Stress test results will be populated here -->
+          
+          <div class="gantt-controls">
+            <div class="control-group">
+              <label for="gantt-start-date">Project Start:</label>
+              <input type="date" id="gantt-start-date">
             </div>
+            <div class="control-group">
+              <label for="gantt-duration">Duration (months):</label>
+              <input type="number" id="gantt-duration" value="12" min="1" max="60">
+            </div>
+          </div>
+          
+          <div id="nova-gantt-container" class="gantt-container">
+            <!-- Gantt chart will be rendered here -->
           </div>
         </div>
       </section>
 
-      <!-- Portfolio Optimization Panel -->
-      <section class="nova-view-panel" data-nova-panel="optimization" role="tabpanel">
-        <div class="nova-panel-header">
-          <h3>Portfolio Optimization</h3>
-          <div class="nova-panel-actions">
-            <button type="button" class="nova-btn" data-nova-action="run-analysis">
-              <span class="btn-icon">🎯</span> Run Optimization
-            </button>
-          </div>
-        </div>
-        
-        <!-- Optimization Content -->
-        <div class="nova-optimization-grid">
-          <div class="nova-optimization-card">
-            <h4>Efficient Frontier</h4>
-            <canvas id="efficient-frontier" width="400" height="300"></canvas>
-          </div>
-          <div class="nova-optimization-card">
-            <h4>Optimization Results</h4>
-            <div id="optimization-results-content">
-              <!-- Optimization results will be populated here -->
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- Dynamic Project Panels will be inserted here -->
+      <div id="nova-dynamic-panels"></div>
     </section>
 
     <!-- Add Position Modal -->
@@ -791,8 +890,12 @@
   
   <!-- NOVA Scripts -->
   <script src="src/nova/config.js"></script>
+  <script src="src/nova/nova-config.js"></script>
+  <script src="src/nova/nova-state-manager.js"></script>
   <script src="src/nova/calculations.js"></script>
   <script src="src/nova/dynamic-ui.js"></script>
+  <script src="src/nova/nova-dynamic-ui.js"></script>
+  <script src="src/nova/nova-enhanced-controller.js"></script>
   <script src="matrix-nova.js"></script>
   <script src="script.js"></script>
   
@@ -802,26 +905,36 @@
     let novaUI = null;
     
     document.addEventListener('DOMContentLoaded', function() {
-      // Function to initialize NOVA
+      // Function to initialize NOVA with enhanced controller
       function initializeNova() {
         if (!novaUI) {
           try {
-            // Use MatrixNova class for exact matrix-nova implementation
-            novaUI = new MatrixNova();
-            novaUI.init();
-            // Make globally accessible
-            window.novaUI = novaUI;
-            console.log('NOVA UI (MatrixNova) initialized successfully');
-          } catch (error) {
-            console.error('Error initializing NOVA UI:', error);
-            // Fallback to original NovaDynamicUI if MatrixNova fails
-            try {
-              novaUI = new NovaDynamicUI();
+            // Use NovaEnhancedController for the comprehensive business analytics system
+            if (typeof NovaEnhancedController !== 'undefined') {
+              novaUI = new NovaEnhancedController();
+              novaUI.init();
+              // Make globally accessible
+              window.novaUI = novaUI;
+              console.log('NOVA Enhanced Controller initialized successfully');
+            } else {
+              // Fallback to MatrixNova class if enhanced controller not available
+              novaUI = new MatrixNova();
               novaUI.init();
               window.novaUI = novaUI;
-              console.log('Fallback to NovaDynamicUI successful');
+              console.log('Fallback to MatrixNova successful');
+            }
+          } catch (error) {
+            console.error('Error initializing NOVA:', error);
+            // Final fallback to original NovaDynamicUI
+            try {
+              if (typeof NovaDynamicUI !== 'undefined') {
+                novaUI = new NovaDynamicUI();
+                novaUI.init();
+                window.novaUI = novaUI;
+                console.log('Final fallback to NovaDynamicUI successful');
+              }
             } catch (fallbackError) {
-              console.error('Fallback initialization failed:', fallbackError);
+              console.error('All initialization methods failed:', fallbackError);
             }
           }
         } else {
@@ -846,9 +959,11 @@
       
       // Initialize NOVA when tab is clicked, deactivate when other tabs are clicked
       document.addEventListener('click', function(e) {
-        if (e.target.matches('[data-tab="nova"]')) {
+        if (e.target.matches('[data-tab="nova"]') || e.target.closest('[data-tab="nova"]')) {
           setTimeout(initializeNova, 100); // Small delay for tab transition
-        } else if (e.target.matches('[data-tab]') && e.target.getAttribute('data-tab') !== 'nova') {
+        } else if ((e.target.matches('[data-tab]') || e.target.closest('[data-tab]')) && 
+                   (e.target.getAttribute('data-tab') !== 'nova' && 
+                    (!e.target.closest('[data-tab]') || e.target.closest('[data-tab]').getAttribute('data-tab') !== 'nova'))) {
           deactivateNova();
         }
       });
