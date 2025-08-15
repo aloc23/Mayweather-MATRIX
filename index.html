@@ -11,9 +11,17 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Nova-specific external libraries -->
+  <script src="https://unpkg.com/feather-icons"></script>
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   
   <!-- Stylesheets -->
   <link rel="stylesheet" href="style.css">
+  <!-- Nova System Stylesheets -->
+  <link rel="stylesheet" href="src/nova/nova-modern-theme.css">
+  <link rel="stylesheet" href="src/nova/nova-enhanced-cards.css">
   <link rel="stylesheet" href="src/nova/enhanced-template-cards.css">
   <link rel="stylesheet" href="src/nova/icons.css">
   <link rel="stylesheet" href="src/nova/accessibility-improvements.css">
@@ -43,302 +51,364 @@
         <span class="tab-icon" aria-hidden="true">✨</span> NOVA
       </button>
     </nav>
-    <!-- NOVA Tab - Advanced Analytics -->
+    <!-- NOVA Tab - Comprehensive Business Analytics -->
     <section id="nova" class="tab-content" role="tabpanel" aria-labelledby="nova-tab" tabindex="0">
-      <h2>NOVA • Advanced Portfolio Analytics</h2>
+      <h2>NOVA • Comprehensive Business Analytics Platform</h2>
       
-      <!-- NOVA Navigation -->
-      <nav class="nova-nav-tabs" role="tablist" aria-label="NOVA views">
-        <button type="button" class="nova-nav-tab active" data-nova-view="overview">
-          <span class="nova-icon nova-icon-dashboard"></span> Overview
+      <!-- NOVA Main Navigation -->
+      <nav class="nova-tabs" role="tablist" aria-label="NOVA main navigation">
+        <button type="button" class="nova-tab active" data-nova-tab="business-analytics" role="tab" aria-selected="true">
+          <span class="tab-icon">📊</span> Business Analytics
         </button>
-        <button type="button" class="nova-nav-tab" data-nova-view="analytics">
-          <span class="nova-icon nova-icon-analytics"></span> Analytics
+        <button type="button" class="nova-tab" data-nova-tab="investment-model" role="tab" aria-selected="false">
+          <span class="tab-icon">💰</span> Investment Model
         </button>
-        <button type="button" class="nova-nav-tab" data-nova-view="risk">
-          <span class="nova-icon nova-icon-risk"></span> Risk Analysis
+        <button type="button" class="nova-tab" data-nova-tab="staffing-resourcing" role="tab" aria-selected="false">
+          <span class="tab-icon">👥</span> Staffing & Resources
         </button>
-        <button type="button" class="nova-nav-tab" data-nova-view="optimization">
-          <span class="nova-icon nova-icon-target"></span> Optimization
+        <button type="button" class="nova-tab" data-nova-tab="execution-scheduling" role="tab" aria-selected="false">
+          <span class="tab-icon">📅</span> Execution & Scheduling
+        </button>
+        <button type="button" class="nova-tab" data-nova-tab="project-files" role="tab" aria-selected="false">
+          <span class="tab-icon">📁</span> Project Files
+        </button>
+        <button type="button" class="nova-tab" data-nova-tab="scenarios" role="tab" aria-selected="false">
+          <span class="tab-icon">🎭</span> Scenarios
         </button>
       </nav>
 
-      <!-- NOVA Overview Panel -->
-      <div data-nova-panel="overview" class="nova-view-panel active">
-        <!-- KPI Cards -->
-        <div class="nova-kpi-grid">
-          <div class="nova-kpi-card positive" data-kpi="total-value">
-            <div class="nova-kpi-title">Total Portfolio Value</div>
-            <div class="nova-kpi-value">$124,500</div>
-            <div class="nova-kpi-change">
-              <span class="nova-icon nova-icon-trend-up"></span>
-              +5.2% Today
-            </div>
-          </div>
-          <div class="nova-kpi-card neutral" data-kpi="daily-return">
-            <div class="nova-kpi-title">Daily Return</div>
-            <div class="nova-kpi-value">+2.1%</div>
-            <div class="nova-kpi-change">
-              <span class="nova-icon nova-icon-growth"></span>
-              Above Benchmark
-            </div>
-          </div>
-          <div class="nova-kpi-card secondary" data-kpi="volatility">
-            <div class="nova-kpi-title">Volatility (Ann.)</div>
-            <div class="nova-kpi-value">12.3%</div>
-            <div class="nova-kpi-change">
-              <span class="nova-icon nova-icon-balance"></span>
-              Low Risk
-            </div>
-          </div>
-          <div class="nova-kpi-card primary" data-kpi="sharpe-ratio">
-            <div class="nova-kpi-title">Sharpe Ratio</div>
-            <div class="nova-kpi-value">1.45</div>
-            <div class="nova-kpi-change">
-              <span class="nova-icon nova-icon-star"></span>
-              Excellent
-            </div>
+      <!-- Business Analytics Tab (Main Interface) -->
+      <section id="nova-business-analytics" class="nova-tab-content" role="tabpanel">
+        <div id="business-analytics-content">
+          <!-- Dynamic business analytics interface will be generated here -->
+        </div>
+      </section>
+      
+      <!-- Investment Model Tab (Consolidates P&L, ROI, CapEx, OpEx) -->
+      <section id="nova-investment-model" class="nova-tab-content hidden" role="tabpanel">
+        <div class="tab-header">
+          <h2>Investment Model</h2>
+          <div class="tab-actions">
+            <button type="button" class="nova-btn danger" onclick="resetInvestmentModel()" title="Reset all investment data">
+              🔄 Reset
+            </button>
+            <button type="button" class="nova-btn secondary" onclick="exportInvestmentSummary()" title="Export investment summary">
+              📥 Export
+            </button>
           </div>
         </div>
-
-        <!-- Charts Row -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
-          <!-- Portfolio Performance Chart -->
-          <div class="nova-chart-container">
-            <div class="nova-chart-header">
-              <h3 class="nova-chart-title">Portfolio Performance</h3>
-              <div class="nova-chart-controls">
-                <select class="nova-form-select" style="width: auto;">
-                  <option value="1M">1 Month</option>
-                  <option value="3M">3 Months</option>
-                  <option value="6M">6 Months</option>
-                  <option value="1Y" selected>1 Year</option>
-                </select>
+        
+        <!-- Project Selection Controls -->
+        <div class="project-selector-section">
+          <div class="project-selector-container">
+            <div id="investment-project-selector"></div>
+          </div>
+        </div>
+        
+        <div class="sub-tabs">
+          <nav class="sub-tab-nav" role="tablist">
+            <button type="button" data-subtab="pnl" class="sub-tab active">P&L Statement</button>
+            <button type="button" data-subtab="roi" class="sub-tab">ROI Analysis</button>
+            <button type="button" data-subtab="capex" class="sub-tab">CapEx Tracking</button>
+            <button type="button" data-subtab="summary" class="sub-tab">Investment Summary</button>
+          </nav>
+          
+          <!-- P&L Sub-section -->
+          <div id="pnl-section" class="sub-tab-content">
+            <div class="section-group">
+              <p><em>Combined analysis of all selected project types</em></p>
+            </div>
+            <div id="pnlSummary" class="nova-summary"></div>
+            <div class="section-group">
+              <h3>Charts</h3>
+              <div class="nova-charts-grid">
+                <div class="nova-chart-container"><canvas id="pnlChart" height="180"></canvas></div>
+                <div class="nova-chart-container"><canvas id="profitTrendChart" height="180"></canvas></div>
+                <div class="nova-chart-container"><canvas id="costPieChart" height="180"></canvas></div>
               </div>
             </div>
-            <div class="nova-chart-canvas">
-              <canvas id="portfolio-performance"></canvas>
-            </div>
+            <div id="pnl-collapsible-sections"></div>
           </div>
-
-          <!-- Asset Allocation Chart -->
-          <div class="nova-chart-container">
-            <div class="nova-chart-header">
-              <h3 class="nova-chart-title">Asset Allocation</h3>
-            </div>
-            <div class="nova-chart-canvas" style="height: 300px;">
-              <canvas id="asset-allocation"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Portfolio Positions Table -->
-        <div class="nova-analytics-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="margin: 0;">Current Positions</h3>
-            <div>
-              <button class="nova-btn" data-nova-action="add-position">
-                <span class="nova-icon nova-icon-add"></span>
-                Add Position
-              </button>
-              <button class="nova-btn secondary" data-nova-action="refresh-data">
-                <span class="nova-icon nova-icon-refresh"></span>
-                Refresh
-              </button>
-            </div>
-          </div>
-          <table class="nova-data-table" id="positions-table">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Quantity</th>
-                <th>Current Price</th>
-                <th>Market Value</th>
-                <th>Gain/Loss</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Dynamic content populated by JavaScript -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- NOVA Analytics Panel -->
-      <div data-nova-panel="analytics" class="nova-view-panel">
-        <div class="nova-analytics-card">
-          <h3>Advanced Performance Metrics</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-            <div>
-              <h4>Risk-Adjusted Returns</h4>
-              <table class="nova-data-table">
-                <tbody>
-                  <tr><td>Alpha</td><td class="positive">2.3%</td></tr>
-                  <tr><td>Beta</td><td>0.85</td></tr>
-                  <tr><td>Information Ratio</td><td class="positive">1.12</td></tr>
-                  <tr><td>Tracking Error</td><td>8.5%</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div>
-              <h4>Drawdown Analysis</h4>
-              <table class="nova-data-table">
-                <tbody>
-                  <tr><td>Current Drawdown</td><td class="negative">-2.1%</td></tr>
-                  <tr><td>Max Drawdown</td><td class="negative">-8.7%</td></tr>
-                  <tr><td>Recovery Time</td><td>45 days</td></tr>
-                  <tr><td>Calmar Ratio</td><td class="positive">1.85</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Performance Attribution Chart -->
-        <div class="nova-chart-container">
-          <div class="nova-chart-header">
-            <h3 class="nova-chart-title">Performance Attribution</h3>
-          </div>
-          <div class="nova-chart-canvas">
-            <canvas id="performance-attribution"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- NOVA Risk Analysis Panel -->
-      <div data-nova-panel="risk" class="nova-view-panel">
-        <!-- Risk Metrics -->
-        <div class="nova-kpi-grid">
-          <div class="nova-kpi-card warning" data-kpi="var-95">
-            <div class="nova-kpi-title">VaR (95%)</div>
-            <div class="nova-kpi-value">-3.2%</div>
-            <div class="nova-kpi-change">1-Day Risk</div>
-          </div>
-          <div class="nova-kpi-card danger" data-kpi="var-99">
-            <div class="nova-kpi-title">VaR (99%)</div>
-            <div class="nova-kpi-value">-5.8%</div>
-            <div class="nova-kpi-change">Extreme Risk</div>
-          </div>
-          <div class="nova-kpi-card negative" data-kpi="max-drawdown">
-            <div class="nova-kpi-title">Max Drawdown</div>
-            <div class="nova-kpi-value">-8.7%</div>
-            <div class="nova-kpi-change">Historical Worst</div>
-          </div>
-        </div>
-
-        <!-- Risk Distribution Chart -->
-        <div class="nova-chart-container">
-          <div class="nova-chart-header">
-            <h3 class="nova-chart-title">Risk Distribution</h3>
-          </div>
-          <div class="nova-chart-canvas">
-            <canvas id="risk-distribution"></canvas>
-          </div>
-        </div>
-
-        <!-- Stress Testing -->
-        <div class="nova-analytics-card">
-          <h3>Stress Test Scenarios</h3>
-          <table class="nova-data-table">
-            <thead>
-              <tr>
-                <th>Scenario</th>
-                <th>Market Shock</th>
-                <th>Portfolio Impact</th>
-                <th>Recovery Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Mild Correction</td>
-                <td>-10%</td>
-                <td class="negative">-$12,450</td>
-                <td>3-6 months</td>
-              </tr>
-              <tr>
-                <td>Market Crash</td>
-                <td>-20%</td>
-                <td class="negative">-$24,900</td>
-                <td>12-18 months</td>
-              </tr>
-              <tr>
-                <td>Black Swan</td>
-                <td>-35%</td>
-                <td class="negative">-$43,575</td>
-                <td>2-3 years</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- NOVA Optimization Panel -->
-      <div data-nova-panel="optimization" class="nova-view-panel">
-        <div class="nova-analytics-card">
-          <h3>Portfolio Optimization</h3>
-          <p>Analyze efficient frontier and optimal allocations based on your risk tolerance.</p>
           
-          <div style="margin-bottom: 20px;">
-            <button class="nova-btn" data-nova-action="run-analysis">
-              <span class="nova-icon nova-icon-lightning"></span>
-              Run Optimization Analysis
-            </button>
-            <button class="nova-btn secondary" data-nova-action="export-report">
-              <span class="nova-icon nova-icon-download"></span>
-              Export Report
-            </button>
+          <!-- ROI Sub-section -->
+          <div id="roi-section" class="sub-tab-content hidden">
+            <div class="section-group">
+              <p><em>ROI analysis for all selected project types</em></p>
+              <div class="adjustment-controls">
+                <label>Revenue Adjust (%): 
+                  <input id="roiRevAdjust" type="range" min="0" max="150" value="100" step="1" 
+                         oninput="roiRevAdjustLabel.textContent=this.value+'%';updateROI()">
+                  <span id="roiRevAdjustLabel">100%</span>
+                </label>
+                <label>Cost Adjust (%): 
+                  <input id="roiCostAdjust" type="range" min="0" max="200" value="100" step="1" 
+                         oninput="roiCostAdjustLabel.textContent=this.value+'%';updateROI()">
+                  <span id="roiCostAdjustLabel">100%</span>
+                </label>
+              </div>
+            </div>
+            <div id="yearsToROIText" class="nova-summary"></div>
+            <div id="roiKPIs" class="nova-summary"></div>
+            
+            <div id="roi-collapsible-sections"></div>
+            
+            <div id="roi-charts-section"></div>
+            
+            <div id="roi-sensitivity-section"></div>
+          </div>
+          
+          <!-- CapEx Sub-section -->
+          <div id="capex-section" class="sub-tab-content hidden">
+            <div class="section-group">
+              <h3>Capital Expenditure Tracking</h3>
+              <p><em>Track and analyze capital investments across all project types</em></p>
+            </div>
+            <div id="capexSummary" class="nova-summary"></div>
+            <div id="capex-collapsible-sections"></div>
+            <div id="capex-charts-section"></div>
+          </div>
+          
+          <!-- Investment Summary Sub-section -->
+          <div id="summary-section" class="sub-tab-content hidden">
+            <div class="section-group">
+              <h3>Investment Summary Report</h3>
+              <div class="summary-actions">
+                <button class="nova-btn" onclick="exportPDF()">Export PDF</button>
+                <button class="nova-btn secondary" onclick="exportExcel()">Export Excel</button>
+              </div>
+            </div>
+            <div id="reportContent"></div>
           </div>
         </div>
-
-        <!-- Efficient Frontier Chart -->
-        <div class="nova-chart-container">
-          <div class="nova-chart-header">
-            <h3 class="nova-chart-title">Efficient Frontier</h3>
-          </div>
-          <div class="nova-chart-canvas">
-            <canvas id="efficient-frontier"></canvas>
-          </div>
-        </div>
-
-        <!-- Optimization Results -->
-        <div class="nova-analytics-card">
-          <h3>Recommended Allocation</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-            <div class="nova-badge info">Conservative: 60% Bonds, 40% Stocks</div>
-            <div class="nova-badge success">Moderate: 40% Bonds, 60% Stocks</div>
-            <div class="nova-badge warning">Aggressive: 20% Bonds, 80% Stocks</div>
+      </section>
+      
+      <!-- Staffing & Resourcing Tab -->
+      <section id="nova-staffing-resourcing" class="nova-tab-content hidden" role="tabpanel">
+        <div id="staffing-header"></div>
+        
+        <!-- Project Selection Controls -->
+        <div class="project-selector-section">
+          <div class="project-selector-container">
+            <div id="staffing-project-selector"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Add Position Modal -->
-      <div id="add-position-modal" class="nova-modal">
-        <div class="nova-modal-content">
-          <div class="nova-modal-header">
-            <h3 class="nova-modal-title">Add New Position</h3>
-            <button class="nova-modal-close">&times;</button>
+        
+        <div class="section-group">
+          <h3>Resource Planning & Utilization</h3>
+          <p><em>Manage staffing requirements and resource allocation across all project types</em></p>
+        </div>
+        
+        <div id="staffingSummary" class="nova-summary"></div>
+        
+        <div id="staffing-collapsible-sections"></div>
+      </section>
+      
+      <!-- Execution & Scheduling Tab -->
+      <section id="nova-execution-scheduling" class="nova-tab-content hidden" role="tabpanel">
+        <div class="tab-header">
+          <h2>Execution & Scheduling</h2>
+          <button type="button" class="nova-btn danger" onclick="resetExecutionScheduling()" title="Reset scheduling data">
+            🔄 Reset
+          </button>
+        </div>
+        
+        <div class="sub-tabs">
+          <nav class="sub-tab-nav" role="tablist">
+            <button type="button" data-subtab="gantt" class="sub-tab active">Project Timeline</button>
+            <button type="button" data-subtab="milestones" class="sub-tab">Milestones</button>
+            <button type="button" data-subtab="approvals" class="sub-tab">Approvals & Payback</button>
+          </nav>
+          
+          <!-- Gantt Chart Sub-section -->
+          <div id="gantt-section" class="sub-tab-content">
+            <div class="section-group">
+              <h3>Project Timeline (Gantt Chart)</h3>
+              <div id="ganttViewModes">
+                <button type="button" class="nova-btn secondary" onclick="setGanttViewMode('Day')">Day</button>
+                <button type="button" class="nova-btn secondary" onclick="setGanttViewMode('Week')">Week</button>
+                <button type="button" class="nova-btn secondary" onclick="setGanttViewMode('Month')">Month</button>
+                <button type="button" class="nova-btn secondary" onclick="setGanttViewMode('Year')">Year</button>
+                <button type="button" class="nova-btn" id="exportGanttCSVBtn" onclick="exportGanttCSV()">Export CSV</button>
+              </div>
+            </div>
+            
+            <div class="collapsible-section">
+              <button type="button" class="collapsible-toggle" aria-expanded="true" aria-controls="taskManagementSection">
+                Task Management
+              </button>
+              <div class="collapsible-content" id="taskManagementSection">
+                <form id="ganttTaskForm">
+                  <input id="ganttEditId" type="hidden">
+                  <div class="form-grid">
+                    <label>Task Name: <input id="ganttTaskName" type="text" required></label>
+                    <label>Start: <input id="ganttTaskStart" type="date" required></label>
+                    <label>End: <input id="ganttTaskEnd" type="date" required></label>
+                    <label>Progress (%): <input id="ganttTaskProgress" type="number" min="0" max="100" value="0"></label>
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="nova-btn">Save Task</button>
+                    <button type="button" class="nova-btn secondary" id="ganttTaskResetBtn">Reset Form</button>
+                  </div>
+                </form>
+                <div id="ganttTaskList"></div>
+              </div>
+            </div>
+            
+            <div id="ganttContainer" style="margin-top:1rem"></div>
           </div>
-          <div class="nova-modal-body">
-            <div class="nova-form-group">
-              <label class="nova-form-label" for="position-symbol">Symbol</label>
-              <input type="text" id="position-symbol" class="nova-form-input" placeholder="e.g., AAPL" required>
+          
+          <!-- Milestones Sub-section -->
+          <div id="milestones-section" class="sub-tab-content hidden">
+            <div class="section-group">
+              <h3>Project Milestones</h3>
+              <p><em>Track key project milestones and deliverables</em></p>
             </div>
-            <div class="nova-form-group">
-              <label class="nova-form-label" for="position-quantity">Quantity</label>
-              <input type="number" id="position-quantity" class="nova-form-input" placeholder="Number of shares" required>
+            
+            <div class="milestone-manager">
+              <form id="milestoneForm">
+                <div class="form-grid">
+                  <label>Milestone Name: <input id="milestoneName" type="text" required></label>
+                  <label>Target Date: <input id="milestoneDate" type="date" required></label>
+                  <label>Status: 
+                    <select id="milestoneStatus">
+                      <option value="pending">Pending</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="delayed">Delayed</option>
+                    </select>
+                  </label>
+                  <label>Priority: 
+                    <select id="milestonePriority">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </label>
+                </div>
+                <button type="submit" class="nova-btn">Add Milestone</button>
+              </form>
             </div>
-            <div class="nova-form-group">
-              <label class="nova-form-label" for="position-price">Price</label>
-              <input type="number" id="position-price" class="nova-form-input" placeholder="Price per share" step="0.01" required>
+            
+            <div id="milestonesList" class="milestones-list"></div>
+          </div>
+          
+          <!-- Approvals & Payback Sub-section -->
+          <div id="approvals-section" class="sub-tab-content hidden">
+            <div class="section-group">
+              <h3>Approvals & Payback Tracking</h3>
+              <p><em>Manage project approvals and track payback periods</em></p>
             </div>
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-              <button type="button" class="nova-btn secondary" onclick="closeAddPositionModal()">Cancel</button>
-              <button type="button" class="nova-btn" onclick="addPositionFromModal()">Add Position</button>
+            
+            <div class="approval-tracker">
+              <div class="approval-status">
+                <h4>Approval Status</h4>
+                <div class="status-grid">
+                  <div class="status-item">
+                    <label>Budget Approval:</label>
+                    <select id="budgetApproval">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                  <div class="status-item">
+                    <label>Executive Approval:</label>
+                    <select id="executiveApproval">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                  <div class="status-item">
+                    <label>Technical Approval:</label>
+                    <select id="technicalApproval">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                  <div class="status-item">
+                    <label>Legal Approval:</label>
+                    <select id="legalApproval">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="payback-tracker">
+                <h4>Payback Period Tracking</h4>
+                <div id="paybackSummary" class="nova-summary"></div>
+                <div class="nova-chart-container">
+                  <canvas id="paybackProgressChart" height="200"></canvas>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+      
+      <!-- Project Files Tab -->
+      <section id="nova-project-files" class="nova-tab-content hidden" role="tabpanel">
+        <div class="tab-header">
+          <h2>Project Files & Documentation</h2>
+          <button type="button" class="nova-btn" onclick="openFileUpload()" title="Upload files">
+            📁 Upload Files
+          </button>
+        </div>
+        
+        <div class="section-group">
+          <h3>Document Management</h3>
+          <p><em>Centralized repository for all project documentation and files</em></p>
+        </div>
+        
+        <div class="file-categories">
+          <div class="category-tabs">
+            <button type="button" data-category="all" class="category-tab active">All Files</button>
+            <button type="button" data-category="business-plans" class="category-tab">Business Plans</button>
+            <button type="button" data-category="financial" class="category-tab">Financial</button>
+            <button type="button" data-category="legal" class="category-tab">Legal</button>
+            <button type="button" data-category="technical" class="category-tab">Technical</button>
+            <button type="button" data-category="reports" class="category-tab">Reports</button>
+          </div>
+          
+          <div class="file-management-tools">
+            <div class="search-files">
+              <input type="text" id="fileSearch" placeholder="Search files..." />
+              <button onclick="searchFiles()" class="nova-btn secondary">🔍 Search</button>
+            </div>
+            <div class="file-actions">
+              <button onclick="window.open('https://aloc23.github.io/pci_project_file_viewer/', '_blank')" class="nova-btn secondary">
+                🔗 Advanced File Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div id="filesList" class="files-list">
+          <div class="file-placeholder">
+            <p>No files uploaded yet. Click "Upload Files" to get started.</p>
+            <p>You can also use the <a href="https://aloc23.github.io/pci_project_file_viewer/" target="_blank">Advanced File Viewer</a> for comprehensive file management.</p>
+          </div>
+        </div>
+        
+        <!-- Hidden file upload input -->
+        <input type="file" id="fileUploadInput" multiple style="display: none;" onchange="handleFileUpload(event)">
+      </section>
+      
+      <!-- Scenarios Tab -->
+      <section id="nova-scenarios" class="nova-tab-content hidden" role="tabpanel">
+        <h2>Scenarios</h2>
+        <form id="scenarioForm">
+          <input id="scenarioName" type="text" placeholder="Scenario name" required>
+          <button type="submit" class="nova-btn">Save Scenario</button>
+        </form>
+        <div id="scenarioList"></div>
+        <div id="scenarioDiffContainer" class="section-group"></div>
+      </section>
     </section>
     
     <!-- VISTA Tab - Consolidated All Features -->
