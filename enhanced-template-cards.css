@@ -1,0 +1,584 @@
+/**
+ * NOVA Enhanced Template Cards CSS
+ * Advanced styling for Matrix-Nova analytics components
+ */
+
+/* NOVA Analytics Card Styles */
+.nova-analytics-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.nova-analytics-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.nova-analytics-card.highlight {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* NOVA KPI Cards */
+.nova-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.nova-kpi-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.nova-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.nova-kpi-card.positive {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.nova-kpi-card.negative {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.nova-kpi-card.neutral {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.nova-kpi-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nova-kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.nova-kpi-change {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* NOVA Chart Containers */
+.nova-chart-container {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.nova-chart-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.nova-chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.nova-chart-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nova-chart-canvas {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+/* NOVA Data Tables */
+.nova-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.nova-data-table th {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nova-data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+  vertical-align: middle;
+}
+
+.nova-data-table tr:hover {
+  background-color: #f9fafb;
+}
+
+.nova-data-table .positive {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.nova-data-table .negative {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* NOVA View Panels */
+.nova-view-panel {
+  display: none;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.nova-view-panel.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* NOVA Navigation Tabs */
+.nova-nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 24px;
+  border: 1px solid #e2e8f0;
+  gap: 2px;
+}
+
+.nova-dynamic-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.nova-nav-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.nova-nav-tab:hover {
+  color: #374151;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.nova-nav-tab.active {
+  background: white;
+  color: #1f2937;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* NOVA Action Buttons */
+.nova-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nova-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.nova-btn:active {
+  transform: translateY(0);
+}
+
+.nova-btn.success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.nova-btn.success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.nova-btn.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.nova-btn.danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.nova-btn.secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.nova-btn.secondary:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  box-shadow: 0 4px 8px rgba(107, 114, 128, 0.3);
+}
+
+/* NOVA Modal Styles */
+.nova-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.nova-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+
+.nova-modal.active .nova-modal-content {
+  transform: scale(1);
+}
+
+.nova-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.nova-modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.nova-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.nova-modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* NOVA Form Elements */
+.nova-form-group {
+  margin-bottom: 20px;
+}
+
+.nova-form-label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+}
+
+.nova-form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.nova-form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.nova-form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+}
+
+/* NOVA Progress Indicators */
+.nova-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.nova-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* NOVA Status Badges */
+.nova-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nova-badge.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.nova-badge.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.nova-badge.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.nova-badge.info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* NOVA Icon Styles */
+.nova-icon-selector::before { content: "🎯"; }
+.nova-icon-chart::before { content: "📊"; }
+.nova-icon-money::before { content: "💰"; }
+.nova-icon-scenarios::before { content: "🔀"; }
+.nova-icon-summary::before { content: "📋"; }
+.nova-icon-gantt::before { content: "📅"; }
+.nova-icon-project::before { content: "📈"; }
+
+/* Dynamic project tabs */
+.nova-project-tab {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: 1px solid #5a67d8;
+}
+
+.nova-project-tab:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+  transform: translateY(-1px);
+}
+
+.nova-project-tab.active {
+  background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+  box-shadow: 0 4px 12px 0 rgba(76, 81, 191, 0.3);
+}
+
+/* Project-specific panels */
+.nova-project-panel {
+  border-left: 4px solid #667eea;
+  padding-left: 20px;
+}
+
+.nova-project-content {
+  margin-top: 20px;
+}
+
+.project-analysis-form {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.project-results {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+@media (max-width: 768px) {
+  .nova-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .nova-chart-canvas {
+    height: 300px;
+  }
+  
+  .nova-nav-tabs {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .nova-nav-tab {
+    text-align: center;
+  }
+  
+  .nova-modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+  
+  .nova-data-table {
+    font-size: 0.8rem;
+  }
+  
+  .nova-data-table th,
+  .nova-data-table td {
+    padding: 8px 12px;
+  }
+}
+
+/* NOVA Loading States */
+.nova-loading {
+  position: relative;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.nova-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: nova-spin 1s linear infinite;
+}
+
+@keyframes nova-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* NOVA Utility Classes */
+.nova-text-center { text-align: center; }
+.nova-text-left { text-align: left; }
+.nova-text-right { text-align: right; }
+
+.nova-mb-1 { margin-bottom: 4px; }
+.nova-mb-2 { margin-bottom: 8px; }
+.nova-mb-3 { margin-bottom: 12px; }
+.nova-mb-4 { margin-bottom: 16px; }
+.nova-mb-5 { margin-bottom: 20px; }
+
+.nova-mt-1 { margin-top: 4px; }
+.nova-mt-2 { margin-top: 8px; }
+.nova-mt-3 { margin-top: 12px; }
+.nova-mt-4 { margin-top: 16px; }
+.nova-mt-5 { margin-top: 20px; }
+
+.nova-p-1 { padding: 4px; }
+.nova-p-2 { padding: 8px; }
+.nova-p-3 { padding: 12px; }
+.nova-p-4 { padding: 16px; }
+.nova-p-5 { padding: 20px; }
+
+.nova-flex { display: flex; }
+.nova-flex-col { flex-direction: column; }
+.nova-items-center { align-items: center; }
+.nova-justify-center { justify-content: center; }
+.nova-justify-between { justify-content: space-between; }
+
+.nova-w-full { width: 100%; }
+.nova-h-full { height: 100%; }
+
+.nova-hidden { display: none; }
+.nova-visible { visibility: visible; }
+.nova-invisible { visibility: hidden; }
