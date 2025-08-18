@@ -633,6 +633,25 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Function to initialize NOVA with Matrix Nova
       function initializeNova() {
+        console.log('initializeNova called - checking global dependencies...');
+        
+        // Check required global managers before initialization
+        const requiredGlobals = {
+          'window.BUSINESS_TYPE_CATEGORIES': typeof window.BUSINESS_TYPE_CATEGORIES,
+          'window.projectTypeManager': typeof window.projectTypeManager,
+          'window.selectionStateManager': typeof window.selectionStateManager,
+          'DynamicUIGenerator': typeof DynamicUIGenerator
+        };
+        
+        console.log('Global dependencies check:', requiredGlobals);
+        
+        // Verify container exists
+        const container = document.getElementById('nova-business-analytics-container');
+        if (!container) {
+          console.error('Nova container not found!');
+          return;
+        }
+        
         if (!novaUI) {
           try {
             // Use MatrixNova class for portfolio analytics functionality
@@ -644,32 +663,109 @@
               console.log('MatrixNova initialized successfully');
             } else if (typeof NovaEnhancedController !== 'undefined') {
               // Fallback to enhanced controller if MatrixNova not available
+              console.log('MatrixNova not available, using NovaEnhancedController...');
               novaUI = new NovaEnhancedController();
               novaUI.init();
               window.novaUI = novaUI;
               console.log('Fallback to NOVA Enhanced Controller successful');
             } else {
               // Final fallback to original NovaDynamicUI
-              novaUI = new NovaDynamicUI();
-              novaUI.init();
-              window.novaUI = novaUI;
-              console.log('Final fallback to NovaDynamicUI successful');
-            }
-          } catch (error) {
-            console.error('Error initializing NOVA:', error);
-            // Try fallback options
-            try {
+              console.log('NovaEnhancedController not available, trying NovaDynamicUI...');
               if (typeof NovaDynamicUI !== 'undefined') {
                 novaUI = new NovaDynamicUI();
                 novaUI.init();
                 window.novaUI = novaUI;
-                console.log('Error recovery with NovaDynamicUI successful');
+                console.log('Final fallback to NovaDynamicUI successful');
+              } else {
+                // Manual fallback - directly call DynamicUIGenerator
+                console.log('NovaDynamicUI not available, using DynamicUIGenerator directly...');
+                if (typeof DynamicUIGenerator !== 'undefined' && 
+                    window.BUSINESS_TYPE_CATEGORIES && 
+                    window.projectTypeManager && 
+                    window.selectionStateManager) {
+                  
+                  // Create a simple wrapper to mimic expected interface
+                  novaUI = {
+                    dynamicUI: new DynamicUIGenerator(),
+                    setActive: function(active) {
+                      console.log('Nova set active:', active);
+                      if (active) {
+                        this.dynamicUI.generateBusinessTypeSelector('nova-business-analytics-container');
+                      }
+                    },
+                    cleanup: function() {
+                      console.log('Nova cleanup called');
+                    }
+                  };
+                  
+                  // Initialize the business type selector immediately
+                  novaUI.dynamicUI.generateBusinessTypeSelector('nova-business-analytics-container');
+                  window.novaUI = novaUI;
+                  console.log('Manual DynamicUIGenerator initialization successful');
+                } else {
+                  // Show error message in container if all fails
+                  container.innerHTML = `
+                    <div class="nova-error-message" style="text-align: center; padding: 2rem; color: #ff6b6b; background: rgba(255, 107, 107, 0.1); border-radius: 8px; margin: 1rem 0;">
+                      <h3>⚠️ Nova Initialization Error</h3>
+                      <p>Required components not available:</p>
+                      <ul style="text-align: left; display: inline-block;">
+                        <li>DynamicUIGenerator: ${typeof DynamicUIGenerator}</li>
+                        <li>BUSINESS_TYPE_CATEGORIES: ${typeof window.BUSINESS_TYPE_CATEGORIES}</li>
+                        <li>projectTypeManager: ${typeof window.projectTypeManager}</li>
+                        <li>selectionStateManager: ${typeof window.selectionStateManager}</li>
+                      </ul>
+                      <p><small>Please check console for detailed error information.</small></p>
+                    </div>
+                  `;
+                  console.error('All Nova initialization methods failed - missing dependencies');
+                  return;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error initializing NOVA:', error);
+            
+            // Try manual fallback with error handling
+            try {
+              if (typeof DynamicUIGenerator !== 'undefined' && 
+                  window.BUSINESS_TYPE_CATEGORIES && 
+                  window.projectTypeManager && 
+                  window.selectionStateManager) {
+                
+                console.log('Attempting error recovery with manual DynamicUIGenerator...');
+                novaUI = {
+                  dynamicUI: new DynamicUIGenerator(),
+                  setActive: function(active) {
+                    if (active) {
+                      this.dynamicUI.generateBusinessTypeSelector('nova-business-analytics-container');
+                    }
+                  },
+                  cleanup: function() {
+                    console.log('Nova cleanup called');
+                  }
+                };
+                
+                novaUI.dynamicUI.generateBusinessTypeSelector('nova-business-analytics-container');
+                window.novaUI = novaUI;
+                console.log('Error recovery with manual DynamicUIGenerator successful');
+              } else {
+                throw new Error('Required dependencies not available for error recovery');
               }
             } catch (fallbackError) {
               console.error('All initialization methods failed:', fallbackError);
+              // Show error message
+              container.innerHTML = `
+                <div class="nova-error-message" style="text-align: center; padding: 2rem; color: #ff6b6b; background: rgba(255, 107, 107, 0.1); border-radius: 8px; margin: 1rem 0;">
+                  <h3>❌ Nova Failed to Initialize</h3>
+                  <p>Error: ${error.message}</p>
+                  <p>Fallback Error: ${fallbackError.message}</p>
+                  <p><small>Check console for detailed error information.</small></p>
+                </div>
+              `;
             }
           }
         } else {
+          console.log('Nova already initialized, setting active...');
           if (typeof novaUI.setActive === 'function') {
             novaUI.setActive(true);
           }
@@ -691,14 +787,26 @@
       
       // Initialize NOVA when tab is clicked, deactivate when other tabs are clicked
       document.addEventListener('click', function(e) {
+        // Check for Nova tab click with improved selector matching
         if (e.target.matches('[data-tab="nova"]') || e.target.closest('[data-tab="nova"]')) {
+          console.log('Nova tab clicked - initializing...'); // Debug log
           setTimeout(initializeNova, 100); // Small delay for tab transition
         } else if ((e.target.matches('[data-tab]') || e.target.closest('[data-tab]')) && 
                    (e.target.getAttribute('data-tab') !== 'nova' && 
                     (!e.target.closest('[data-tab]') || e.target.closest('[data-tab]').getAttribute('data-tab') !== 'nova'))) {
+          console.log('Non-Nova tab clicked - deactivating Nova...'); // Debug log
           deactivateNova();
         }
       });
+      
+      // Additional event listener specifically for Nova tab to ensure initialization
+      const novaTabButton = document.querySelector('button[data-tab="nova"]');
+      if (novaTabButton) {
+        novaTabButton.addEventListener('click', function(e) {
+          console.log('Direct Nova tab button clicked - ensuring initialization...'); // Debug log
+          setTimeout(initializeNova, 50);
+        });
+      }
       
       // Clean up NOVA when leaving the page
       window.addEventListener('beforeunload', function() {
