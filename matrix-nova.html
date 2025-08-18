@@ -26,6 +26,8 @@
   <script src="project-selector-integration.js" defer></script>
   <script src="dynamic-ui.js" defer></script>
   <!-- Nova Independent Files -->
+  <script src="nova-state-manager.js" defer></script>
+  <script src="nova-enhanced-controller.js" defer></script>
   <script src="nova-state.js" defer></script>
   <script src="nova-ui.js" defer></script>
   <script src="nova-core.js" defer></script>
@@ -53,9 +55,131 @@
 
     <!-- Business Analytics Tab (Main Interface) -->
     <section id="business-analytics" class="tab-content">
-      <h2>Flexible Business Analytics Tool</h2>
-      <p>Analyze any project or business type with tailored input fields and KPIs. Select your business category to get started with relevant analytics for your industry.</p>
-      <!-- Dynamic business analytics interface will be generated here -->
+      <div class="tab-header">
+        <h2>Business Analytics Platform</h2>
+        <p>Comprehensive analytics suite with dedicated views for different business insights.</p>
+      </div>
+      
+      <!-- Nova Analytics Navigation Tabs -->
+      <div class="nova-nav-tabs" role="tablist">
+        <button type="button" class="nova-nav-tab active" 
+                data-nova-view="business-analytics-main" 
+                role="tab" 
+                aria-selected="true"
+                aria-controls="nova-panel-business-analytics-main"
+                id="tab-business-analytics-main">
+          <span class="nova-icon">📊</span> Business Analytics
+        </button>
+        <button type="button" class="nova-nav-tab" 
+                data-nova-view="pnl" 
+                role="tab" 
+                aria-selected="false"
+                aria-controls="nova-panel-pnl"
+                id="tab-pnl">
+          <span class="nova-icon">💰</span> P&L Analysis
+        </button>
+        <button type="button" class="nova-nav-tab" 
+                data-nova-view="roi" 
+                role="tab" 
+                aria-selected="false"
+                aria-controls="nova-panel-roi"
+                id="tab-roi">
+          <span class="nova-icon">📈</span> ROI Analysis
+        </button>
+        <button type="button" class="nova-nav-tab" 
+                data-nova-view="scenarios" 
+                role="tab" 
+                aria-selected="false"
+                aria-controls="nova-panel-scenarios"
+                id="tab-scenarios">
+          <span class="nova-icon">🎯</span> Scenarios
+        </button>
+        <button type="button" class="nova-nav-tab" 
+                data-nova-view="summary" 
+                role="tab" 
+                aria-selected="false"
+                aria-controls="nova-panel-summary"
+                id="tab-summary">
+          <span class="nova-icon">📋</span> Summary
+        </button>
+      </div>
+
+      <!-- Nova Analytics Content Panels -->
+      <div class="nova-content-panels">
+        <!-- Business Analytics Main Panel -->
+        <section class="nova-view-panel active" 
+                 data-nova-panel="business-analytics-main" 
+                 role="tabpanel"
+                 aria-labelledby="tab-business-analytics-main"
+                 id="nova-panel-business-analytics-main">
+          <div class="nova-panel-content">
+            <h3>Business Analytics Configuration</h3>
+            <p>Select your business category to get started with relevant analytics for your industry.</p>
+            <!-- Dynamic business analytics interface will be generated here -->
+            <div id="nova-business-analytics-container"></div>
+          </div>
+        </section>
+
+        <!-- P&L Analysis Panel -->
+        <section class="nova-view-panel" 
+                 data-nova-panel="pnl" 
+                 role="tabpanel"
+                 aria-labelledby="tab-pnl"
+                 id="nova-panel-pnl">
+          <div class="nova-panel-content">
+            <h3>Profit & Loss Analysis</h3>
+            <div id="nova-pnl-data" class="analysis-content">
+              <p>Configure your business model in Business Analytics to view P&L analysis.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ROI Analysis Panel -->
+        <section class="nova-view-panel" 
+                 data-nova-panel="roi" 
+                 role="tabpanel"
+                 aria-labelledby="tab-roi"
+                 id="nova-panel-roi">
+          <div class="nova-panel-content">
+            <h3>Return on Investment Analysis</h3>
+            <div id="nova-roi-data" class="analysis-content">
+              <p>Configure your business model in Business Analytics to view ROI analysis.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Scenarios Panel -->
+        <section class="nova-view-panel" 
+                 data-nova-panel="scenarios" 
+                 role="tabpanel"
+                 aria-labelledby="tab-scenarios"
+                 id="nova-panel-scenarios">
+          <div class="nova-panel-content">
+            <h3>Scenario Analysis</h3>
+            <div id="nova-scenarios-data" class="analysis-content">
+              <p>Configure your business model in Business Analytics to view scenario analysis.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Summary Panel -->
+        <section class="nova-view-panel" 
+                 data-nova-panel="summary" 
+                 role="tabpanel"
+                 aria-labelledby="tab-summary"
+                 id="nova-panel-summary">
+          <div class="nova-panel-content">
+            <h3>Executive Summary</h3>
+            <div id="nova-summary-data" class="analysis-content">
+              <p>Configure your business model in Business Analytics to view executive summary.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Dynamic project tabs container (for future use) -->
+      <div id="nova-dynamic-tabs" class="nova-dynamic-tabs" style="display: none;"></div>
+      <div id="nova-dynamic-panels" class="nova-dynamic-panels" style="display: none;"></div>
     </section>
     
     <!-- Investment Model Tab (Consolidates P&L, ROI, CapEx, OpEx) -->
