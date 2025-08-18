@@ -5,7 +5,7 @@
 
 class NovaEnhancedController {
   constructor() {
-    this.currentView = 'project-selector';
+    this.currentView = 'business-analytics-main'; // Updated default view
     this.novaElement = null;
     this.eventListeners = [];
     this.dynamicTabs = new Map(); // Store dynamic project tabs
@@ -22,16 +22,97 @@ class NovaEnhancedController {
    * Initialize the Nova enhanced controller
    */
   init() {
-    this.novaElement = document.getElementById('nova');
+    this.novaElement = document.getElementById('business-analytics');
     if (!this.novaElement) {
       console.warn('Nova element not found');
       return;
     }
 
-    this.setupEventListeners();
+    this.setupNovaTabEventListeners();
     this.initializeDynamicUI();
     this.setActive(true);
     this.updateViewContent(this.currentView);
+    
+    console.log('Nova Enhanced Controller initialized');
+  }
+
+  /**
+   * Setup event listeners for Nova tab navigation
+   */
+  setupNovaTabEventListeners() {
+    // Nova navigation tabs within business-analytics section
+    const navTabs = this.novaElement.querySelectorAll('.nova-nav-tab');
+    navTabs.forEach(tab => {
+      const handler = (e) => {
+        e.preventDefault();
+        const view = tab.getAttribute('data-nova-view');
+        if (view) {
+          this.switchView(view);
+        }
+      };
+      
+      // Click handler
+      tab.addEventListener('click', handler);
+      this.eventListeners.push({ element: tab, event: 'click', handler });
+      
+      // Keyboard accessibility handler
+      const keyHandler = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handler(e);
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          this.navigateTabsWithKeyboard(tab, e.key === 'ArrowRight' ? 1 : -1);
+        }
+      };
+      
+      tab.addEventListener('keydown', keyHandler);
+      this.eventListeners.push({ element: tab, event: 'keydown', handler: keyHandler });
+      
+      // Make tabs focusable
+      tab.setAttribute('tabindex', '0');
+    });
+  }
+
+  /**
+   * Navigate tabs using keyboard arrows
+   */
+  navigateTabsWithKeyboard(currentTab, direction) {
+    const tabs = Array.from(this.novaElement.querySelectorAll('.nova-nav-tab'));
+    const currentIndex = tabs.indexOf(currentTab);
+    const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+    
+    if (tabs[nextIndex]) {
+      tabs[nextIndex].focus();
+      tabs[nextIndex].click();
+    }
+  }
+
+  /**
+   * Switch between Nova analytics views
+   */
+  switchView(view) {
+    // Update tab active states
+    const tabs = this.novaElement.querySelectorAll('.nova-nav-tab');
+    tabs.forEach(tab => {
+      const isActive = tab.getAttribute('data-nova-view') === view;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive.toString());
+    });
+
+    // Update panel visibility
+    const panels = this.novaElement.querySelectorAll('.nova-view-panel');
+    panels.forEach(panel => {
+      const isActive = panel.getAttribute('data-nova-panel') === view;
+      panel.classList.toggle('active', isActive);
+      panel.setAttribute('aria-hidden', (!isActive).toString());
+    });
+
+    // Update current view and render content
+    this.currentView = view;
+    this.updateViewContent(view);
+    
+    console.log(`Nova view switched to: ${view}`);
   }
 
   /**
@@ -40,7 +121,11 @@ class NovaEnhancedController {
   initializeDynamicUI() {
     if (typeof DynamicUIGenerator !== 'undefined') {
       this.dynamicUI = new DynamicUIGenerator();
+      // Generate business type selector in the new container
       this.dynamicUI.generateBusinessTypeSelector('nova-business-analytics-container');
+    } else if (typeof window.dynamicUI !== 'undefined') {
+      // Fallback to global dynamic UI instance
+      this.dynamicUI = window.dynamicUI;
     }
   }
 
@@ -183,12 +268,13 @@ class NovaEnhancedController {
   }
 
   /**
-   * Update content for specific view
+   * Update content for specific view within Nova analytics
+   * Handles the new horizontal tab structure
    */
   updateViewContent(view) {
     switch (view) {
-      case 'project-selector':
-        this.renderProjectSelector();
+      case 'business-analytics-main':
+        this.renderBusinessAnalyticsMain();
         break;
       case 'pnl':
         this.renderPnLAnalysis();
@@ -205,10 +291,16 @@ class NovaEnhancedController {
       case 'gantt':
         this.renderGantt();
         break;
+      // Legacy support
+      case 'project-selector':
+        this.renderBusinessAnalyticsMain();
+        break;
       default:
         // Handle dynamic project tabs
         if (view.startsWith('project-')) {
           this.renderProjectTab(view);
+        } else {
+          console.warn(`Unknown Nova view: ${view}`);
         }
     }
   }
@@ -327,54 +419,338 @@ class NovaEnhancedController {
   // ========== Render Methods ==========
 
   /**
-   * Render project selector view
+   * Render main business analytics view
+   * This replaces the old project selector and serves as the entry point
    */
-  renderProjectSelector() {
+  renderBusinessAnalyticsMain() {
+    console.log('Rendering Business Analytics main view');
+    
+    // Initialize the dynamic UI in the business analytics container
     if (this.dynamicUI) {
       // The dynamic UI is already initialized in the container
-      console.log('Project selector rendered');
+      console.log('Business analytics configuration ready');
+    } else if (window.dynamicUI) {
+      // Use global dynamic UI instance if available
+      this.dynamicUI = window.dynamicUI;
+    }
+    
+    // Ensure the container exists
+    const container = document.getElementById('nova-business-analytics-container');
+    if (container && !container.hasChildNodes()) {
+      container.innerHTML = `
+        <div class="business-selection-prompt">
+          <h4>Configure Your Business Model</h4>
+          <p>Select your business type and project configuration to enable detailed analytics.</p>
+          <div class="selection-status" id="nova-selection-status">
+            <span class="status-text">No business model selected</span>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Update selection status based on current state
+    this.updateSelectionStatus();
+  }
+
+  /**
+   * Update the selection status display
+   */
+  updateSelectionStatus() {
+    const statusElement = document.getElementById('nova-selection-status');
+    if (!statusElement) return;
+    
+    const stateManager = window.selectionStateManager;
+    if (!stateManager) return;
+    
+    const businessType = stateManager.getBusinessType();
+    const projectTypes = stateManager.getSelectedProjectTypes();
+    
+    if (businessType && projectTypes.length > 0) {
+      statusElement.innerHTML = `
+        <span class="status-text positive">✓ Business: ${businessType.toUpperCase()}</span>
+        <span class="status-text positive">✓ Projects: ${projectTypes.length} selected</span>
+      `;
+    } else if (businessType) {
+      statusElement.innerHTML = `
+        <span class="status-text neutral">⚠ Business: ${businessType.toUpperCase()}</span>
+        <span class="status-text negative">✗ No projects selected</span>
+      `;
+    } else {
+      statusElement.innerHTML = `
+        <span class="status-text negative">✗ No business model selected</span>
+      `;
     }
   }
 
   /**
-   * Render P&L Analysis view
+   * Render P&L Analysis view with centralized state integration
    */
   renderPnLAnalysis() {
+    console.log('Rendering P&L Analysis view');
+    
     const dataElement = document.getElementById('nova-pnl-data');
-    if (dataElement) {
-      // Check if we have business data
-      const hasBusinessData = window.selectionStateManager?.getSelectedProjectTypes().length > 0;
-      if (hasBusinessData) {
-        dataElement.textContent = 'P&L analysis based on selected business models...';
-        // TODO: Integrate with existing P&L calculation logic
-      } else {
-        dataElement.textContent = 'Configure your business model in Project Selector to view P&L analysis.';
-      }
+    if (!dataElement) return;
+    
+    // Check if we have business data from centralized state
+    const stateManager = window.selectionStateManager;
+    const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
+    const businessType = stateManager?.getBusinessType();
+    
+    if (hasBusinessData && businessType) {
+      const projectTypes = stateManager.getSelectedProjectTypes();
+      dataElement.innerHTML = `
+        <div class="pnl-analysis-container">
+          <div class="analysis-header">
+            <h4>P&L Analysis for ${businessType.toUpperCase()} Business</h4>
+            <div class="project-indicators">
+              ${projectTypes.map(type => `<span class="project-badge">${type}</span>`).join('')}
+            </div>
+          </div>
+          <div class="analysis-content">
+            <p class="analysis-note">Generating P&L analysis based on selected business models...</p>
+            <div class="analysis-placeholder">
+              <div class="metric-row">
+                <span class="metric-label">Revenue Projection:</span>
+                <span class="metric-value positive">Calculating...</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Operating Expenses:</span>
+                <span class="metric-value neutral">Calculating...</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Net Profit:</span>
+                <span class="metric-value">Calculating...</span>
+              </div>
+            </div>
+            <p class="integration-note">
+              <em>Integration with existing P&L calculation logic pending...</em>
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
+      dataElement.innerHTML = `
+        <div class="no-data-prompt">
+          <h4>Configure Business Model First</h4>
+          <p>Switch to the <strong>Business Analytics</strong> tab to configure your business model and project types before viewing P&L analysis.</p>
+          <button type="button" class="nova-btn" onclick="document.querySelector('[data-nova-view=\"business-analytics-main\"]').click()">
+            Configure Business Model
+          </button>
+        </div>
+      `;
     }
   }
 
   /**
-   * Render ROI Analysis view
+   * Render ROI Analysis view with centralized state integration
    */
   renderROIAnalysis() {
-    console.log('ROI analysis rendered');
-    // TODO: Integrate with existing ROI calculation logic
+    console.log('Rendering ROI Analysis view');
+    
+    const dataElement = document.getElementById('nova-roi-data');
+    if (!dataElement) return;
+    
+    const stateManager = window.selectionStateManager;
+    const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
+    const businessType = stateManager?.getBusinessType();
+    
+    if (hasBusinessData && businessType) {
+      const projectTypes = stateManager.getSelectedProjectTypes();
+      dataElement.innerHTML = `
+        <div class="roi-analysis-container">
+          <div class="analysis-header">
+            <h4>ROI Analysis for ${businessType.toUpperCase()} Business</h4>
+            <div class="project-indicators">
+              ${projectTypes.map(type => `<span class="project-badge">${type}</span>`).join('')}
+            </div>
+          </div>
+          <div class="analysis-content">
+            <p class="analysis-note">Calculating return on investment metrics based on selected projects...</p>
+            <div class="analysis-placeholder">
+              <div class="metric-row">
+                <span class="metric-label">Initial Investment:</span>
+                <span class="metric-value neutral">Calculating...</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Annual Return:</span>
+                <span class="metric-value positive">Calculating...</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">ROI %:</span>
+                <span class="metric-value">Calculating...</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Payback Period:</span>
+                <span class="metric-value">Calculating...</span>
+              </div>
+            </div>
+            <p class="integration-note">
+              <em>Integration with existing ROI calculation logic pending...</em>
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
+      dataElement.innerHTML = `
+        <div class="no-data-prompt">
+          <h4>Configure Business Model First</h4>
+          <p>Switch to the <strong>Business Analytics</strong> tab to configure your business model and project types before viewing ROI analysis.</p>
+          <button type="button" class="nova-btn" onclick="document.querySelector('[data-nova-view=\"business-analytics-main\"]').click()">
+            Configure Business Model
+          </button>
+        </div>
+      `;
+    }
   }
 
   /**
-   * Render scenarios view
+   * Render scenarios view with centralized state integration
    */
   renderScenarios() {
-    console.log('Scenarios rendered');
-    // TODO: Implement scenario analysis
+    console.log('Rendering Scenarios view');
+    
+    const dataElement = document.getElementById('nova-scenarios-data');
+    if (!dataElement) return;
+    
+    const stateManager = window.selectionStateManager;
+    const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
+    const businessType = stateManager?.getBusinessType();
+    
+    if (hasBusinessData && businessType) {
+      const projectTypes = stateManager.getSelectedProjectTypes();
+      dataElement.innerHTML = `
+        <div class="scenarios-analysis-container">
+          <div class="analysis-header">
+            <h4>Scenario Analysis for ${businessType.toUpperCase()} Business</h4>
+            <div class="project-indicators">
+              ${projectTypes.map(type => `<span class="project-badge">${type}</span>`).join('')}
+            </div>
+          </div>
+          <div class="analysis-content">
+            <p class="analysis-note">Exploring different business scenarios and their potential outcomes...</p>
+            <div class="scenarios-grid">
+              <div class="scenario-card">
+                <h5>Optimistic Scenario</h5>
+                <div class="scenario-metrics">
+                  <span class="metric">Revenue: +20%</span>
+                  <span class="metric positive">ROI: High</span>
+                </div>
+              </div>
+              <div class="scenario-card">
+                <h5>Realistic Scenario</h5>
+                <div class="scenario-metrics">
+                  <span class="metric">Revenue: Baseline</span>
+                  <span class="metric neutral">ROI: Moderate</span>
+                </div>
+              </div>
+              <div class="scenario-card">
+                <h5>Conservative Scenario</h5>
+                <div class="scenario-metrics">
+                  <span class="metric">Revenue: -10%</span>
+                  <span class="metric negative">ROI: Low</span>
+                </div>
+              </div>
+            </div>
+            <p class="integration-note">
+              <em>Scenario analysis implementation pending...</em>
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
+      dataElement.innerHTML = `
+        <div class="no-data-prompt">
+          <h4>Configure Business Model First</h4>
+          <p>Switch to the <strong>Business Analytics</strong> tab to configure your business model and project types before viewing scenario analysis.</p>
+          <button type="button" class="nova-btn" onclick="document.querySelector('[data-nova-view=\"business-analytics-main\"]').click()">
+            Configure Business Model
+          </button>
+        </div>
+      `;
+    }
   }
 
   /**
-   * Render summary view
+   * Render summary view with centralized state integration
    */
   renderSummary() {
-    console.log('Summary rendered');
-    // TODO: Integrate with existing summary logic
+    console.log('Rendering Summary view');
+    
+    const dataElement = document.getElementById('nova-summary-data');
+    if (!dataElement) return;
+    
+    const stateManager = window.selectionStateManager;
+    const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
+    const businessType = stateManager?.getBusinessType();
+    
+    if (hasBusinessData && businessType) {
+      const projectTypes = stateManager.getSelectedProjectTypes();
+      const activeProject = stateManager.getActiveProjectType();
+      
+      dataElement.innerHTML = `
+        <div class="summary-container">
+          <div class="analysis-header">
+            <h4>Executive Summary - ${businessType.toUpperCase()} Business</h4>
+            <div class="summary-meta">
+              <span class="meta-item">Projects: ${projectTypes.length}</span>
+              <span class="meta-item">Active: ${activeProject || 'None'}</span>
+              <span class="meta-item">Generated: ${new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
+          <div class="summary-content">
+            <div class="summary-section">
+              <h5>Business Configuration</h5>
+              <ul class="config-list">
+                <li>Business Type: <strong>${businessType.toUpperCase()}</strong></li>
+                <li>Selected Projects: <strong>${projectTypes.join(', ')}</strong></li>
+                <li>State Management: <strong>Active</strong></li>
+              </ul>
+            </div>
+            
+            <div class="summary-section">
+              <h5>Analytics Overview</h5>
+              <div class="summary-grid">
+                <div class="summary-card">
+                  <h6>P&L Analysis</h6>
+                  <p>Ready for detailed financial analysis</p>
+                </div>
+                <div class="summary-card">
+                  <h6>ROI Analysis</h6>
+                  <p>Ready for investment return calculations</p>
+                </div>
+                <div class="summary-card">
+                  <h6>Scenario Planning</h6>
+                  <p>Ready for multi-scenario modeling</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="summary-section">
+              <h5>Next Steps</h5>
+              <ul class="action-list">
+                <li>Review P&L projections in the P&L Analysis tab</li>
+                <li>Evaluate investment returns in the ROI Analysis tab</li>
+                <li>Explore different scenarios in the Scenarios tab</li>
+              </ul>
+            </div>
+            
+            <p class="integration-note">
+              <em>Full summary integration with calculation engines pending...</em>
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
+      dataElement.innerHTML = `
+        <div class="no-data-prompt">
+          <h4>Configure Business Model First</h4>
+          <p>Switch to the <strong>Business Analytics</strong> tab to configure your business model and project types before viewing the executive summary.</p>
+          <button type="button" class="nova-btn" onclick="document.querySelector('[data-nova-view=\"business-analytics-main\"]').click()">
+            Configure Business Model
+          </button>
+        </div>
+      `;
+    }
   }
 
   /**
