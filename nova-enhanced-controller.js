@@ -5,7 +5,7 @@
 
 class NovaEnhancedController {
   constructor() {
-    this.currentView = 'business-analytics'; // Updated default view
+    this.currentView = 'business-analytics-main'; // Updated default view
     this.novaElement = null;
     this.eventListeners = [];
     this.dynamicTabs = new Map(); // Store dynamic project tabs
@@ -22,7 +22,7 @@ class NovaEnhancedController {
    * Initialize the Nova enhanced controller
    */
   init() {
-    this.novaElement = document.getElementById('nova');
+    this.novaElement = document.getElementById('business-analytics');
     if (!this.novaElement) {
       console.warn('Nova element not found');
       return;
@@ -30,7 +30,6 @@ class NovaEnhancedController {
 
     this.setupNovaTabEventListeners();
     this.initializeDynamicUI();
-    this.setupCollapsibleSections();
     this.setActive(true);
     this.updateViewContent(this.currentView);
     
@@ -41,7 +40,7 @@ class NovaEnhancedController {
    * Setup event listeners for Nova tab navigation
    */
   setupNovaTabEventListeners() {
-    // Nova navigation tabs within nova section
+    // Nova navigation tabs within business-analytics section
     const navTabs = this.novaElement.querySelectorAll('.nova-nav-tab');
     navTabs.forEach(tab => {
       const handler = (e) => {
@@ -72,36 +71,6 @@ class NovaEnhancedController {
       
       // Make tabs focusable
       tab.setAttribute('tabindex', '0');
-    });
-  }
-
-  /**
-   * Setup collapsible sections functionality
-   */
-  setupCollapsibleSections() {
-    const collapsibleToggles = this.novaElement.querySelectorAll('.collapsible-toggle');
-    collapsibleToggles.forEach(toggle => {
-      const handler = (e) => {
-        e.preventDefault();
-        const expanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!expanded));
-        
-        const contentId = toggle.getAttribute('aria-controls');
-        const content = document.getElementById(contentId);
-        
-        if (content) {
-          if (expanded) {
-            content.classList.add('collapsed');
-            toggle.innerHTML = toggle.innerHTML.replace('▼', '▶');
-          } else {
-            content.classList.remove('collapsed');
-            toggle.innerHTML = toggle.innerHTML.replace('▶', '▼');
-          }
-        }
-      };
-      
-      toggle.addEventListener('click', handler);
-      this.eventListeners.push({ element: toggle, event: 'click', handler });
     });
   }
 
@@ -304,39 +273,27 @@ class NovaEnhancedController {
    */
   updateViewContent(view) {
     switch (view) {
-      case 'business-analytics':
-        this.renderBusinessAnalytics();
+      case 'business-analytics-main':
+        this.renderBusinessAnalyticsMain();
         break;
-      case 'investment-model':
-        this.renderInvestmentModel();
+      case 'pnl':
+        this.renderPnLAnalysis();
         break;
-      case 'staffing-resources':
-        this.renderStaffingResources();
-        break;
-      case 'execution-scheduling':
-        this.renderExecutionScheduling();
-        break;
-      case 'project-files':
-        this.renderProjectFiles();
+      case 'roi':
+        this.renderROIAnalysis();
         break;
       case 'scenarios':
         this.renderScenarios();
         break;
-      // Legacy support
-      case 'business-analytics-main':
-        this.renderBusinessAnalytics();
-        break;
-      case 'pnl':
-        this.renderInvestmentModel();
-        break;
-      case 'roi':
-        this.renderInvestmentModel();
-        break;
       case 'summary':
-        this.renderBusinessAnalytics();
+        this.renderSummary();
         break;
       case 'gantt':
-        this.renderExecutionScheduling();
+        this.renderGantt();
+        break;
+      // Legacy support
+      case 'project-selector':
+        this.renderBusinessAnalyticsMain();
         break;
       default:
         // Handle dynamic project tabs
@@ -823,115 +780,6 @@ class NovaEnhancedController {
             <!-- Results will be populated after calculation -->
           </div>
         `;
-      }
-    }
-  }
-
-  // ========== Updated Render Methods ==========
-
-  /**
-   * Render Business Analytics view
-   */
-  renderBusinessAnalytics() {
-    console.log('Rendering Business Analytics');
-    this.renderBusinessAnalyticsMain(); // Reuse existing logic
-  }
-
-  /**
-   * Render Investment Model view
-   */
-  renderInvestmentModel() {
-    console.log('Rendering Investment Model');
-    const panel = document.getElementById('nova-panel-investment-model');
-    if (panel) {
-      // Update KPI values if data is available
-      const stateManager = window.selectionStateManager;
-      if (stateManager) {
-        const projectTypes = stateManager.getSelectedProjectTypes();
-        const totalProjects = projectTypes.length;
-        
-        // Update the KPI display
-        const kpiItems = panel.querySelectorAll('.kpi-value');
-        if (kpiItems.length >= 3) {
-          kpiItems[0].textContent = totalProjects > 0 ? `$${totalProjects * 50000}` : '$0';
-          kpiItems[1].textContent = totalProjects > 0 ? '15%' : '0%';
-          kpiItems[2].textContent = totalProjects > 0 ? '3.2 years' : 'N/A';
-        }
-      }
-    }
-  }
-
-  /**
-   * Render Staffing & Resources view
-   */
-  renderStaffingResources() {
-    console.log('Rendering Staffing & Resources');
-    const panel = document.getElementById('nova-panel-staffing-resources');
-    if (panel) {
-      // Update KPI values if data is available
-      const stateManager = window.selectionStateManager;
-      if (stateManager) {
-        const projectTypes = stateManager.getSelectedProjectTypes();
-        const totalProjects = projectTypes.length;
-        
-        // Update the KPI display
-        const kpiItems = panel.querySelectorAll('.kpi-value');
-        if (kpiItems.length >= 3) {
-          kpiItems[0].textContent = totalProjects > 0 ? String(totalProjects * 5) : '0';
-          kpiItems[1].textContent = totalProjects > 0 ? '75%' : '0%';
-          kpiItems[2].textContent = totalProjects > 0 ? `$${totalProjects * 15000}` : '$0';
-        }
-      }
-    }
-  }
-
-  /**
-   * Render Execution & Scheduling view
-   */
-  renderExecutionScheduling() {
-    console.log('Rendering Execution & Scheduling');
-    const panel = document.getElementById('nova-panel-execution-scheduling');
-    if (panel) {
-      // Update KPI values if data is available
-      const stateManager = window.selectionStateManager;
-      if (stateManager) {
-        const projectTypes = stateManager.getSelectedProjectTypes();
-        const totalProjects = projectTypes.length;
-        
-        // Update the KPI display
-        const kpiItems = panel.querySelectorAll('.kpi-value');
-        if (kpiItems.length >= 3) {
-          kpiItems[0].textContent = totalProjects > 0 ? String(totalProjects * 10) : '0';
-          kpiItems[1].textContent = totalProjects > 0 ? '68%' : '0%';
-          kpiItems[2].textContent = totalProjects > 0 ? 'Yes' : 'N/A';
-        }
-      }
-    }
-  }
-
-  /**
-   * Render Project Files view
-   */
-  renderProjectFiles() {
-    console.log('Rendering Project Files');
-    const panel = document.getElementById('nova-panel-project-files');
-    if (panel) {
-      // Update file counts if data is available
-      const stateManager = window.selectionStateManager;
-      if (stateManager) {
-        const projectTypes = stateManager.getSelectedProjectTypes();
-        const totalProjects = projectTypes.length;
-        
-        // Update file category counts
-        const categoryItems = panel.querySelectorAll('.file-category p');
-        categoryItems.forEach((item, index) => {
-          if (totalProjects > 0) {
-            const fileCount = Math.floor(Math.random() * 5) + (index + 1);
-            item.textContent = `${fileCount} files`;
-          } else {
-            item.textContent = '0 files';
-          }
-        });
       }
     }
   }
