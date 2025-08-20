@@ -424,6 +424,18 @@
   margin-bottom: 1rem;
 }
 
+.demo-notice {
+  background: linear-gradient(135deg, #fff3cd 0%, #fdf5d7 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  color: #856404;
+  font-size: 0.875rem;
+  text-align: center;
+  font-weight: 500;
+}
+
 .placeholder-content .nova-btn {
   margin-top: 1rem;
 }
