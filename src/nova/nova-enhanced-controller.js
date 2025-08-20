@@ -22,7 +22,7 @@ class NovaEnhancedController {
    * Initialize the Nova enhanced controller
    */
   init() {
-    this.novaElement = document.getElementById('business-analytics');
+    this.novaElement = document.getElementById('nova');
     if (!this.novaElement) {
       console.warn('Nova element not found');
       return;
