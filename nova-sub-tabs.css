@@ -1,0 +1,475 @@
+/* Nova Sub-tabs Styling */
+
+/* P&L Analysis Styles */
+.pnl-analysis-container,
+.roi-analysis-container,
+.gantt-container {
+  padding: 1rem;
+}
+
+.analysis-header {
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #e1e5e9;
+  padding-bottom: 1rem;
+}
+
+.analysis-header h4 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.project-indicators {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.project-badge {
+  background: #3498db;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Metrics and Summary Styles */
+.pnl-summary-section,
+.roi-metrics-section {
+  margin-bottom: 2rem;
+}
+
+.summary-metrics,
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.metric-card {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.metric-value.positive {
+  color: #28a745;
+}
+
+.metric-value.negative {
+  color: #dc3545;
+}
+
+.metric-value.neutral {
+  color: #6c757d;
+}
+
+/* Charts Styles */
+.pnl-charts-section,
+.roi-charts-section {
+  margin-bottom: 2rem;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.chart-container {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.chart-container h6 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chart-container canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Table Styles */
+.breakdown-table {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.breakdown-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.breakdown-table th,
+.breakdown-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.breakdown-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.breakdown-table td.positive {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.breakdown-table td.negative {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.breakdown-table td.neutral {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* ROI Adjustment Controls */
+.roi-adjustment-section {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.adjustment-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: 500;
+  color: #495057;
+  min-width: 120px;
+}
+
+.control-group input[type="range"] {
+  flex: 1;
+  margin: 0 0.5rem;
+}
+
+.control-group span {
+  font-weight: 600;
+  color: #007bff;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Gantt Styles */
+.gantt-controls-section {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.view-modes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.view-mode-btn,
+.export-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #007bff;
+  background: white;
+  color: #007bff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-mode-btn:hover,
+.export-btn:hover {
+  background: #007bff;
+  color: white;
+}
+
+.view-mode-btn.active {
+  background: #007bff;
+  color: white;
+}
+
+.export-btn {
+  background: #28a745;
+  border-color: #28a745;
+  color: white;
+  margin-left: auto;
+}
+
+.export-btn:hover {
+  background: #218838;
+  border-color: #1e7e34;
+}
+
+/* Gantt Task Management */
+.gantt-task-management {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.gantt-form {
+  margin-bottom: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-field label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.form-field input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.form-field input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nova-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.nova-btn:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.nova-btn.secondary {
+  background: #6c757d;
+  border-color: #6c757d;
+}
+
+.nova-btn.secondary:hover {
+  background: #545b62;
+  border-color: #545b62;
+}
+
+/* Task List */
+.task-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.gantt-task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  background: white;
+}
+
+.task-info {
+  flex: 1;
+}
+
+.task-name {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.task-details {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.action-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.action-btn:hover {
+  background: #f8f9fa;
+}
+
+.delete-btn:hover {
+  background: #f8d7da;
+}
+
+/* Gantt Chart Container */
+.gantt-chart-section {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.gantt-chart-container {
+  min-height: 400px;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1rem;
+  background: #fafafa;
+}
+
+.no-tasks,
+.no-chart,
+.chart-error {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Gantt Today Highlight */
+.gantt-today-highlight {
+  background-color: #007bff !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+/* Error and Placeholder Content */
+.error-content,
+.placeholder-content {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #6c757d;
+}
+
+.error-content h4,
+.placeholder-content h4 {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.demo-notice {
+  background: linear-gradient(135deg, #fff3cd 0%, #fdf5d7 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  color: #856404;
+  font-size: 0.875rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.placeholder-content .nova-btn {
+  margin-top: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .summary-metrics,
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .adjustment-controls {
+    grid-template-columns: 1fr;
+  }
+  
+  .view-modes {
+    justify-content: center;
+  }
+  
+  .gantt-task-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .task-actions {
+    align-self: flex-end;
+  }
+}
