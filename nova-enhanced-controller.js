@@ -22,7 +22,7 @@ class NovaEnhancedController {
    * Initialize the Nova enhanced controller
    */
   init() {
-    this.novaElement = document.getElementById('business-analytics');
+    this.novaElement = document.getElementById('nova');
     if (!this.novaElement) {
       console.warn('Nova element not found');
       return;
@@ -255,7 +255,7 @@ class NovaEnhancedController {
     });
 
     // Update active panel
-    const panels = this.novaElement.querySelectorAll('.nova-view-panel');
+    const panels = this.novaElement.querySelectorAll('.nova-panel');
     panels.forEach(panel => {
       panel.classList.remove('active');
       if (panel.getAttribute('data-nova-panel') === view) {
@@ -488,8 +488,9 @@ class NovaEnhancedController {
   renderPnLAnalysis() {
     console.log('Rendering P&L Analysis view');
     
-    const dataElement = document.getElementById('nova-pnl-data');
-    if (!dataElement) return;
+    const panel = document.getElementById('nova-panel-pnl');
+    const container = panel?.querySelector('.nova-content-container');
+    if (!container) return;
     
     // Check if we have business data from centralized state
     const stateManager = window.selectionStateManager;
@@ -498,7 +499,7 @@ class NovaEnhancedController {
     
     if (hasBusinessData && businessType) {
       const projectTypes = stateManager.getSelectedProjectTypes();
-      dataElement.innerHTML = `
+      container.innerHTML = `
         <div class="pnl-analysis-container">
           <div class="analysis-header">
             <h4>P&L Analysis for ${businessType.toUpperCase()} Business</h4>
@@ -518,6 +519,22 @@ class NovaEnhancedController {
                 <span class="metric-value neutral">Calculating...</span>
               </div>
               <div class="metric-row">
+                <span class="metric-label">Net Profit:</span>
+                <span class="metric-value positive">Calculating...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="placeholder-content">
+          <h4>P&L Analysis</h4>
+          <p>Select a business type and projects in the Analytics Main tab to view P&L analysis.</p>
+        </div>
+      `;
+    }
+  }
                 <span class="metric-label">Net Profit:</span>
                 <span class="metric-value">Calculating...</span>
               </div>
@@ -547,8 +564,9 @@ class NovaEnhancedController {
   renderROIAnalysis() {
     console.log('Rendering ROI Analysis view');
     
-    const dataElement = document.getElementById('nova-roi-data');
-    if (!dataElement) return;
+    const panel = document.getElementById('nova-panel-roi');
+    const container = panel?.querySelector('.nova-content-container');
+    if (!container) return;
     
     const stateManager = window.selectionStateManager;
     const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
@@ -556,7 +574,7 @@ class NovaEnhancedController {
     
     if (hasBusinessData && businessType) {
       const projectTypes = stateManager.getSelectedProjectTypes();
-      dataElement.innerHTML = `
+      container.innerHTML = `
         <div class="roi-analysis-container">
           <div class="analysis-header">
             <h4>ROI Analysis for ${businessType.toUpperCase()} Business</h4>
@@ -591,6 +609,14 @@ class NovaEnhancedController {
         </div>
       `;
     } else {
+      container.innerHTML = `
+        <div class="placeholder-content">
+          <h4>ROI Analysis</h4>
+          <p>Select a business type and projects in the Analytics Main tab to view ROI analysis.</p>
+        </div>
+      `;
+    }
+  }
       dataElement.innerHTML = `
         <div class="no-data-prompt">
           <h4>Configure Business Model First</h4>
@@ -609,8 +635,9 @@ class NovaEnhancedController {
   renderScenarios() {
     console.log('Rendering Scenarios view');
     
-    const dataElement = document.getElementById('nova-scenarios-data');
-    if (!dataElement) return;
+    const panel = document.getElementById('nova-panel-scenarios');
+    const container = panel?.querySelector('.nova-content-container');
+    if (!container) return;
     
     const stateManager = window.selectionStateManager;
     const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
@@ -618,7 +645,7 @@ class NovaEnhancedController {
     
     if (hasBusinessData && businessType) {
       const projectTypes = stateManager.getSelectedProjectTypes();
-      dataElement.innerHTML = `
+      container.innerHTML = `
         <div class="scenarios-analysis-container">
           <div class="analysis-header">
             <h4>Scenario Analysis for ${businessType.toUpperCase()} Business</h4>
@@ -658,6 +685,20 @@ class NovaEnhancedController {
         </div>
       `;
     } else {
+      container.innerHTML = `
+        <div class="placeholder-content">
+          <h4>Scenario Analysis</h4>
+          <p>Select a business type and projects in the Analytics Main tab to view scenario analysis.</p>
+        </div>
+      `;
+    }
+  }
+              <em>Scenario analysis implementation pending...</em>
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
       dataElement.innerHTML = `
         <div class="no-data-prompt">
           <h4>Configure Business Model First</h4>
@@ -676,8 +717,9 @@ class NovaEnhancedController {
   renderSummary() {
     console.log('Rendering Summary view');
     
-    const dataElement = document.getElementById('nova-summary-data');
-    if (!dataElement) return;
+    const panel = document.getElementById('nova-panel-summary');
+    const container = panel?.querySelector('.nova-content-container');
+    if (!container) return;
     
     const stateManager = window.selectionStateManager;
     const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
@@ -687,7 +729,7 @@ class NovaEnhancedController {
       const projectTypes = stateManager.getSelectedProjectTypes();
       const activeProject = stateManager.getActiveProjectType();
       
-      dataElement.innerHTML = `
+      container.innerHTML = `
         <div class="summary-container">
           <div class="analysis-header">
             <h4>Executive Summary - ${businessType.toUpperCase()} Business</h4>
@@ -701,6 +743,32 @@ class NovaEnhancedController {
             <div class="summary-section">
               <h5>Business Configuration</h5>
               <ul class="config-list">
+                <li>Business Type: ${businessType}</li>
+                <li>Project Types: ${projectTypes.join(', ')}</li>
+                <li>Analysis Status: Active</li>
+              </ul>
+            </div>
+            <div class="summary-section">
+              <h5>Sensitivity Analysis</h5>
+              <canvas id="tornadoChart" width="400" height="300" style="max-width: 100%;"></canvas>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Trigger tornado chart rendering if available
+      if (typeof drawTornadoChart === 'function') {
+        setTimeout(() => drawTornadoChart(), 100);
+      }
+    } else {
+      container.innerHTML = `
+        <div class="placeholder-content">
+          <h4>Executive Summary</h4>
+          <p>Select a business type and projects in the Analytics Main tab to view the executive summary.</p>
+        </div>
+      `;
+    }
+  }
                 <li>Business Type: <strong>${businessType.toUpperCase()}</strong></li>
                 <li>Selected Projects: <strong>${projectTypes.join(', ')}</strong></li>
                 <li>State Management: <strong>Active</strong></li>
@@ -757,8 +825,56 @@ class NovaEnhancedController {
    * Render Gantt view
    */
   renderGantt() {
-    console.log('Gantt rendered');
-    // TODO: Implement Gantt chart functionality
+    console.log('Rendering Gantt Chart view');
+    
+    const panel = document.getElementById('nova-panel-gantt');
+    const container = panel?.querySelector('.nova-content-container');
+    if (!container) return;
+    
+    const stateManager = window.selectionStateManager;
+    const hasBusinessData = stateManager?.getSelectedProjectTypes().length > 0;
+    const businessType = stateManager?.getBusinessType();
+    
+    if (hasBusinessData && businessType) {
+      const projectTypes = stateManager.getSelectedProjectTypes();
+      container.innerHTML = `
+        <div class="gantt-container">
+          <div class="analysis-header">
+            <h4>Project Timeline - ${businessType.toUpperCase()} Business</h4>
+            <div class="project-indicators">
+              ${projectTypes.map(type => `<span class="project-badge">${type}</span>`).join('')}
+            </div>
+          </div>
+          <div class="gantt-content">
+            <p class="analysis-note">Project timeline visualization for selected business models...</p>
+            <div id="gantt-chart-container" class="chart-placeholder">
+              <p>Gantt chart implementation pending...</p>
+              <div class="mock-timeline">
+                <div class="timeline-item">
+                  <span class="timeline-label">Phase 1: Setup</span>
+                  <div class="timeline-bar" style="width: 25%; background: #00d4aa;"></div>
+                </div>
+                <div class="timeline-item">
+                  <span class="timeline-label">Phase 2: Launch</span>
+                  <div class="timeline-bar" style="width: 45%; background: #4fd1c7;"></div>
+                </div>
+                <div class="timeline-item">
+                  <span class="timeline-label">Phase 3: Growth</span>
+                  <div class="timeline-bar" style="width: 70%; background: #38b2ac;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="placeholder-content">
+          <h4>Gantt Chart</h4>
+          <p>Select a business type and projects in the Analytics Main tab to view the project timeline.</p>
+        </div>
+      `;
+    }
   }
 
   /**
