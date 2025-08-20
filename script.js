@@ -2530,7 +2530,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (mainChart && typeof mainChart.destroy === "function") mainChart.destroy();
 
-    mainChart = new Chart(mainChartElem.getContext('2d'), {
+    // Check if Chart.js is available
+    if (typeof Chart !== 'undefined') {
+      mainChart = new Chart(mainChartElem.getContext('2d'), {
       type: 'bar',
       data: data,
       options: {
@@ -2548,6 +2550,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     });
+    } else {
+      // Chart.js not available, show fallback message
+      mainChartElem.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; border: 1px dashed #ccc; border-radius: 4px;">Chart.js library not available<br><small>Main chart cannot be displayed</small></div>';
+    }
 
     let totalIncome = incomeArr.reduce((a,b)=>a+(b||0), 0);
     let totalExpenditure = expenditureArr.reduce((a,b)=>a+(b||0), 0);
@@ -2704,7 +2710,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let summaryChartElem = document.getElementById('summaryChart');
     if (summaryChart && typeof summaryChart.destroy === "function") summaryChart.destroy();
     if (summaryChartElem) {
-      summaryChart = new Chart(summaryChartElem.getContext('2d'), {
+      // Check if Chart.js is available
+      if (typeof Chart !== 'undefined') {
+        summaryChart = new Chart(summaryChartElem.getContext('2d'), {
         type: 'bar',
         data: {
           labels: ["Income", "Expenditure", "Repayment", "Final Bank", "Lowest Bank"],
@@ -2728,6 +2736,10 @@ document.addEventListener('DOMContentLoaded', function() {
           scales: { y: { beginAtZero: true } }
         }
       });
+      } else {
+        // Chart.js not available, show fallback message
+        summaryChartElem.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; border: 1px dashed #ccc; border-radius: 4px;">Chart.js library not available<br><small>Summary chart cannot be displayed</small></div>';
+      }
     }
 
     // Tornado Chart logic
@@ -2780,14 +2792,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
       let ctx = document.getElementById('tornadoChart').getContext('2d');
       if (window.tornadoChartObj && typeof window.tornadoChartObj.destroy === "function") window.tornadoChartObj.destroy();
-      window.tornadoChartObj = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: impact.map(x=>x.label),
-          datasets: [{ label: "Total Impact (€)", data: impact.map(x=>x.total), backgroundColor: '#1976d2' }]
-        },
-        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
-      });
+      
+      // Check if Chart.js is available
+      if (typeof Chart !== 'undefined') {
+        window.tornadoChartObj = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: impact.map(x=>x.label),
+            datasets: [{ label: "Total Impact (€)", data: impact.map(x=>x.total), backgroundColor: '#1976d2' }]
+          },
+          options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+        });
+      } else {
+        // Chart.js not available, show fallback message
+        const tornadoCanvas = document.getElementById('tornadoChart');
+        if (tornadoCanvas) {
+          tornadoCanvas.style.display = 'none';
+          const fallbackDiv = document.createElement('div');
+          fallbackDiv.style.cssText = 'text-align: center; padding: 20px; color: #666; border: 1px dashed #ccc; border-radius: 4px;';
+          fallbackDiv.innerHTML = 'Chart.js library not available<br><small>Tornado chart cannot be displayed</small>';
+          tornadoCanvas.parentNode.insertBefore(fallbackDiv, tornadoCanvas.nextSibling);
+        }
+      }
     }
     renderTornadoChart();
   }
@@ -3933,7 +3959,10 @@ function renderRoiCharts(investment, repayments) {
   if (roiLineElem) {
     const roiLineCtx = roiLineElem.getContext('2d');
     if (window.roiLineChart && typeof window.roiLineChart.destroy === "function") window.roiLineChart.destroy();
-    window.roiLineChart = new Chart(roiLineCtx, {
+    
+    // Check if Chart.js is available
+    if (typeof Chart !== 'undefined') {
+      window.roiLineChart = new Chart(roiLineCtx, {
       type: 'line',
       data: {
         labels: weekLabels.slice(0, repayments.length),
@@ -3974,6 +4003,10 @@ function renderRoiCharts(investment, repayments) {
         }
       }
     });
+    } else {
+      // Chart.js not available, show fallback message
+      roiLineElem.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; border: 1px dashed #ccc; border-radius: 4px;">Chart.js library not available<br><small>ROI Line chart cannot be displayed</small></div>';
+    }
   }
 
   // Pie chart (optional)
@@ -3981,7 +4014,10 @@ function renderRoiCharts(investment, repayments) {
   if (roiPieElem) {
     const roiPieCtx = roiPieElem.getContext('2d');
     if (window.roiPieChart && typeof window.roiPieChart.destroy === "function") window.roiPieChart.destroy();
-    window.roiPieChart = new Chart(roiPieCtx, {
+    
+    // Check if Chart.js is available
+    if (typeof Chart !== 'undefined') {
+      window.roiPieChart = new Chart(roiPieCtx, {
       type: 'pie',
       data: {
         labels: ["Total Repayments", "Unrecouped"],
@@ -3995,6 +4031,10 @@ function renderRoiCharts(investment, repayments) {
       },
       options: { responsive: true, maintainAspectRatio: false }
     });
+    } else {
+      // Chart.js not available, show fallback message
+      roiPieElem.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; border: 1px dashed #ccc; border-radius: 4px;">Chart.js library not available<br><small>ROI Pie chart cannot be displayed</small></div>';
+    }
   }
 }
 
@@ -4428,12 +4468,11 @@ setupExcelExport();
     updateLoanSummary();
     updateChartAndSummary();
     renderPnlTables();
-    renderSummaryTab();
+    renderSummaryTab(); // This already calls renderTornadoChart() internally
     renderRoiSection();
-    renderTornadoChart();
     
     // Update mapping summary banners on all tabs
-    updateMappingSummaryBanners();
+    // updateMappingSummaryBanners(); // Function not defined, commenting out to prevent errors
     
     // Update NPV display in modal if open
     updateNPVDisplayInModal();
