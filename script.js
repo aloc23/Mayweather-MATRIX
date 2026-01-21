@@ -1672,8 +1672,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (weekCheckboxStates && weekCheckboxStates.length > 0) {
       return weekCheckboxStates.map((checked, idx) => checked ? idx : null).filter(idx => idx !== null);
     } else {
-      // When no mapping is configured, return all week indices up to 52 weeks
-      return Array.from({length: 52}, (_, i) => i);
+      // When no mapping is configured, return all week indices up to 260 weeks (~5 years)
+      return Array.from({length: 260}, (_, i) => i);
     }
   }
 
@@ -1787,8 +1787,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[DEBUG] Current repaymentRows:', JSON.parse(JSON.stringify(repaymentRows)));
     
     // If no mapping is configured, use default week labels for repayment calculations
-    let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
+    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
     let arr = Array(actualWeekLabels.length).fill(0);
     
     repaymentRows.forEach(r => {
@@ -1894,8 +1894,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // New function to get explicit repayment dates and amounts for NPV/IRR calculations
   function getExplicitRepaymentSchedule() {
     let schedule = [];
-    let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
-    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
+    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
     
     repaymentRows.forEach(r => {
       let date, amount = r.amount;
@@ -2236,9 +2236,9 @@ document.addEventListener('DOMContentLoaded', function() {
    */
   function generateWeekDropdownOptions(selectedWeekIndex) {
     const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
-      Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+      Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
     const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-      Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+      Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
     
     let options = '<option value="">Select Week...</option>';
     
@@ -2264,9 +2264,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
-      Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+      Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
     const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-      Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+      Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
     
     const weekLabel = availableWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
     const weekDate = availableWeekStartDates[weekIndex];
@@ -2322,13 +2322,13 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (dateInput && typeof flatpickr !== 'undefined') {
         const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-          Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+          Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years (260 weeks)
         
         // Initialize Flatpickr
         const picker = flatpickr(dateInput, {
           dateFormat: 'Y-m-d',
           minDate: availableWeekStartDates[0],
-          maxDate: availableWeekStartDates[availableWeekStartDates.length - 1],
+          // Removed maxDate constraint to allow future date selection
           onChange: function(selectedDates, dateStr, instance) {
             if (selectedDates.length > 0) {
               const selectedDate = selectedDates[0];
@@ -2909,7 +2909,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Use mapped week labels if available, otherwise generate default weeks
       const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
-        Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+        Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
       
       // Populate dropdown with weeks after investment week
       for (let i = investmentWeekIndex + 1; i < availableWeekLabels.length; i++) {
@@ -3391,18 +3391,18 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function generateAndUpdateSuggestions() {
     const investment = parseFloat(document.getElementById('roiInvestmentInput').value) || 0;
-    const filteredWeeks = getFilteredWeekIndices ? getFilteredWeekIndices() : Array.from({length: 52}, (_, i) => i);
+    const filteredWeeks = getFilteredWeekIndices ? getFilteredWeekIndices() : Array.from({length: 260}, (_, i) => i); // Extended to ~5 years
     
-    // If no filtered weeks (no data loaded), use default 52-week timeline
-    const actualFilteredWeeks = filteredWeeks.length > 0 ? filteredWeeks : Array.from({length: 52}, (_, i) => i);
+    // If no filtered weeks (no data loaded), use default 260-week timeline (~5 years)
+    const actualFilteredWeeks = filteredWeeks.length > 0 ? filteredWeeks : Array.from({length: 260}, (_, i) => i);
     
     // Calculate actual week start dates
     const actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-      Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+      Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
     
     // Use GROUPED data for ROI calculations (proper time-based intervals)
-    const incomeArr = getIncomeArr ? getIncomeArr(true) : Array(52).fill(0);
-    const expenditureArr = getExpenditureArr ? getExpenditureArr(true) : Array(52).fill(0);
+    const incomeArr = getIncomeArr ? getIncomeArr(true) : Array(260).fill(0); // Extended to ~5 years
+    const expenditureArr = getExpenditureArr ? getExpenditureArr(true) : Array(260).fill(0); // Extended to ~5 years
     const cashflow = {income: incomeArr, expenditure: expenditureArr};
     
     const result = computeEnhancedSuggestedRepayments({
@@ -3803,11 +3803,11 @@ function renderRoiSection() {
   
   // Use dates calculated from spreadsheet column labels
   let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-    Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+    Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
   
   // Handle case when no week mapping is available - use default weeks
   let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
-    Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+    Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
   
   const investmentDate = actualWeekStartDates[investmentWeek] || null;
   
@@ -4234,9 +4234,9 @@ function setupExcelExport() {
       
       // Use mapped week labels if available
       const actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
-        Array.from({length: 52}, (_, i) => `Week ${i + 1}`);
+        Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
       const actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-        Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+        Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
       
       // Sheet 1: Repayments Inputted (Actual)
       const actualData = [];
