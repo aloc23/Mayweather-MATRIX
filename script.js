@@ -2162,9 +2162,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (repayment.editing) {
       // Editing mode - provide both date picker and week dropdown
       const weekOptions = generateWeekDropdownOptions(repayment.weekIndex);
-      const selectedDate = repayment.weekIndex !== undefined && weekStartDates && weekStartDates[repayment.weekIndex]
-        ? weekStartDates[repayment.weekIndex].toISOString().split('T')[0]
-        : '';
       
       return `
         <td>
