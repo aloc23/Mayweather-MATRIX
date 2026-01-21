@@ -5,6 +5,15 @@ document.addEventListener('DOMContentLoaded', function() {
   let userSpecifiedBaseYear = null;
   
   /**
+   * Get the default base date for fallback calculations
+   * Uses current year to ensure the application remains functional in future years
+   */
+  function getDefaultBaseDate() {
+    const now = new Date();
+    return new Date(now.getFullYear(), 0, 1); // January 1st of current year
+  }
+  
+  /**
    * Parse date from column header text
    * Supports formats like "Sat 28/06/2025", "28/06/2025", "28 Jun 2025", etc.
    */
@@ -1788,7 +1797,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // If no mapping is configured, use default week labels for repayment calculations
     let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
-    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 260}, (_, i) => {
+      const baseDate = getDefaultBaseDate();
+      return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+    }); // Extended to ~5 years with dynamic base year
     let arr = Array(actualWeekLabels.length).fill(0);
     
     repaymentRows.forEach(r => {
@@ -1895,7 +1907,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function getExplicitRepaymentSchedule() {
     let schedule = [];
     let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
-    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+    let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : Array.from({length: 260}, (_, i) => {
+      const baseDate = getDefaultBaseDate();
+      return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+    }); // Extended to ~5 years with dynamic base year
     
     repaymentRows.forEach(r => {
       let date, amount = r.amount;
@@ -2238,7 +2253,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
       Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
     const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-      Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+      Array.from({length: 260}, (_, i) => {
+        const baseDate = getDefaultBaseDate();
+        return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+      }); // Extended to ~5 years with dynamic base year
     
     let options = '<option value="">Select Week...</option>';
     
@@ -2266,7 +2284,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const availableWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
       Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
     const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-      Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+      Array.from({length: 260}, (_, i) => {
+        const baseDate = getDefaultBaseDate();
+        return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+      }); // Extended to ~5 years with dynamic base year
     
     const weekLabel = availableWeekLabels[weekIndex] || `Week ${weekIndex + 1}`;
     const weekDate = availableWeekStartDates[weekIndex];
@@ -2322,7 +2343,10 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (dateInput && typeof flatpickr !== 'undefined') {
         const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-          Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years (260 weeks)
+          Array.from({length: 260}, (_, i) => {
+            const baseDate = getDefaultBaseDate();
+            return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+          }); // Extended to ~5 years (260 weeks) with dynamic base year
         
         // Initialize Flatpickr
         const picker = flatpickr(dateInput, {
@@ -3398,7 +3422,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Calculate actual week start dates
     const actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-      Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+      Array.from({length: 260}, (_, i) => {
+        const baseDate = getDefaultBaseDate();
+        return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+      }); // Extended to ~5 years with dynamic base year
     
     // Use GROUPED data for ROI calculations (proper time-based intervals)
     const incomeArr = getIncomeArr ? getIncomeArr(true) : Array(260).fill(0); // Extended to ~5 years
@@ -3803,7 +3830,10 @@ function renderRoiSection() {
   
   // Use dates calculated from spreadsheet column labels
   let actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-    Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+    Array.from({length: 260}, (_, i) => {
+      const baseDate = getDefaultBaseDate();
+      return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+    }); // Extended to ~5 years with dynamic base year
   
   // Handle case when no week mapping is available - use default weeks
   let actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
@@ -4236,7 +4266,10 @@ function setupExcelExport() {
       const actualWeekLabels = weekLabels && weekLabels.length > 0 ? weekLabels : 
         Array.from({length: 260}, (_, i) => `Week ${i + 1}`); // Extended to ~5 years
       const actualWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
-        Array.from({length: 260}, (_, i) => new Date(2025, 0, 1 + i * 7)); // Extended to ~5 years
+        Array.from({length: 260}, (_, i) => {
+          const baseDate = getDefaultBaseDate();
+          return new Date(baseDate.getFullYear(), 0, 1 + i * 7);
+        }); // Extended to ~5 years with dynamic base year
       
       // Sheet 1: Repayments Inputted (Actual)
       const actualData = [];
