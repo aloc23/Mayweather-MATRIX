@@ -2160,15 +2160,32 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function createRepaymentRowHTML(repayment, index) {
     if (repayment.editing) {
-      // Editing mode - use week dropdown instead of date picker
+      // Editing mode - provide both date picker and week dropdown
       const weekOptions = generateWeekDropdownOptions(repayment.weekIndex);
+      const selectedDate = repayment.weekIndex !== undefined && weekStartDates && weekStartDates[repayment.weekIndex]
+        ? weekStartDates[repayment.weekIndex].toISOString().split('T')[0]
+        : '';
+      
       return `
         <td>
-          <select class="repayment-week-select modern-select" 
-                  data-field="weekIndex"
-                  data-index="${index}">
-            ${weekOptions}
-          </select>
+          <div class="date-picker-container">
+            <div class="date-input-wrapper">
+              <input type="text" 
+                     class="repayment-date-input modern-input" 
+                     placeholder="Select date..."
+                     data-field="date"
+                     data-index="${index}"
+                     id="dateInput-${index}">
+              <span class="calendar-icon">📅</span>
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray-500);">or</div>
+            <select class="repayment-week-select modern-select" 
+                    data-field="weekIndex"
+                    data-index="${index}"
+                    style="margin-top: 0.25rem;">
+              ${weekOptions}
+            </select>
+          </div>
         </td>
         <td>
           <input type="number" 
@@ -2301,6 +2318,57 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       });
+      
+      // Initialize Flatpickr for date input
+      const dateInput = row.querySelector('.repayment-date-input');
+      const weekSelect = row.querySelector('.repayment-week-select');
+      
+      if (dateInput && typeof flatpickr !== 'undefined') {
+        const availableWeekStartDates = weekStartDates && weekStartDates.length > 0 ? weekStartDates : 
+          Array.from({length: 52}, (_, i) => new Date(2025, 0, 1 + i * 7));
+        
+        // Initialize Flatpickr
+        const picker = flatpickr(dateInput, {
+          dateFormat: 'Y-m-d',
+          minDate: availableWeekStartDates[0],
+          maxDate: availableWeekStartDates[availableWeekStartDates.length - 1],
+          onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length > 0) {
+              const selectedDate = selectedDates[0];
+              
+              // Find the closest week index for this date
+              let closestWeekIndex = 0;
+              let minDiff = Math.abs(selectedDate - availableWeekStartDates[0]);
+              
+              for (let i = 1; i < availableWeekStartDates.length; i++) {
+                const diff = Math.abs(selectedDate - availableWeekStartDates[i]);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  closestWeekIndex = i;
+                }
+              }
+              
+              // Update the repayment week index
+              repaymentRows[index].weekIndex = closestWeekIndex;
+              
+              // Sync the week dropdown
+              if (weekSelect) {
+                weekSelect.value = closestWeekIndex;
+              }
+            }
+          }
+        });
+        
+        // Sync week dropdown to date picker
+        if (weekSelect) {
+          weekSelect.addEventListener('change', function() {
+            const weekIndex = parseInt(this.value);
+            if (!isNaN(weekIndex) && availableWeekStartDates[weekIndex]) {
+              picker.setDate(availableWeekStartDates[weekIndex]);
+            }
+          });
+        }
+      }
     }
   }
   
@@ -4120,15 +4188,21 @@ function updateNPVDisplayInModal() {
 
 // --- SUGGESTION BUTTON EVENT ---
 document.getElementById('showSuggestedRepaymentsBtn').addEventListener('click', function() {
+  const icon = this.querySelector('.btn-toggle-icon');
+  
   if (!showSuggestions) {
     // Generate suggestions using current target IRR and installment count
     showSuggestions = true;
-    this.textContent = 'Hide Suggested Repayments';
+    this.classList.add('active');
+    if (icon) icon.textContent = '▲';
+    this.innerHTML = '<span class="btn-toggle-icon">▲</span> Hide Suggested Repayments';
     generateAndUpdateSuggestions();
   } else {
     // Hide suggestions
     clearRoiSuggestions();
-    this.textContent = 'Show Suggested Repayments';
+    this.classList.remove('active');
+    if (icon) icon.textContent = '▼';
+    this.innerHTML = '<span class="btn-toggle-icon">▼</span> Show Suggested Repayments';
     renderRoiSection();
   }
 });
@@ -4140,7 +4214,10 @@ function clearRoiSuggestions() {
   achievedSuggestedIRR = null;
   clearSuggestionWarnings();
   const btn = document.getElementById('showSuggestedRepaymentsBtn');
-  if (btn) btn.textContent = 'Show Suggested Repayments';
+  if (btn) {
+    btn.classList.remove('active');
+    btn.innerHTML = '<span class="btn-toggle-icon">▼</span> Show Suggested Repayments';
+  }
 }
 
 // -------------------- EXCEL EXPORT FUNCTIONALITY --------------------

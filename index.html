@@ -18,6 +18,10 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   
+  <!-- Flatpickr Date Picker Library -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+  
   <!-- Stylesheets -->
   <link rel="stylesheet" href="style.css">
   <!-- Nova System Stylesheets -->
@@ -370,7 +374,10 @@
           <div class="summary-controls">
             <span id="suggestedIrrDisplay" class="target-irr-display">Target IRR: 20%</span>
             <button id="editTargetIrrBtn" class="btn-secondary">Edit Target IRR/NPV</button>
-            <button id="showSuggestedRepaymentsBtn" class="btn-accent">Show Suggested Repayments</button>
+            <button id="showSuggestedRepaymentsBtn" class="btn-accent">
+              <span class="btn-toggle-icon">▼</span>
+              Show Suggested Repayments
+            </button>
           </div>
         </div>
         
